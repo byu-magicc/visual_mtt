@@ -14,6 +14,8 @@ endif()
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
 	roscpp
+  std_msgs
+  message_generation
 )
 
 find_package(OpenCV 3 REQUIRED)
@@ -67,11 +69,11 @@ message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+# Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -103,6 +105,7 @@ message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
+  CATKIN_DEPENDS message_runtime
 #  INCLUDE_DIRS include
 #  LIBRARIES visual_mtt2
 #  CATKIN_DEPENDS other_catkin_pkg
