@@ -124,7 +124,8 @@ include_directories( include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_rransac
-	src/rransac/node.cpp src/rransac/rransac.cpp)
+	src/rransac/node.cpp
+  src/rransac/rransac.cpp)
 
 add_executable(${PROJECT_NAME}_visual_frontend
 	src/visual_frontend/node.cpp

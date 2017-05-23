@@ -6,7 +6,7 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "rransac_node");
   ros::NodeHandle nh;
 
-	std::cout << "node started" << std::endl;
+	std::cout << "rransac_node started" << std::endl; // temporary debugging
 
   // receive parameters from launchfile
   // bool x, y, z;

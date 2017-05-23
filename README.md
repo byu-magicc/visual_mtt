@@ -14,3 +14,4 @@ This ROS package includes a visual measurement frontend that feeds the **R-RANSA
 * Provide options for features (GFTT, ORB)
 * Expand the `Nth frame` functionality to support decimation and "sliding". This would provide higher update rates while still separating frames enough to detect movement. Decimation and sliding params would be chosen based on computational limitations. Homography calculation would need to take this into account.
 * Clean IMU implementation (needs details)
+* Ability to see visualization of measurements generated from each source as well as dynamic reconfiguration of thresholds.

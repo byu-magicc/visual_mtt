@@ -18,15 +18,18 @@ RRANSAC::RRANSAC()
 
 void RRANSAC::callback(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
-	// homographies and measurements arrive synchronized
+	// homographies and measurements arrive in one message synchronized
+  // for the current "scan"
 
-	// separate homographies from measurements
+	// separate homography from measurements
 
 	// apply measurements to tracker_
 
 	// apply homographies to tracker_
 
 	// retrieve good models and publish
+  // the message will have a timestamp associated with the frame of this
+  // scan AND the current time (timestamp of model updates)
 
 }
 
