@@ -13,8 +13,10 @@ endif()
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  cv_bridge
 	roscpp
   std_msgs
+  sensor_msgs
   message_generation
 )
 
@@ -72,7 +74,8 @@ message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 # Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
+  std_msgs
+  sensor_msgs  # Or other packages containing msgs
 )
 
 ################################################
@@ -105,7 +108,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS cv_bridge message_runtime
 #  INCLUDE_DIRS include
 #  LIBRARIES visual_mtt2
 #  CATKIN_DEPENDS other_catkin_pkg

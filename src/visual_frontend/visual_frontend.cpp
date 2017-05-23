@@ -22,25 +22,38 @@ VisualFrontend::VisualFrontend()
 }
 
 
-void VisualFrontend::callback_video(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
+void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
-  // BIG QUESTION:
-  // imu data and camera are supposed to be perfectly synchronized
-  // does this mean that we'll expect "video" and "imu" messages to have
-  // identical timestamps? or will this be one message?
-  // ---------------------------------------------------
-
-
-
-	// perform decimation logic based on params and decide whether
-  // to keep frame or skip
-
-  // resize frame to lower resolution
-
-  // add (high and low res) frames to collections (class members)
+  // future work TODO:
+  // decimation logic (Nth frame)
+  // resize frame to lower resolution (keep both)
     // a short history is needed for the low res for the sliding
     // a short history is needed for the high res so the track recognition can
     // locate the high-res frame associated with the track it's subscribing to
+
+
+  // generate timestamp
+  //
+
+  // convert message data into OpenCV type cv::Mat
+	cv::Mat frame = cv_bridge::toCvCopy(data, "bgr8")->image;
+
+  // add frame to recent history
+  //
+
+
+  cv::imshow("live image", frame);
+
+  // get the input from the keyboard
+	char keyboard = cv::waitKey(10);
+	if(keyboard == 'q')
+		ros::shutdown();
+
+
+
+
+
+
 
   // wait for homography calculation before executing measurement sources
 
