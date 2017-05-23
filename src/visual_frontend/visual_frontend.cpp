@@ -4,7 +4,13 @@ namespace visual_mtt {
 
 VisualFrontend::VisualFrontend()
 {
-  std::cout << "initializing VisualFrontend object inside node" << std::endl; // temporary
+  // receive parameters from launchfile
+  // bool x, y, z;
+	// nh.param<bool>("show_x", x, false);
+	// nh.param<bool>("show_y", y, false);
+	// nh.param<bool>("show_z", z, false);
+  // the original code used "nh_private_": "ros::NodeHandle nh_private_("~");"
+
   std::cout << "initialized VisualFrontend object inside node" << std::endl; // temporary
 
   // ROS stuff
