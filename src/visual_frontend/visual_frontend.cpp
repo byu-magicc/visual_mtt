@@ -33,16 +33,21 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
 
   // generate timestamp
-  //
+  ros::Time frame_time = ros::Time::now(); // make class member
 
   // convert message data into OpenCV type cv::Mat
-	cv::Mat frame = cv_bridge::toCvCopy(data, "bgr8")->image;
+	hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
 
-  // add frame to recent history
-  //
+  // generate standard definition image
+  cv::resize(hd_frame_in, sd_frame_in, sd_frame_in.size(), 0, 0, cv::INTER_LINEAR);
 
+  // make frames class members
+  add_frame(hd_frame_in, hd_frame);
+  add_frame(sd_frame_in, sd_frame);
 
-  cv::imshow("live image", frame);
+  // display frames
+  cv::imshow("hd image", hd_frame);
+  cv::imshow("sd image", sd_frame);
 
   // get the input from the keyboard
 	char keyboard = cv::waitKey(10);
@@ -51,11 +56,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
 
 
-
-
-
-
   // wait for homography calculation before executing measurement sources
+  // if there is no IMU, call the homography filter
 
 }
 
@@ -95,6 +97,18 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
   // video associated with the most recent update to maintain id descriptors.)
 
 }
+
+
+
+void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
+{
+
+  // why does this need a method?
+  // see https://github.com/jdmillard/opencv-cuda
+  memberMat = newMat;
+
+}
+
 
 
 
