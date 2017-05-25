@@ -14,10 +14,14 @@ VisualFrontend::VisualFrontend()
   std::cout << "initialized VisualFrontend object inside node" << std::endl; // temporary
 
   // ROS stuff
-  sub_video = nh.subscribe("video", 1, &VisualFrontend::callback_video, this);
-  sub_imu = nh.subscribe("imu", 1, &VisualFrontend::callback_imu, this);
+  sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
+  sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
-	pub = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
+	pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
+
+  SourceFeatures test_instantiation;
+  test_instantiation.add_handle(this);
+  test_instantiation.retrieve_info();
 
 }
 
@@ -53,18 +57,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // if IMU not ignored, call the homography_filter (filter update)
   homography_calculator_.calculate_homography();                                // (make smart pointer)
 
-
   // call measurement sources execution
       // (use updated recent images)
       // (use already-generated feature correpsondences)
       // (use already-generated homography)
       // (use updated recent track data)
+  generate_measurements();
 
   // publish measurements and homography
-
-
-
-
 
 
   // display frames
@@ -114,6 +114,21 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 
 }
 
+
+void VisualFrontend::generate_measurements()
+{
+
+  for (int i=0; i<sources_.size(); i++)
+  {
+    sources_[i].generate_measurements();
+  }
+  // pass "this" class' reference in? so the sources can indiscriminately use
+  // whatever valuable information they need? and maintain polymorphism.
+  // (frame history, homography, features/feature velocities, recent tracks)
+
+  // see source_measurement.h for question about measurement structure
+
+}
 
 
 

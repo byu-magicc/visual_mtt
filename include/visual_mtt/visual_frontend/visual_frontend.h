@@ -24,11 +24,15 @@ namespace visual_mtt {
 
     void add_frame(cv::Mat&, cv::Mat&); // second argument: uMat
 
+    void generate_measurements();
+
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in = cv::Mat(480, 640, CV_8UC3);                           // TODO: parameterize dimensions
 
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
+
+    int test_val = 24;
 
   private:
     // ROS
@@ -36,12 +40,14 @@ namespace visual_mtt {
 		ros::Subscriber sub_video;
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
-		ros::Publisher pub;
+		ros::Publisher  pub;
 
-    // make smart pointers:
+    // key algorithm blocks
 		HomographyCalculator homography_calculator_;
     FeatureManager feature_manager_;
-    SourceFeatures source_features_;
+
+    // measurement sources
+    std::vector<SourceMeasurement> sources_;
 
 	};
 
