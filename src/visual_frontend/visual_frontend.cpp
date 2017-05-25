@@ -19,6 +19,8 @@ VisualFrontend::VisualFrontend()
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
 	pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
 
+  feature_manager_ = cv::Ptr<FeatureManager>(new FeatureManager());
+
   SourceFeatures test_instantiation;
   test_instantiation.add_handle(this);
   test_instantiation.retrieve_info();
@@ -37,12 +39,12 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
 
   // generate timestamp
-  ros::Time frame_timestamp = ros::Time::now(); // make class member
+  frame_timestamp = ros::Time::now();
 
   // convert message data into OpenCV type cv::Mat
 	hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
 
-  // generate standard definition image
+  // downsize image to standard definition
   cv::resize(hd_frame_in, sd_frame_in, sd_frame_in.size(), 0, 0, cv::INTER_LINEAR);
 
   // add frames to recent history
@@ -50,7 +52,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   add_frame(sd_frame_in, sd_frame);
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences();                                      // (make smart pointer)
+  feature_manager_->find_correspondences(sd_frame);                              // (make smart pointer)
 
   // consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_generator (feature correspondences)

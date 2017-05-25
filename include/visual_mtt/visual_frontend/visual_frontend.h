@@ -32,7 +32,11 @@ namespace visual_mtt {
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
-    int test_val = 24;
+    // after RC1 make these to be collections of recent frames and associated
+		// timestamps, "add_frame" will sort of become a manager of these histories
+		// (and provide CPU/GPU support of course)
+
+		ros::Time frame_timestamp;
 
   private:
     // ROS
@@ -43,8 +47,9 @@ namespace visual_mtt {
 		ros::Publisher  pub;
 
     // key algorithm blocks
+		cv::Ptr<FeatureManager> feature_manager_;
 		HomographyCalculator homography_calculator_;
-    FeatureManager feature_manager_;
+
 
     // measurement sources
     std::vector<SourceMeasurement> sources_;
