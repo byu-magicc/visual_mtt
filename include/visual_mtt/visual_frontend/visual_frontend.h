@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
+#include "homography_calculator.h"
 
 namespace visual_mtt {
 
@@ -34,6 +35,8 @@ namespace visual_mtt {
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
 		ros::Publisher pub;
+
+		HomographyCalculator homography_calculator_;
 
 	};
 

@@ -54,23 +54,30 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 	if(keyboard == 'q')
 		ros::shutdown();
 
+  // manage features
+      // could be LK, NN, Brute Force
+
+  // consider if IMU is ignored (param from launchfile)
+  // if IMU     ignored, call homography_generator (feature correspondences)
+  homography_calculator_.calculate_homography();                                // (make smart pointer)
+  // if IMU not ignored, call the homography_filter-> update (image input)
+  //homography_filter_->
 
 
-  // wait for homography calculation before executing measurement sources
-  // if there is no IMU, call the homography filter
+  // call measurement sources execution
+      // (use updated recent images)
+      // (use already-generated feature correpsondences)
+      // (use already-generated homography)
+      // (use updated recent track data)
+
+  // publish measurements and homography
 
 }
 
 void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
-	// see BIG QUESTION above
-
-  // another QUESTION:
-  // if the frame and IMU don't come in together in the same message, will
-  // we be getting the full IMU at 1000+ Hz for use in the homography filter?
-  // NOTE: need better understanding of homography filter to answer this.
-
-  // another QUESTION:
+  // we expect to be getting data for this at >500 Hz
+  //
   // for in-frame tracking, we'll need 2 homographies:
   // one between the sliding frames for background subtraction
   // one between the two recent frames for updating history and estimates
@@ -78,12 +85,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
   // NOTE: need better understanding of homography filter to answer this.
   // ---------------------------------------------------
 
-  // add IMU measurements to class
-
-  // call homography filter
-
-  // execute measurement sources (publishing occurs at the end)
-
+  // if IMU not ignored (from launchfile), call homography filter (IMU input)
 
 
 }
@@ -103,7 +105,7 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
 void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
 {
 
-  // why does this need a method?
+  // why does this need its own method?
   // see https://github.com/jdmillard/opencv-cuda
   memberMat = newMat;
 
