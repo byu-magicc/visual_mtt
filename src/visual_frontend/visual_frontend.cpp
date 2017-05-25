@@ -33,7 +33,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
 
   // generate timestamp
-  ros::Time frame_time = ros::Time::now(); // make class member
+  ros::Time frame_timestamp = ros::Time::now(); // make class member
 
   // convert message data into OpenCV type cv::Mat
 	hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -41,27 +41,17 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // generate standard definition image
   cv::resize(hd_frame_in, sd_frame_in, sd_frame_in.size(), 0, 0, cv::INTER_LINEAR);
 
-  // make frames class members
+  // add frames to recent history
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
-  // display frames
-  cv::imshow("hd image", hd_frame);
-  cv::imshow("sd image", sd_frame);
-
-  // get the input from the keyboard
-	char keyboard = cv::waitKey(10);
-	if(keyboard == 'q')
-		ros::shutdown();
-
-  // manage features
-      // could be LK, NN, Brute Force
+  // manage features (could be LK, NN, Brute Force)
+  feature_manager_.find_correspondences();                                      // (make smart pointer)
 
   // consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_generator (feature correspondences)
+  // if IMU not ignored, call the homography_filter (filter update)
   homography_calculator_.calculate_homography();                                // (make smart pointer)
-  // if IMU not ignored, call the homography_filter-> update (image input)
-  //homography_filter_->
 
 
   // call measurement sources execution
@@ -72,6 +62,19 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
   // publish measurements and homography
 
+
+
+
+
+
+  // display frames
+  cv::imshow("hd image", hd_frame);
+  cv::imshow("sd image", sd_frame);
+
+  // get the input from the keyboard
+	char keyboard = cv::waitKey(10);
+	if(keyboard == 'q')
+		ros::shutdown();
 }
 
 void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation

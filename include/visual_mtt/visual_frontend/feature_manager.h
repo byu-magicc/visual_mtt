@@ -6,6 +6,7 @@ class FeatureManager
 public:
 	FeatureManager();
 
+  void find_correspondences();
 	void find_correspondences(cv::Mat& prev_frame, cv::Mat& frame,
                             std::vector<cv::Point2f>& prev_features,
                             std::vector<cv::Point2f>& features,

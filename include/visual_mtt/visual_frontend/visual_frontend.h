@@ -7,6 +7,8 @@
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 #include "homography_calculator.h"
+#include "feature_manager.h"
+#include "source_features.h"
 
 namespace visual_mtt {
 
@@ -36,7 +38,10 @@ namespace visual_mtt {
     ros::Subscriber sub_tracks;
 		ros::Publisher pub;
 
+    // make smart pointers:
 		HomographyCalculator homography_calculator_;
+    FeatureManager feature_manager_;
+    SourceFeatures source_features_;
 
 	};
 

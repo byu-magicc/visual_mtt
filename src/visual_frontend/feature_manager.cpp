@@ -12,7 +12,11 @@ FeatureManager::FeatureManager()
 
 }
 
-
+void FeatureManager::find_correspondences()
+{
+  // dummy method for compilation
+  std::cout << "generating feature correspondences" << std::endl;
+}
 void FeatureManager::find_correspondences(cv::Mat& prev_frame, cv::Mat& frame,
                                           std::vector<cv::Point2f>& prev_features,
                                           std::vector<cv::Point2f>& features,

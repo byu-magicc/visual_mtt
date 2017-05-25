@@ -133,7 +133,9 @@ add_executable(${PROJECT_NAME}_rransac
 add_executable(${PROJECT_NAME}_visual_frontend
 	src/visual_frontend/node.cpp
 	src/visual_frontend/visual_frontend.cpp
-  src/visual_frontend/homography_calculator.cpp)
+  src/visual_frontend/homography_calculator.cpp
+  src/visual_frontend/feature_manager.cpp
+  src/visual_frontend/source_features.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

@@ -10,13 +10,14 @@ HomographyCalculator::HomographyCalculator()
 }
 
 
+void HomographyCalculator::calculate_homography()
+{
+  // dummy method for compilation
+  std::cout << "generating homography" << std::endl;
+}
 void HomographyCalculator::calculate_homography(std::vector<cv::Point2f>& prev_features,
                                                 std::vector<cv::Point2f>& features)
 {
-
   // use features to find homography
-  // why does this need its own class? so that it can be called whenever needed
-  // independent of the feature management, for modularity, and the feature
-  // management is very cluttered.
-
+  // this will probably merge with the homography_filter class eventually
 }
