@@ -5,9 +5,10 @@
 // - provide options to use different feature types (ORB, GFTT)
 // - provide options to use different feature matching methods (LK, NN, BF)
 
+
 FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 	double corner_quality, double min_corner_quality, double max_corner_quality, double corner_quality_alpha,
-	int nominal_corner_count, int pyr_size_param, int save_Nth_frame)
+	int nominal_corner_count, int pyr_size_param)
 {
 
   // develop a nice param setup (follow rransac repo pattern)
@@ -26,19 +27,8 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 	corner_quality_alpha_ = corner_quality_alpha;
 	nominal_corner_count_ = nominal_corner_count;
 	pyr_size_param_       = pyr_size_param;
-	save_Nth_frame_       = save_Nth_frame;
 
-	// If non-zero, write every Nth frame to file
-	// Requires "show_frame" to the true
 
-	frame_count_ = 0;
-
-	if (save_Nth_frame_ < 0)
-	{
-		save_Nth_frame_ = 0;
-	}
-
-	last_homograpy_good_ = false;
 	pyr_size_ = cv::Size(pyr_size_param_, pyr_size_param_);
 
 	// Create an adjusting feature point detector.
@@ -60,11 +50,8 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 #endif
 
 	kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
-
-
-
-
 }
+
 
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
@@ -161,7 +148,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 		std::cout << "few features found in this frame." << std::endl;
     // set a flag so homography calculator knows TODO
 	}
-
 }
 
 
