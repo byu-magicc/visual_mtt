@@ -1,8 +1,8 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include "visual_frontend/source_measurement.h"
+#include "visual_frontend/source.h"
 
-class SourceFeatures: public SourceMeasurement
+class SourceFeatures: public Source
 {
 public:
 	SourceFeatures();
