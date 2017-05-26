@@ -17,13 +17,16 @@ public:
 
   void set_parameters();
 	void find_correspondences(cv::Mat& frame);
+	static void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
 
 private:
 
 	bool first_image_;
-	std::vector<cv::Point2f> last_features_;
+	std::vector<cv::Point2f> prev_features_;
+	std::vector<cv::Point2f> prev_matched_;
 	std::vector<cv::Point2f> next_matched_;
-	cv::Mat last_image_;
+
+	//cv::Mat last_image_; // not used
 
 	// Node parameters
 	bool compute_stats_;
