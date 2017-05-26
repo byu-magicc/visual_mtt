@@ -23,10 +23,11 @@ VisualFrontend::VisualFrontend()
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
-  // test inheritance (temporary)
-  SourceFeatures test_instantiation;
-
-
+  // populate vector of desired measurement sources
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
 }
 
 
@@ -126,7 +127,7 @@ void VisualFrontend::generate_measurements()
 
   for (int i=0; i<sources_.size(); i++)
   {
-    sources_[i].generate_measurements();
+    sources_[i]->generate_measurements();
   }
   // each source will recieve (and can ignore or use):
     // recent images

@@ -6,6 +6,7 @@ class SourceFeatures: public SourceMeasurement
 {
 public:
 	SourceFeatures();
+	void generate_measurements(){std::cout << "specific source" << std::endl;}
 
 
 private:

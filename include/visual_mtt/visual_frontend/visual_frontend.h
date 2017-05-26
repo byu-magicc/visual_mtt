@@ -51,7 +51,7 @@ namespace visual_mtt {
 		std::shared_ptr<HomographyCalculator> homography_calculator_;
 
     // measurement sources
-    std::vector<SourceMeasurement> sources_;
+		std::vector<std::shared_ptr<SourceMeasurement>> sources_;
 
 	};
 

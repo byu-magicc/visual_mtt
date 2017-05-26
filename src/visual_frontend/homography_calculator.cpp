@@ -18,6 +18,6 @@ void HomographyCalculator::calculate_homography(std::vector<cv::Point2f>& prev_f
 
 
   // dummy method for compilation
-  std::cout << "generating homography legit" << std::endl;
+  std::cout << "generating homography" << std::endl;
 
 }

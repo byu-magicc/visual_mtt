@@ -19,5 +19,6 @@ public:
   // it will be immediately transformed to a ros message
 
 private:
+  std::string name;
 
 };
