@@ -8,11 +8,5 @@ SourceFeatures::SourceFeatures()
 
 }
 
-void SourceFeatures::retrieve_info()
-{
-  std::cout << "---------" << std::endl;
-  //int gotten = saved_owner_->test_val; // rh
-
-}
 
 

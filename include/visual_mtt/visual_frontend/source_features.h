@@ -7,9 +7,6 @@ class SourceFeatures: public SourceMeasurement
 public:
 	SourceFeatures();
 
-  void retrieve_info(); // rh
-
-
 
 private:
 

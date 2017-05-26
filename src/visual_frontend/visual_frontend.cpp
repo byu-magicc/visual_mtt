@@ -19,11 +19,13 @@ VisualFrontend::VisualFrontend()
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
 	pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
 
-  feature_manager_ = cv::Ptr<FeatureManager>(new FeatureManager());
+  // key member objects
+  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
+  homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
+  // test inheritance (temporary)
   SourceFeatures test_instantiation;
-  test_instantiation.add_handle(this);
-  test_instantiation.retrieve_info();
+
 
 }
 
@@ -39,7 +41,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
 
   // generate timestamp
-  frame_timestamp = ros::Time::now();
+  frame_timestamp_ = ros::Time::now();
 
   // convert message data into OpenCV type cv::Mat
 	hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -52,12 +54,16 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   add_frame(sd_frame_in, sd_frame);
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_->find_correspondences(sd_frame);                              // (make smart pointer)
+  feature_manager_->find_correspondences(sd_frame);
 
   // consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_generator (feature correspondences)
   // if IMU not ignored, call the homography_filter (filter update)
-  homography_calculator_.calculate_homography();                                // (make smart pointer)
+  homography_calculator_->calculate_homography(
+    feature_manager_->prev_matched_,
+    feature_manager_->next_matched_);
+    // there is a reason *matched_ vectors are members of the subclass
+    // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
 
   // call measurement sources execution
       // (use updated recent images)
@@ -69,15 +75,15 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // publish measurements and homography
 
 
-  // display frames
+  // display hd and sd frames
   cv::imshow("hd image", hd_frame);
   cv::imshow("sd image", sd_frame);
-
   // get the input from the keyboard
 	char keyboard = cv::waitKey(10);
 	if(keyboard == 'q')
 		ros::shutdown();
 }
+
 
 void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
@@ -91,9 +97,8 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
   // ---------------------------------------------------
 
   // if IMU not ignored (from launchfile), call homography filter (IMU input)
-
-
 }
+
 
 void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
@@ -104,7 +109,6 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
   // video associated with the most recent update to maintain id descriptors.)
 
 }
-
 
 
 void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
@@ -124,15 +128,13 @@ void VisualFrontend::generate_measurements()
   {
     sources_[i].generate_measurements();
   }
-  // pass "this" class' reference in? so the sources can indiscriminately use
-  // whatever valuable information they need? and maintain polymorphism.
-  // (frame history, homography, features/feature velocities, recent tracks)
+  // each source will recieve (and can ignore or use):
+    // recent images
+    // feature correpsondences
+    // homography
+    // recent track data
 
   // see source_measurement.h for question about measurement structure
-
 }
-
-
-
 
 }

@@ -5,9 +5,8 @@ class HomographyCalculator
 {
 public:
 	HomographyCalculator();
-  void calculate_homography(); // for compilation
 	void calculate_homography(std::vector<cv::Point2f>& prev_features,
-                            std::vector<cv::Point2f>& features);
+                            std::vector<cv::Point2f>& next_features);
 
 private:
 

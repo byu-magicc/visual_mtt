@@ -97,6 +97,8 @@ void FeatureManager::find_correspondences(cv::Mat& img)
     	}
     }
 
+    // the homography calculator will perform a check on the number of matches
+
   }
   else
   {

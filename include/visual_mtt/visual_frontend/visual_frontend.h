@@ -36,7 +36,7 @@ namespace visual_mtt {
 		// timestamps, "add_frame" will sort of become a manager of these histories
 		// (and provide CPU/GPU support of course)
 
-		ros::Time frame_timestamp;
+		ros::Time frame_timestamp_;
 
   private:
     // ROS
@@ -47,9 +47,8 @@ namespace visual_mtt {
 		ros::Publisher  pub;
 
     // key algorithm blocks
-		cv::Ptr<FeatureManager> feature_manager_;
-		HomographyCalculator homography_calculator_;
-
+		std::shared_ptr<FeatureManager>       feature_manager_;
+		std::shared_ptr<HomographyCalculator> homography_calculator_;
 
     // measurement sources
     std::vector<SourceMeasurement> sources_;
