@@ -50,6 +50,10 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 #endif
 
 	kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
+
+	// eventually: make gftt_detector_ a generic feature generator that
+	// has the ability to use various feature appraoches (gftt, orb, etc)
+
 }
 
 

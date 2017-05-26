@@ -6,18 +6,32 @@
 
 HomographyCalculator::HomographyCalculator()
 {
-
+  // this will probably merge with the homography_filter class eventually
+  // into a plain "homography" class, we'll see.
 }
 
 
 void HomographyCalculator::calculate_homography(std::vector<cv::Point2f>& prev_features,
                                                 std::vector<cv::Point2f>& next_features)
 {
-  // use features to find homography
-  // this will probably merge with the homography_filter class eventually
-
-
-  // dummy method for compilation
   std::cout << "generating homography" << std::endl;
+  // use features to find homography
 
+  int ransac_reproj_threshold = 1; // TODO: parameterize this
+
+  if (prev_features.size() > 4)
+  {
+    // calculate the homography
+    homography_ = cv::findHomography(prev_features, next_features,
+      CV_RANSAC, ransac_reproj_threshold, inlier_mask_);
+
+    // baptize the homography
+    homography_.convertTo(homography_, CV_32F);
+  }
+
+  // NOTE: THIS NEEDS ADDITIONAL LOGIC TO CONSIDER THE CASE WHEN THERE ARE
+  // FEW MATCHED FEATURES AND AN ELSE HERE. WHAT HOMOGRAPHY SHOULD BE USED?
+
+  // CERTAINLY WE SHOULD SET A BAD_HOMOGRAPHY FLAG SO THE MEASUREMENT SOURCES
+  // THAT USE IT KNOW TO NOT GENERATE MEASUREMENTS
 }

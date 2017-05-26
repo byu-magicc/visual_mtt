@@ -25,9 +25,9 @@ VisualFrontend::VisualFrontend()
 
   // populate vector of desired measurement sources
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
+  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
 }
 
 
@@ -41,7 +41,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     // locate the high-res frame associated with the track it's subscribing to
 
 
-  // generate timestamp
+  // generate frame timestamp
   frame_timestamp_ = ros::Time::now();
 
   // convert message data into OpenCV type cv::Mat
@@ -108,6 +108,9 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
+
+  // recognition bank will host a function for checking new tracks with
+  // existing id descriptors, this node will host a ROS service to interface
 
 }
 
