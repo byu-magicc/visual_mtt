@@ -10,9 +10,10 @@ HomographyCalculator::HomographyCalculator()
   // into a plain "homography" class, we'll see.
 }
 
+// ----------------------------------------------------------------------------
 
-void HomographyCalculator::calculate_homography(std::vector<cv::Point2f>& prev_features,
-                                                std::vector<cv::Point2f>& next_features)
+void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& prev_features,
+                                                const std::vector<cv::Point2f>& next_features)
 {
   std::cout << "generating homography" << std::endl;
   // use features to find homography

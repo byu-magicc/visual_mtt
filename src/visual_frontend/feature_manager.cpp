@@ -16,9 +16,10 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 
   first_image_ = true;
 
-	calibration_ = (cv::Mat_<float>(3,3) << 1348.206365, 0.0, 351.089626,
-					0.0, 1347.862463, 272.416355,
-					0.0, 0.0, 1.0);
+	calibration_ = (cv::Mat_<float>(3,3) <<
+		1348.206365, 0.0,         351.089626,
+		0.0,         1347.862463, 272.416355,
+		0.0,         0.0,         1.0);
 	compute_stats_        = compute_stats;
 	max_points_tracked_   = max_points_tracked;
 	corner_quality_       = corner_quality;
@@ -40,6 +41,7 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 	bool useHarrisDetector=false;
 	double k=0.04;
 #if CV_MAJOR_VERSION == 2
+	// we won't be supporting opencv2
 	gftt_detector_ = cv::Ptr<cv::GoodFeaturesToTrackDetector>(new cv::GoodFeaturesToTrackDetector(
 															maxCorners, qualityLevel, minDistance, blockSize, useHarrisDetector, k));
 	//grid_detector_ = Ptr<FeatureDetector>(new GridAdaptedFeatureDetector(
@@ -56,6 +58,7 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 
 }
 
+// ----------------------------------------------------------------------------
 
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
@@ -156,6 +159,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 	}
 }
 
+// ----------------------------------------------------------------------------
 
 void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts)
 {

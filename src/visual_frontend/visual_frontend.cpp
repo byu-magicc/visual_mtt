@@ -30,6 +30,7 @@ VisualFrontend::VisualFrontend()
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
 }
 
+// ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
@@ -67,10 +68,10 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
 
   // call measurement sources execution
-      // (use updated recent images)
-      // (use already-generated feature correpsondences)
-      // (use already-generated homography)
-      // (use updated recent track data)
+    // (use updated recent images)
+    // (use already-generated feature correpsondences)
+    // (use already-generated homography)
+    // (use updated recent track data)
   generate_measurements();
 
   // publish measurements and homography
@@ -85,6 +86,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 		ros::shutdown();
 }
 
+// ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
@@ -100,6 +102,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
   // if IMU not ignored (from launchfile), call homography filter (IMU input)
 }
 
+// ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
@@ -108,12 +111,15 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
+  // note: tracks updates will contain the original frame timestamp which
+  // will be used to find the correct historical frame
 
   // recognition bank will host a function for checking new tracks with
   // existing id descriptors, this node will host a ROS service to interface
 
 }
 
+// ----------------------------------------------------------------------------
 
 void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
 {
@@ -124,6 +130,7 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 
 }
 
+// ----------------------------------------------------------------------------
 
 void VisualFrontend::generate_measurements()
 {

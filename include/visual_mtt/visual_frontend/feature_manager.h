@@ -38,7 +38,7 @@ private:
 	int nominal_corner_count_;
 
 
-	cv::Mat calibration_;
+	cv::Mat calibration_; // currently not used, can be used for rotation-based prediction
 #if CV_MAJOR_VERSION == 2
 	// we won't be supporting opencv2
 	cv::Ptr<cv::GoodFeaturesToTrackDetector> gftt_detector;
