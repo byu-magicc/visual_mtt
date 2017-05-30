@@ -13,6 +13,7 @@ public:
   void set_parameters(visual_mtt2::visual_frontendConfig& config);
   cv::Mat homography_;
   std::vector<uchar> inlier_mask_;
+	std::vector<cv::Point2f> pixel_diff_;
 
 private:
 

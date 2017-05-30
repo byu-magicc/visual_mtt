@@ -12,7 +12,7 @@ public:
   Source(){};
   ~Source(){};
 
-  virtual void generate_measurements(){};
+  virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel){};
   virtual void set_parameters(){};
 
   // how to structure measurements? using an object might be overkill since

@@ -21,10 +21,8 @@ VisualFrontend::VisualFrontend()
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
   // populate vector of desired measurement sources
+  //sources_.push_back(std::shared_ptr<SourceBackground>(new SourceBackground()));
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
 
   // establish dynamic reconfigure and load defaults
   function_ = boost::bind(&VisualFrontend::callback_reconfigure, this, _1, _2);
@@ -160,7 +158,10 @@ void VisualFrontend::generate_measurements()
 
   for (int i=0; i<sources_.size(); i++)
   {
-    sources_[i]->generate_measurements();
+    sources_[i]->generate_measurements(
+      homography_calculator_->homography_,
+      feature_manager_->next_matched_,
+      homography_calculator_->pixel_diff_);
   }
   // each source will recieve (and can ignore or use):
     // recent images

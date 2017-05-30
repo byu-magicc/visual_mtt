@@ -141,6 +141,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
 	src/visual_frontend/visual_frontend.cpp
   src/visual_frontend/homography_calculator.cpp
   src/visual_frontend/feature_manager.cpp
+  src/visual_frontend/source_background.cpp
   src/visual_frontend/source_features.cpp)
 
 ## Rename C++ executable without prefix
