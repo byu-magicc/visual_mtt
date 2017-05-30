@@ -125,11 +125,11 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
 
 void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level)
 {
-  // update parameters
+  // update parameters:
+  // VisualFrontend, FeatureManager, HomographyCalculator, Sources
   set_parameters(config);
   feature_manager_->set_parameters(config);
   homography_calculator_->set_parameters(config);
-
 };
 
 // ----------------------------------------------------------------------------

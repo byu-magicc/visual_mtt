@@ -14,7 +14,8 @@ HomographyCalculator::HomographyCalculator()
 
 void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-  std::cout << "homography_calculator update" << std::endl;
+  std::cout << "homography_calculator update" << std::endl; // temporary
+  // add other param updates here
 }
 
 // ----------------------------------------------------------------------------
