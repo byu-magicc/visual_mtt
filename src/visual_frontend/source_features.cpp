@@ -55,8 +55,8 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 				std::cout << "Large number of potential moving features: may be the result of a bad homography alignment." << std::endl;
 			}
 		}
-		features = features_filtered;
-		features_vel = features_vel_filtered;
+		features_ = features_filtered;
+		features_vel_ = features_vel_filtered;
 	}
 	else
 	{

@@ -169,6 +169,25 @@ void VisualFrontend::generate_measurements()
     // homography
     // recent track data
 
+
+
+  // HACKED, TEMPORARY FOR TESTING !!!!
+  // display measurements
+  cv::Mat draw = sd_frame.clone();
+  // plot measurements
+  for (int jj=0; jj<sources_[0]->features_.size(); jj++)
+  {
+    cv::Scalar color = cv::Scalar(255, 0, 255);
+    //std::cout << "filtered point" << std::endl;
+    cv::circle(draw, sources_[0]->features_[jj], 2, color, 1, CV_AA);
+  }
+
+  cv::imshow("homography outlier measurements", draw);
+  // get the input from the keyboard
+  char keyboard = cv::waitKey(10);
+  if(keyboard == 'q')
+  	ros::shutdown();
+
   // see source_measurement.h for question about measurement structure
 }
 

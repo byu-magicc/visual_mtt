@@ -15,6 +15,9 @@ public:
   virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel){};
   virtual void set_parameters(){};
 
+  std::vector<cv::Point2f> features_;
+	std::vector<cv::Point2f> features_vel_;
+
   // how to structure measurements? using an object might be overkill since
   // it will be immediately transformed to a ros message TODO: discussion.
 
