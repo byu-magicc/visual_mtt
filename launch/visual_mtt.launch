@@ -10,7 +10,8 @@
 	''' -->
 	<arg name="imgtopic" default="/video" />
 
-
+  <!-- load parameters -->
+  <rosparam command="load" file="$(find visual_mtt2)/param/simulation.yaml" />
 
 	<!-- start the visual frontend -->
 	<node pkg="visual_mtt2" type="visual_frontend" name="visual_frontend" output="screen">

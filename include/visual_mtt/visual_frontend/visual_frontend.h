@@ -5,6 +5,10 @@
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <ros/ros.h>
+#include <dynamic_reconfigure/server.h>
+
+// dynamic reconfig
+#include "visual_mtt2/homographyConfig.h"
 
 // messages
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
@@ -27,10 +31,16 @@ namespace visual_mtt {
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
     void callback_tracks(const std_msgs::Float32 data); // temporary message type
 
+    // dynamic reconfigure
+    void callback_reconfigure(visual_mtt2::homographyConfig& config, uint32_t level);    // need to have multiple?
+    dynamic_reconfigure::Server<visual_mtt2::homographyConfig> server_;
+    dynamic_reconfigure::Server<visual_mtt2::homographyConfig>::CallbackType function_;
+
+
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
-		// after v1.0 make there may be collections of recent frames and associated
+		// after v1.0, there may be collections of recent frames and associated
 		// timestamps, "add_frame" will sort of become a manager of these histories
 		// (and provide CPU/GPU support of course)
 
@@ -41,6 +51,8 @@ namespace visual_mtt {
     cv::Mat sd_frame; // uMat
 
 		ros::Time frame_timestamp_;
+
+    double param_test = 0;
 
   private:
     // ROS

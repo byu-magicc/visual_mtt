@@ -10,6 +10,7 @@ VisualFrontend::VisualFrontend()
 	// nh.param<bool>("show_y", y, false);
 	// nh.param<bool>("show_z", z, false);
   // the original code used "nh_private_": "ros::NodeHandle nh_private_("~");"
+  nh.param<double>("param_test", param_test, 12);
 
   std::cout << "initialized VisualFrontend object inside node" << std::endl; // temporary
 
@@ -23,6 +24,10 @@ VisualFrontend::VisualFrontend()
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
+  //
+  function_ = boost::bind(&VisualFrontend::callback_reconfigure, this, _1, _2);
+  server_.setCallback(function_);
+
   // populate vector of desired measurement sources
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
@@ -34,6 +39,7 @@ VisualFrontend::VisualFrontend()
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
+  std::cout << param_test << std::endl;
   // future work TODO:
   // decimation logic (Nth frame)
   // resize frame to lower resolution (keep both)
@@ -59,8 +65,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   feature_manager_->find_correspondences(sd_frame);
 
   // consider if IMU is ignored (param from launchfile)
-  // if IMU     ignored, call homography_generator (feature correspondences)
-  // if IMU not ignored, call the homography_filter (filter update)
+  // if IMU     ignored, call homography_calculator (feature correspondences)
+  // if IMU not ignored, call the homography_filter filter update
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
@@ -99,7 +105,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
   // NOTE: need better understanding of homography filter to answer this.
   // ---------------------------------------------------
 
-  // if IMU not ignored (from launchfile), call homography filter (IMU input)
+  // if IMU not ignored (from launchfile), call homography filter IMU propagate
 }
 
 // ----------------------------------------------------------------------------
@@ -118,6 +124,13 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
   // existing id descriptors, this node will host a ROS service to interface
 
 }
+
+void VisualFrontend::callback_reconfigure(visual_mtt2::homographyConfig& config, uint32_t level)
+{
+  // update parameters
+  std::cout << "what" << std::endl;
+};
+
 
 // ----------------------------------------------------------------------------
 
