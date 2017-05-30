@@ -128,6 +128,11 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
   set_parameters(config);
   feature_manager_->set_parameters(config);
   homography_calculator_->set_parameters(config);
+
+  for (int i=0; i<sources_.size(); i++)
+  {
+    sources_[i]->set_parameters(config);
+  }
 };
 
 // ----------------------------------------------------------------------------
@@ -179,7 +184,7 @@ void VisualFrontend::generate_measurements()
   {
     cv::Scalar color = cv::Scalar(255, 0, 255);
     //std::cout << "filtered point" << std::endl;
-    cv::circle(draw, sources_[0]->features_[jj], 2, color, 1, CV_AA);
+    cv::circle(draw, sources_[0]->features_[jj], 2, color, 2, CV_AA);
   }
 
   cv::imshow("homography outlier measurements", draw);

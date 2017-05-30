@@ -69,3 +69,13 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 
 
 }
+
+// ----------------------------------------------------------------------------
+
+void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
+{
+  std::cout << "source update" << std::endl;
+  // update key class members with params
+  MIN_PX_VEL = config.minimum_pixel_velocity;
+  MAX_PX_VEL = config.maximum_pixel_velocity;
+}

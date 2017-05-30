@@ -2,3 +2,5 @@
 # have first priority in rqt_reconfigure. The yaml can be loaded at launch.
 
 visual_frontend/param_test: 0.675
+visual_frontend/minimum_pixel_velocity: 1
+visual_frontend/maximum_pixel_velocity: 10
