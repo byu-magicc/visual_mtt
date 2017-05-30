@@ -12,6 +12,13 @@ HomographyCalculator::HomographyCalculator()
 
 // ----------------------------------------------------------------------------
 
+void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
+{
+  std::cout << "homography_calculator update" << std::endl;
+}
+
+// ----------------------------------------------------------------------------
+
 void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& prev_features,
                                                 const std::vector<cv::Point2f>& next_features)
 {

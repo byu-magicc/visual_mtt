@@ -8,6 +8,8 @@
 	<arg name="imutopic" default="/imu/data" />
 	<arg name="compressed" default="false" />
 	<arg name="show_tracks_video" default="true" />
+  <arg name="params" default="simulation" />
+  <arg name="tuning" default="true" />
 
 	<!-- Launch R-RANSAC -->
 	<include file="$(find visual_mtt2)/launch/visual_mtt.launch">
@@ -23,6 +25,8 @@
 
 		<!-- remap image and imu topics to what the user wants (imu only applies for rosbags) -->
 		<arg name="imgtopic" value="$(arg imgtopic)" />
+    <arg name="params" value="$(arg params)" />
+    <arg name="tuning" value="$(arg tuning)"/>
 		<!-- <arg name="imutopic" value="$(arg imutopic)" /> -->
 	</include>
 

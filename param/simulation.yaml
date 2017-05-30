@@ -1,4 +1,4 @@
-what/test_param_name: 14
-what/newish: 15
+# All default param values are to be saved in a file like this. Such values
+# have first priority in rqt_reconfigure. The yaml can be loaded at launch.
 
-param_test: 101.101
+visual_frontend/param_test: 0.675

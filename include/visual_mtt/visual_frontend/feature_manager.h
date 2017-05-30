@@ -1,6 +1,9 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
+// dynamic reconfig
+#include "visual_mtt2/visual_frontendConfig.h"
+
 class FeatureManager
 {
 public:
@@ -14,7 +17,7 @@ public:
 		int nominal_corner_count    = 1200,
 		int pyr_size_param          = 21);
 
-  void set_parameters();
+  void set_parameters(visual_mtt2::visual_frontendConfig& config);
 	void find_correspondences(cv::Mat& frame);
 	static void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
 

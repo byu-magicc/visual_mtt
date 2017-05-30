@@ -60,6 +60,13 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 
 // ----------------------------------------------------------------------------
 
+void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
+{
+  std::cout << "feature_manager update" << std::endl;
+}
+
+// ----------------------------------------------------------------------------
+
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
   std::cout << "generating feature correspondences" << std::endl;

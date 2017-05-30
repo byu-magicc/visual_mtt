@@ -8,7 +8,7 @@
 #include <dynamic_reconfigure/server.h>
 
 // dynamic reconfig
-#include "visual_mtt2/homographyConfig.h"
+#include "visual_mtt2/visual_frontendConfig.h"
 
 // messages
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
@@ -27,16 +27,17 @@ namespace visual_mtt {
 		VisualFrontend();
 		//~VisualFrontend();
 
+    // subscription callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
     void callback_tracks(const std_msgs::Float32 data); // temporary message type
 
-    // dynamic reconfigure
-    void callback_reconfigure(visual_mtt2::homographyConfig& config, uint32_t level);    // need to have multiple?
-    dynamic_reconfigure::Server<visual_mtt2::homographyConfig> server_;
-    dynamic_reconfigure::Server<visual_mtt2::homographyConfig>::CallbackType function_;
+    // dynamic reconfigure server and callback
+    void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
+    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
+    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig>::CallbackType function_;
 
-
+    void set_parameters(visual_mtt2::visual_frontendConfig& config);
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
@@ -46,13 +47,12 @@ namespace visual_mtt {
 
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in = cv::Mat(480, 640, CV_8UC3);                           // TODO: parameterize dimensions (maybe add logic for aspect ratio)
-
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
 		ros::Time frame_timestamp_;
 
-    double param_test = 0;
+    double param_test = 0; // temporary
 
   private:
     // ROS

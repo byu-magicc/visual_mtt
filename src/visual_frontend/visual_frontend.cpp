@@ -4,15 +4,11 @@ namespace visual_mtt {
 
 VisualFrontend::VisualFrontend()
 {
-  // receive parameters from launchfile
+  // get parameters from param server that are not dynamically reconfigurable
   // bool x, y, z;
 	// nh.param<bool>("show_x", x, false);
 	// nh.param<bool>("show_y", y, false);
 	// nh.param<bool>("show_z", z, false);
-  // the original code used "nh_private_": "ros::NodeHandle nh_private_("~");"
-  nh.param<double>("param_test", param_test, 12);
-
-  std::cout << "initialized VisualFrontend object inside node" << std::endl; // temporary
 
   // ROS stuff
   sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
@@ -24,15 +20,15 @@ VisualFrontend::VisualFrontend()
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
-  //
-  function_ = boost::bind(&VisualFrontend::callback_reconfigure, this, _1, _2);
-  server_.setCallback(function_);
-
   // populate vector of desired measurement sources
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));    // will be unique
+
+  // establish dynamic reconfigure and load defaults
+  function_ = boost::bind(&VisualFrontend::callback_reconfigure, this, _1, _2);
+  server_.setCallback(function_);
 }
 
 // ----------------------------------------------------------------------------
@@ -125,11 +121,25 @@ void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary 
 
 }
 
-void VisualFrontend::callback_reconfigure(visual_mtt2::homographyConfig& config, uint32_t level)
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level)
 {
   // update parameters
-  std::cout << "what" << std::endl;
+  set_parameters(config);
+  feature_manager_->set_parameters(config);
+  homography_calculator_->set_parameters(config);
+
 };
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
+{
+  std::cout << "frontend update" << std::endl; // temporary
+  param_test = config.param_test;
+  // add other param updates here
+}
 
 
 // ----------------------------------------------------------------------------

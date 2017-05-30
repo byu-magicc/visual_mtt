@@ -9,9 +9,12 @@
 	<arg name="show_moving_obj_video" default="false" />
 	''' -->
 	<arg name="imgtopic" default="/video" />
+  <arg name="params" default="simulation" />
+  <arg name="tuning" default="false" />
+
 
   <!-- load parameters -->
-  <rosparam command="load" file="$(find visual_mtt2)/param/simulation.yaml" />
+  <rosparam command="load" file="$(find visual_mtt2)/param/$(arg params).yaml" />
 
 	<!-- start the visual frontend -->
 	<node pkg="visual_mtt2" type="visual_frontend" name="visual_frontend" output="screen">
@@ -34,6 +37,13 @@
     <!-- <param name="show_moving_obj_video" value="$(arg show_moving_obj_video)" /> -->
 	</node>
 
+	<!-- start dynamic reconfigure gui -->
+  <node unless="$(eval tuning == false)"
+    pkg="rqt_reconfigure"
+    type="rqt_reconfigure"
+    name="dynamic_reconfigure"
+    output="log">
+	</node>
 
 
 
