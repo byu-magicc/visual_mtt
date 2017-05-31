@@ -1,15 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <launch>
 	<!-- args to be passed in -->
-	<arg name="videopath" default="" />
-	<arg name="bagpath" default="" />
-	<arg name="fps" default="24" />
-	<arg name="imgtopic" default="/video" />
-	<arg name="imutopic" default="/imu/data" />
-	<arg name="compressed" default="false" />
-	<arg name="show_tracks_video" default="true" />
-  <arg name="params" default="simulation" />
-  <arg name="tuning" default="true" />
+	<arg name="videopath"   default="" />
+	<arg name="bagpath"     default="" />
+	<arg name="fps"         default="24" />
+	<arg name="imgtopic"    default="/video" />
+	<arg name="imutopic"    default="/imu/data" />
+	<arg name="compressed"  default="false" />
+	<!-- <arg name="show_tracks_video" default="true" /> -->
+  <arg name="params"      default="simulation" />
+  <arg name="tuning"      default="true" />
+
+	<!-- decompress video if needed -->
+  <node if="$(arg compressed)"
+		pkg="image_transport"
+		type="republish"
+		name="republish"
+		output="log"
+		args="compressed in:=$(arg imgtopic) raw out:=$(arg imgtopic)">
+	</node>
 
 	<!-- Launch R-RANSAC -->
 	<include file="$(find visual_mtt2)/launch/visual_mtt.launch">
@@ -22,8 +32,8 @@
 		<!-- <arg name="show_moving_obj_video" value="false" /> -->
 		<!-- Allow subscribing to compressed video topics (only applies for rosbags) -->
 		<!-- <arg name="compressed" value="$(arg compressed)" /> -->
-
-		<!-- remap image and imu topics to what the user wants (imu only applies for rosbags) -->
+		<!-- remap image and imu topics -->
+		
 		<arg name="imgtopic" value="$(arg imgtopic)" />
     <arg name="params" value="$(arg params)" />
     <arg name="tuning" value="$(arg tuning)"/>

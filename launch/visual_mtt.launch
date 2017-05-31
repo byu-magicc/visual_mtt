@@ -11,9 +11,10 @@
 	<arg name="imgtopic" default="/video" />
   <arg name="params" default="simulation" />
   <arg name="tuning" default="false" />
+	<!-- idea: make "tuning" replace "show_tracks_video", "show_diff_img_video", "show_moving_obj_video" -->
+	<!-- "tuning" will display the measurements overlayed on the image and spawn the reconfigure gui -->
 
-
-  <!-- load parameters -->
+  <!-- load the specified parameters -->
   <rosparam command="load" file="$(find visual_mtt2)/param/$(arg params).yaml" />
 
 	<!-- start the visual frontend -->
@@ -38,7 +39,7 @@
 	</node>
 
 	<!-- start dynamic reconfigure gui -->
-  <node unless="$(eval tuning == false)"
+  <node if="$(arg tuning)"
     pkg="rqt_reconfigure"
     type="rqt_reconfigure"
     name="dynamic_reconfigure"

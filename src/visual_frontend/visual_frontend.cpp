@@ -56,7 +56,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   add_frame(sd_frame_in, sd_frame);
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_->find_correspondences(sd_frame);
+  feature_manager_->find_correspondences(hd_frame); // in future operate on sd
 
   // consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_calculator (feature correspondences)
@@ -178,7 +178,7 @@ void VisualFrontend::generate_measurements()
 
   // HACKED, TEMPORARY FOR TESTING !!!!
   // display measurements
-  cv::Mat draw = sd_frame.clone();
+  cv::Mat draw = hd_frame.clone();
   // plot measurements
   for (int jj=0; jj<sources_[0]->features_.size(); jj++)
   {
