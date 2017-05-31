@@ -1,50 +1,50 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-	<!-- Define arguments to be passed in -->
-	<!-- '''
-	<arg name="use_imu_in_sync" default="false" />
-	<arg name="show_tracks_video" default="true" />
-	<arg name="show_diff_img_video" default="false" />
-	<arg name="show_moving_obj_video" default="false" />
-	''' -->
-	<arg name="imgtopic" default="/video" />
+  <!-- Define arguments to be passed in -->
+  <!-- '''
+  <arg name="use_imu_in_sync" default="false" />
+  <arg name="show_tracks_video" default="true" />
+  <arg name="show_diff_img_video" default="false" />
+  <arg name="show_moving_obj_video" default="false" />
+  ''' -->
+  <arg name="imgtopic" default="/video" />
   <arg name="params" default="simulation" />
   <arg name="tuning" default="false" />
-	<!-- idea: make "tuning" replace "show_tracks_video", "show_diff_img_video", "show_moving_obj_video" -->
-	<!-- "tuning" will display the measurements overlayed on the image and spawn the reconfigure gui -->
+  <!-- idea: make "tuning" replace "show_tracks_video", "show_diff_img_video", "show_moving_obj_video" -->
+  <!-- "tuning" will display the measurements overlayed on the image and spawn the reconfigure gui -->
 
   <!-- load the specified parameters -->
   <rosparam command="load" file="$(find visual_mtt2)/param/$(arg params).yaml" />
 
-	<!-- start the visual frontend -->
-	<node pkg="visual_mtt2" type="visual_frontend" name="visual_frontend" output="screen">
+  <!-- start the visual frontend -->
+  <node pkg="visual_mtt2" type="visual_frontend" name="visual_frontend" output="screen">
     <!-- Show the output of the camera with RRANSAC tracks overlaid -->
     <!-- <param name="show_tracks_video" value="$(arg show_tracks_video)" /> -->
     <!-- Show the difference image for debugging how well the homography is doing -->
     <!-- <param name="show_diff_img_video" value="$(arg show_diff_img_video)" /> -->
     <!-- Show moving objects to debug LK optical flow with homography -->
     <!-- <param name="show_moving_obj_video" value="$(arg show_moving_obj_video)" /> -->
-		<remap from="video" to="$(arg imgtopic)"/>
-	</node>
+    <remap from="video" to="$(arg imgtopic)"/>
+  </node>
 
-	<!-- start R-RANSAC -->
-	<node pkg="visual_mtt2" type="rransac" name="rransac" output="screen">
+  <!-- start R-RANSAC -->
+  <node pkg="visual_mtt2" type="rransac" name="rransac" output="screen">
     <!-- Show the output of the camera with RRANSAC tracks overlaid -->
     <!-- <param name="show_tracks_video" value="$(arg show_tracks_video)" /> -->
     <!-- Show the difference image for debugging how well the homography is doing -->
     <!-- <param name="show_diff_img_video" value="$(arg show_diff_img_video)" /> -->
     <!-- Show moving objects to debug LK optical flow with homography -->
     <!-- <param name="show_moving_obj_video" value="$(arg show_moving_obj_video)" /> -->
-	</node>
+  </node>
 
-	<!-- start dynamic reconfigure gui -->
+  <!-- start dynamic reconfigure gui -->
   <node if="$(arg tuning)"
     pkg="rqt_reconfigure"
     type="rqt_reconfigure"
     name="dynamic_reconfigure"
     output="log">
-	</node>
+  </node>
 
 
 
