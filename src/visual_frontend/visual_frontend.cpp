@@ -6,15 +6,15 @@ VisualFrontend::VisualFrontend()
 {
   // get parameters from param server that are not dynamically reconfigurable
   // bool x, y, z;
-	// nh.param<bool>("show_x", x, false);
-	// nh.param<bool>("show_y", y, false);
-	// nh.param<bool>("show_z", z, false);
+  // nh.param<bool>("show_x", x, false);
+  // nh.param<bool>("show_y", y, false);
+  // nh.param<bool>("show_z", z, false);
 
   // ROS stuff
   sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
-	pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
+  pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
 
   // key member objects
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
@@ -46,7 +46,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   frame_timestamp_ = ros::Time::now();
 
   // convert message data into OpenCV type cv::Mat
-	hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
+  hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
 
   // downsize image to standard definition
   cv::resize(hd_frame_in, sd_frame_in, sd_frame_in.size(), 0, 0, cv::INTER_LINEAR);
@@ -81,9 +81,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   cv::imshow("hd image", hd_frame);
   cv::imshow("sd image", sd_frame);
   // get the input from the keyboard
-	char keyboard = cv::waitKey(10);
-	if(keyboard == 'q')
-		ros::shutdown();
+  char keyboard = cv::waitKey(10);
+  if(keyboard == 'q')
+    ros::shutdown();
 }
 
 // ----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
 
 void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
-	// save most recent track information in class (for use in measurement
+  // save most recent track information in class (for use in measurement
   // sources such as direct methods)
 
   // call track_recognition bank (will use newest information and the high-res
@@ -191,7 +191,7 @@ void VisualFrontend::generate_measurements()
   // get the input from the keyboard
   char keyboard = cv::waitKey(10);
   if(keyboard == 'q')
-  	ros::shutdown();
+    ros::shutdown();
 
   // see source_measurement.h for question about measurement structure
 }

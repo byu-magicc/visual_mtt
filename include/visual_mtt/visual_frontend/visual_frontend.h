@@ -22,11 +22,11 @@
 
 namespace visual_mtt {
 
-	class VisualFrontend
-	{
-	public:
-		VisualFrontend();
-		//~VisualFrontend();
+  class VisualFrontend
+  {
+  public:
+    VisualFrontend();
+    //~VisualFrontend();
 
     // subscription callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
@@ -42,34 +42,34 @@ namespace visual_mtt {
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
-		// after v1.0, there may be collections of recent frames and associated
-		// timestamps, "add_frame" will sort of become a manager of these histories
-		// (and provide CPU/GPU support of course)
+    // after v1.0, there may be collections of recent frames and associated
+    // timestamps, "add_frame" will sort of become a manager of these histories
+    // (and provide CPU/GPU support of course)
 
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in = cv::Mat(480, 640, CV_8UC3);                           // TODO: parameterize dimensions (maybe add logic for aspect ratio)
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
-		ros::Time frame_timestamp_;
+    ros::Time frame_timestamp_;
 
     double param_test = 0; // temporary
 
   private:
     // ROS
-		ros::NodeHandle nh;
-		ros::Subscriber sub_video;
+    ros::NodeHandle nh;
+    ros::Subscriber sub_video;
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
-		ros::Publisher  pub;
+    ros::Publisher  pub;
 
     // key algorithm members
-		std::shared_ptr<FeatureManager>       feature_manager_;
-		std::shared_ptr<HomographyCalculator> homography_calculator_;
+    std::shared_ptr<FeatureManager>       feature_manager_;
+    std::shared_ptr<HomographyCalculator> homography_calculator_;
 
     // measurement sources
-		std::vector<std::shared_ptr<Source>> sources_;
+    std::vector<std::shared_ptr<Source>> sources_;
 
-	};
+  };
 
 }

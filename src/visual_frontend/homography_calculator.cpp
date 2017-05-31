@@ -39,11 +39,11 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
   }
 
   // use inlier count to determine if the homography is good
-	int inlier_count = 0;
-	for(int i = 0; i < inlier_mask_.size(); ++i)
-	{
-		inlier_count += inlier_mask_[i] ? 1 : 0;
-	}
+  int inlier_count = 0;
+  for(int i = 0; i < inlier_mask_.size(); ++i)
+  {
+    inlier_count += inlier_mask_[i] ? 1 : 0;
+  }
   if (inlier_count < 20)
   {
     std::cout << "Warning: Only " << inlier_count << " inliers; homography calculation may be inaccurate" << std::endl;

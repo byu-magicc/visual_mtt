@@ -7,23 +7,23 @@
 
 namespace visual_mtt {
 
-	class RRANSAC
-	{
-	public:
-		RRANSAC();
-		//~RRANSAC();
+  class RRANSAC
+  {
+  public:
+    RRANSAC();
+    //~RRANSAC();
 
-		void callback(const std_msgs::Float32); // temporary message type, in future, use custom homography+measurements message
+    void callback(const std_msgs::Float32); // temporary message type, in future, use custom homography+measurements message
 
-	private:
-		rransac::core::Parameters params_;
-		rransac::Tracker tracker_;
+  private:
+    rransac::core::Parameters params_;
+    rransac::Tracker tracker_;
 
-		// ROS
-		ros::NodeHandle nh;
-		ros::Subscriber sub;
-		ros::Publisher pub;
+    // ROS
+    ros::NodeHandle nh;
+    ros::Subscriber sub;
+    ros::Publisher pub;
 
-	};
+  };
 
 }
