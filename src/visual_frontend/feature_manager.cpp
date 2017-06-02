@@ -20,30 +20,20 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
   pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
 
-
-  //int maxCorners=points_max_;
-  // double qualityLevel=corner_quality_;
-  double minDistance=10;           // TODO parameterize this
-  int blockSize=3;                 // TODO parameterize this
+  double minDistance=10;           // TODO use rosparam? probably not worth dynamically reconfigurable.
+  int blockSize=3;                 // TODO use rosparam? probably not worth dynamically reconfigurable.
   bool useHarrisDetector=false;    // just hardcode the false in?
-  double k=0.04;                   // look this up
+  // double k=0.04;                // opencv default is 0.04, plus this isn't needed if above is false
 
-#if CV_MAJOR_VERSION == 2
-  // we won't be supporting opencv2
-  gftt_detector_ = cv::Ptr<cv::GoodFeaturesToTrackDetector>(new cv::GoodFeaturesToTrackDetector(
-                              points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector, k));
-  //grid_detector_ = Ptr<FeatureDetector>(new GridAdaptedFeatureDetector(
-  //                                                  detector_, points_max_, 6, 8));
-
-#elif CV_MAJOR_VERSION == 3
-  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector, k);
-#endif
+  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector);
 
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
+  // TODO: use rosparam?
 
-  // eventually: make gftt_detector_ a generic feature generator that
-  // has the ability to use various feature appraoches (gftt, orb, etc)
-
+  // eventually: make a "feature_detector_" that can be set to use various
+  // feature appraoches (gftt, orb, etc)
+  // maybe: have a "feature_matcher_" that can be set to use various
+  // matching appraoches (lk, etc)
 }
 
 // ----------------------------------------------------------------------------
@@ -54,7 +44,6 @@ void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 
   points_max_ = config.points_max;
   points_target_ = config.points_target;
-
   gftt_detector_->setMaxFeatures(points_max_);
 
 }
@@ -78,12 +67,9 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   if (!first_image_)
   {
-
     std::vector<cv::Point2f> next_features;
     std::vector<unsigned char> status;
     std::vector<float> err;
-    std::vector<unsigned char> status_nopredict;
-    std::vector<float> err_nopredict;
 
     // match feature points using lk algorithm
     cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
@@ -93,9 +79,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
     // store only matched features
     prev_matched_.clear();
     next_matched_.clear();
-    // std::vector<cv::Point2f> prev_matched_nopredict;
-    // std::vector<cv::Point2f> next_matched_nopredict;
-    //selectMatchedPoints(status, prev_features_, next_features, prev_matched, next_matched);
     for(unsigned int ii = 0; ii < status.size(); ++ii)
     {
       if (status[ii])
@@ -104,8 +87,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
         next_matched_.push_back(next_features[ii]);
       }
     }
-
-    // the homography calculator will perform a check on the number of matches
 
   }
   else
@@ -135,21 +116,16 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   corner_quality_ = std::max(corner_quality_min_, corner_quality_);
   corner_quality_ = std::min(corner_quality_max_, corner_quality_);
 
-#if CV_MAJOR_VERSION == 2
-  gftt_detector_->setDouble("qualityLevel",corner_quality_);
-  //cout << 1.0, "New quality: " << gftt_detector_->getDouble("qualityLevel") << endl;
-#elif CV_MAJOR_VERSION == 3
+  // update corner quality
   gftt_detector_->setQualityLevel(corner_quality_);
-  //cout << 1.0, "New quality: " << gftt_detector_->getQualityLevel() << endl;
-#endif
+  std::cout << "New quality: " << gftt_detector_->getQualityLevel() << std::endl;
 
   // save features for the next iteration.
   prev_features_.clear();
   keyPointVecToPoint2f(features, prev_features_);
 
-  // save image for the next iteration.
+  // save pyramids for the next iteration.
   last_pyramids_ = current_pyramids;
-  //last_image_ = mono.clone(); // TODO not used anywhere, double check this then remove it
 
   // if few features were found, skip feature pairing on the next iteration
   if (prev_features_.size() < 10)
@@ -164,6 +140,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
 void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts)
 {
+  // TODO rename this method
   for (int i = 0; i < keys.size(); i++)
   {
     pts.push_back(keys[i].pt);

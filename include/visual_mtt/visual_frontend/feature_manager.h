@@ -20,9 +20,7 @@ private:
   bool first_image_;
   std::vector<cv::Point2f> prev_features_;
 
-  //cv::Mat last_image_; // not used
-
-  // Node parameters
+  // node parameters
   int    points_max_;
   int    points_target_;
   double corner_quality_;
@@ -30,12 +28,8 @@ private:
   double corner_quality_max_;
   double corner_quality_alpha_;
 
-#if CV_MAJOR_VERSION == 2
-  // we won't be supporting opencv2
-  cv::Ptr<cv::GoodFeaturesToTrackDetector> gftt_detector;
-#elif CV_MAJOR_VERSION == 3
+  // feature generator
   cv::Ptr<cv::GFTTDetector> gftt_detector_;
-#endif
 
   // keep pyramids from the last iteration
   std::vector<cv::Mat> last_pyramids_;
