@@ -39,7 +39,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
       float vel = sqrt(features_vel[ii].x*features_vel[ii].x + features_vel[ii].y*features_vel[ii].y);
       // if (mask.at<uchar>(features[ii].y, features[ii].x) == 255)
       // {
-        if (vel > MIN_PX_VEL && vel < MAX_PX_VEL)
+        if (vel > velocity_floor_ && vel < velocity_ceiling_)
         {
           numberOfPossibleMovers++;
           features_filtered.push_back(features[ii]);
@@ -50,9 +50,10 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
     }
     if (features.size() > 0)
     {
-      if ((double)numberOfPossibleMovers / (double)features.size() > homography_error_thold)
+      // if a high proportion of features are outliers, print a warning
+      if ((double)numberOfPossibleMovers / (double)features.size() > homography_error_thold_)
       {
-        std::cout << "Large number of potential moving features: may be the result of a bad homography alignment." << std::endl;
+        std::cout << "many homography outliers: may be the result of a bad homography alignment." << std::endl;
       }
     }
     features_ = features_filtered;
@@ -76,6 +77,6 @@ void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "source update" << std::endl;
   // update key class members with params
-  MIN_PX_VEL = config.minimum_pixel_velocity;
-  MAX_PX_VEL = config.maximum_pixel_velocity;
+  velocity_floor_ = config.minimum_pixel_velocity;
+  velocity_ceiling_ = config.maximum_pixel_velocity;
 }

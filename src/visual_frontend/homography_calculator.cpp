@@ -15,7 +15,10 @@ HomographyCalculator::HomographyCalculator()
 void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "homography_calculator update" << std::endl; // temporary
-  // add other param updates here
+
+  // update key class members with params
+  reprojection_error_ = config.reprojection_error;
+
 }
 
 // ----------------------------------------------------------------------------
@@ -24,15 +27,13 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
                                                 const std::vector<cv::Point2f>& next_features)
 {
   std::cout << "generating homography" << std::endl;
-  // use features to find homography
-
-  int ransac_reproj_threshold = 1; // TODO: parameterize this
+  // use feature correspondences to find homography
 
   if (prev_features.size() > 4)
   {
     // calculate the homography
     homography_ = cv::findHomography(prev_features, next_features,
-      CV_RANSAC, ransac_reproj_threshold, inlier_mask_);
+      CV_RANSAC, reprojection_error_, inlier_mask_);
 
     // baptize the homography
     homography_.convertTo(homography_, CV_32F);

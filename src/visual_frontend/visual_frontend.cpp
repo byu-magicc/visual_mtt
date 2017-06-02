@@ -33,7 +33,6 @@ VisualFrontend::VisualFrontend()
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
-  std::cout << param_test << std::endl;
   // future work TODO:
   // decimation logic (Nth frame)
   // resize frame to lower resolution (keep both)
@@ -140,7 +139,6 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
 void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "frontend update" << std::endl; // temporary
-  param_test = config.param_test;
   // add other param updates here
 }
 

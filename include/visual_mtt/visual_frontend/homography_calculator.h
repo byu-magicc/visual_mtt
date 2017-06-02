@@ -17,6 +17,7 @@ public:
 
 private:
 
+  double reprojection_error_;
 
 };
 

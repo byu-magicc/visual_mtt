@@ -53,8 +53,6 @@ namespace visual_mtt {
 
     ros::Time frame_timestamp_;
 
-    double param_test = 0; // temporary
-
   private:
     // ROS
     ros::NodeHandle nh;
