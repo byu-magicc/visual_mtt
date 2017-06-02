@@ -10,7 +10,7 @@ SourceFeatures::SourceFeatures()
 
 // ----------------------------------------------------------------------------
 
-void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel)
+void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel, bool good_transform)
 {
 
   if (!first_image_)
@@ -53,7 +53,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
       // if a high proportion of features are outliers, print a warning
       if ((double)numberOfPossibleMovers / (double)features.size() > homography_error_thold_)
       {
-        std::cout << "many homography outliers: may be the result of a bad homography alignment." << std::endl;
+        std::cout << "many homography outliers: may be the result of a bad homography alignment." << std::endl; // create a proper warning message
       }
     }
     features_ = features_filtered;

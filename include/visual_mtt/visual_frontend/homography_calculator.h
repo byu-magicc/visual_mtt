@@ -11,9 +11,11 @@ public:
   void calculate_homography(const std::vector<cv::Point2f>& prev_features,
                             const std::vector<cv::Point2f>& next_features);
   void set_parameters(visual_mtt2::visual_frontendConfig& config);
+
   cv::Mat homography_;
   std::vector<uchar> inlier_mask_;
   std::vector<cv::Point2f> pixel_diff_;
+  bool good_transform_;
 
 private:
 

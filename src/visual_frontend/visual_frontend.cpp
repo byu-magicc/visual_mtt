@@ -179,7 +179,8 @@ void VisualFrontend::generate_measurements()
     sources_[i]->generate_measurements(
       homography_calculator_->homography_,
       feature_manager_->next_matched_,
-      homography_calculator_->pixel_diff_);
+      homography_calculator_->pixel_diff_,
+      homography_calculator_->good_transform_);
   }
   // each source will recieve (and can ignore or use):
     // recent images

@@ -118,7 +118,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // update corner quality
   gftt_detector_->setQualityLevel(corner_quality_);
-  std::cout << "New quality: " << gftt_detector_->getQualityLevel() << std::endl;
+  // std::cout << "New quality: " << gftt_detector_->getQualityLevel() << std::endl;
 
   // save features for the next iteration.
   prev_features_.clear();
@@ -130,9 +130,8 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // if few features were found, skip feature pairing on the next iteration
   if (prev_features_.size() < 10)
   {
+    std::cout << "few features found in this frame." << std::endl; // create a proper warning message
     first_image_ = true;
-    std::cout << "few features found in this frame." << std::endl;
-    // set a flag so homography calculator knows TODO
   }
 }
 
