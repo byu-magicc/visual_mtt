@@ -1,6 +1,20 @@
 # All default param values are to be saved in a file like this. Such values
-# have first priority in rqt_reconfigure. The yaml can be loaded at launch.
+# have first priority in rqt_reconfigure. The yaml is loaded at launch.
 
+# homography
 visual_frontend/reprojection_error: 1.1
+
+# feature manager
+visual_frontend/feature_type: "ORB"
+visual_frontend/matching_method: "BF"
+visual_frontend/max_points: 2000
+visual_frontend/corner_quality:       0.03  # NOT DYNAMICALLLY RECONFIGURABLE, AUTOMATICALLY ADJUSTED IN ALGORITHM
+visual_frontend/corner_quality_min:   0.03  # NOT DYNAMICALLLY RECONFIGURABLE
+visual_frontend/corner_quality_max:   0.05  # NOT DYNAMICALLLY RECONFIGURABLE
+visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
+
+
+
+# source_features
 visual_frontend/minimum_pixel_velocity: 1
 visual_frontend/maximum_pixel_velocity: 10

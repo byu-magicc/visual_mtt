@@ -8,12 +8,7 @@ class FeatureManager
 {
 public:
   FeatureManager(
-    bool compute_stats          = false,
-    int max_points_tracked      = 2000,
-    double corner_quality       = 0.03,
-    double min_corner_quality   = 0.03,
-    double max_corner_quality   = 0.5,
-    double corner_quality_alpha = 0.999,
+    ros::NodeHandle nh,
     int nominal_corner_count    = 1200,
     int pyr_size_param          = 21);
 
@@ -32,11 +27,10 @@ private:
   //cv::Mat last_image_; // not used
 
   // Node parameters
-  bool compute_stats_;
   int max_points_tracked_;
   double corner_quality_;
-  double min_corner_quality_;
-  double max_corner_quality_;
+  double corner_quality_min_;
+  double corner_quality_max_;
   double corner_quality_alpha_;
   int nominal_corner_count_;
 

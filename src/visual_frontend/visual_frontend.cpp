@@ -17,7 +17,7 @@ VisualFrontend::VisualFrontend()
   pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
 
   // key member objects
-  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
+  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager(nh));
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
   // populate vector of desired measurement sources

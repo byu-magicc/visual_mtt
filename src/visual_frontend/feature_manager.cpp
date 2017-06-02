@@ -6,9 +6,7 @@
 // - provide options to use different feature matching methods (LK, NN, BF)
 
 
-FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
-  double corner_quality, double min_corner_quality, double max_corner_quality, double corner_quality_alpha,
-  int nominal_corner_count, int pyr_size_param)
+FeatureManager::FeatureManager(ros::NodeHandle nh, int nominal_corner_count, int pyr_size_param)
 {
 
   // develop a nice param setup (follow rransac repo pattern)
@@ -19,13 +17,14 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
   calibration_ = (cv::Mat_<float>(3,3) <<
     1348.206365, 0.0,         351.089626,
     0.0,         1347.862463, 272.416355,
-    0.0,         0.0,         1.0);
-  compute_stats_        = compute_stats;
-  max_points_tracked_   = max_points_tracked;
-  corner_quality_       = corner_quality;
-  min_corner_quality_   = min_corner_quality;
-  max_corner_quality_   = max_corner_quality;
-  corner_quality_alpha_ = corner_quality_alpha;
+    0.0,         0.0,         1.0); // load from param
+
+  // get the needed params that are not dynamically reconfigurable
+  nh.param<double>("visual_frontend/corner_quality",       corner_quality_,       0.03 );
+  nh.param<double>("visual_frontend/corner_quality_min",   corner_quality_min_,   0.03 );
+  nh.param<double>("visual_frontend/corner_quality_max",   corner_quality_max_,   0.05 );
+  nh.param<double>("visual_frontend/corner_quality_alpha", corner_quality_alpha_, 0.999);
+
   nominal_corner_count_ = nominal_corner_count;
   pyr_size_param_       = pyr_size_param;
 
@@ -34,7 +33,7 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 
   // Create an adjusting feature point detector.
 
-  int maxCorners=max_points_tracked_;
+  //int maxCorners=max_points_tracked_;
   double qualityLevel=corner_quality_;
   double minDistance=10;
   int blockSize=3;
@@ -43,12 +42,12 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 #if CV_MAJOR_VERSION == 2
   // we won't be supporting opencv2
   gftt_detector_ = cv::Ptr<cv::GoodFeaturesToTrackDetector>(new cv::GoodFeaturesToTrackDetector(
-                              maxCorners, qualityLevel, minDistance, blockSize, useHarrisDetector, k));
+                              max_points_tracked_, qualityLevel, minDistance, blockSize, useHarrisDetector, k));
   //grid_detector_ = Ptr<FeatureDetector>(new GridAdaptedFeatureDetector(
-  //                                                  detector_, maxCorners, 6, 8));
+  //                                                  detector_, max_points_tracked_, 6, 8));
 
 #elif CV_MAJOR_VERSION == 3
-  gftt_detector_ = cv::GFTTDetector::create(maxCorners, qualityLevel, minDistance, blockSize, useHarrisDetector, k);
+  gftt_detector_ = cv::GFTTDetector::create(max_points_tracked_, qualityLevel, minDistance, blockSize, useHarrisDetector, k);
 #endif
 
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
@@ -63,7 +62,10 @@ FeatureManager::FeatureManager(bool compute_stats, int max_points_tracked,
 void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "feature_manager update" << std::endl; // temporary
-  // add other param updates here
+
+  max_points_tracked_ = config.max_points;
+  gftt_detector_->setMaxFeatures(max_points_tracked_);
+
 }
 
 // ----------------------------------------------------------------------------
@@ -139,8 +141,8 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   }
   // apply alpha filter and upper/lower bounds
   corner_quality_ = corner_quality_*corner_quality_alpha_ + quality_step_dir*(1-corner_quality_alpha_);
-  corner_quality_ = std::max(min_corner_quality_, corner_quality_);
-  corner_quality_ = std::min(max_corner_quality_, corner_quality_);
+  corner_quality_ = std::max(corner_quality_min_, corner_quality_);
+  corner_quality_ = std::min(corner_quality_max_, corner_quality_);
 
 #if CV_MAJOR_VERSION == 2
   gftt_detector_->setDouble("qualityLevel",corner_quality_);
