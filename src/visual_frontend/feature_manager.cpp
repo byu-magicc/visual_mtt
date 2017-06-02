@@ -6,40 +6,37 @@
 // - provide options to use different feature matching methods (LK, NN, BF)
 
 
-FeatureManager::FeatureManager(ros::NodeHandle nh, int nominal_corner_count, int pyr_size_param)
+FeatureManager::FeatureManager(ros::NodeHandle nh)
 {
-
   first_image_ = true;
 
   // get the needed params that are not dynamically reconfigurable
+  int pyramid_size;
   nh.param<double>("visual_frontend/corner_quality",       corner_quality_,       0.03 );
   nh.param<double>("visual_frontend/corner_quality_min",   corner_quality_min_,   0.03 );
   nh.param<double>("visual_frontend/corner_quality_max",   corner_quality_max_,   0.05 );
   nh.param<double>("visual_frontend/corner_quality_alpha", corner_quality_alpha_, 0.999);
+  nh.param<int>   ("visual_frontend/pyramid_size",         pyramid_size,          21   );
 
-  nominal_corner_count_ = nominal_corner_count;
-  pyr_size_param_       = pyr_size_param;
+  pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
 
 
-  pyr_size_ = cv::Size(pyr_size_param_, pyr_size_param_);
+  //int maxCorners=points_max_;
+  // double qualityLevel=corner_quality_;
+  double minDistance=10;           // TODO parameterize this
+  int blockSize=3;                 // TODO parameterize this
+  bool useHarrisDetector=false;    // just hardcode the false in?
+  double k=0.04;                   // look this up
 
-  // Create an adjusting feature point detector.
-
-  //int maxCorners=max_points_tracked_;
-  double qualityLevel=corner_quality_;
-  double minDistance=10;
-  int blockSize=3;
-  bool useHarrisDetector=false;
-  double k=0.04;
 #if CV_MAJOR_VERSION == 2
   // we won't be supporting opencv2
   gftt_detector_ = cv::Ptr<cv::GoodFeaturesToTrackDetector>(new cv::GoodFeaturesToTrackDetector(
-                              max_points_tracked_, qualityLevel, minDistance, blockSize, useHarrisDetector, k));
+                              points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector, k));
   //grid_detector_ = Ptr<FeatureDetector>(new GridAdaptedFeatureDetector(
-  //                                                  detector_, max_points_tracked_, 6, 8));
+  //                                                  detector_, points_max_, 6, 8));
 
 #elif CV_MAJOR_VERSION == 3
-  gftt_detector_ = cv::GFTTDetector::create(max_points_tracked_, qualityLevel, minDistance, blockSize, useHarrisDetector, k);
+  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector, k);
 #endif
 
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
@@ -55,8 +52,10 @@ void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "feature_manager update" << std::endl; // temporary
 
-  max_points_tracked_ = config.max_points;
-  gftt_detector_->setMaxFeatures(max_points_tracked_);
+  points_max_ = config.points_max;
+  points_target_ = config.points_target;
+
+  gftt_detector_->setMaxFeatures(points_max_);
 
 }
 
@@ -75,7 +74,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // Build optical flow pyramids for current image
   std::vector<cv::Mat> current_pyramids;
-  buildOpticalFlowPyramid(mono, current_pyramids, pyr_size_, 2);
+  buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
 
   if (!first_image_)
   {
@@ -89,7 +88,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
     // match feature points using lk algorithm
     cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
                              prev_features_, next_features,
-                             status, err, pyr_size_, 3, kltTerm_, 0, 1e-4);
+                             status, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 
     // store only matched features
     prev_matched_.clear();
@@ -123,7 +122,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // perform adaptive corner quality using discrete alpha filtering
   // first determine the direction based on the number of features found
   int quality_step_dir = 0;
-  if (features.size() < nominal_corner_count_)
+  if (features.size() < points_target_)
   {
     quality_step_dir = -1;
   }

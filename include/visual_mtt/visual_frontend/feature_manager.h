@@ -7,8 +7,7 @@
 class FeatureManager
 {
 public:
-  FeatureManager(ros::NodeHandle nh, int nominal_corner_count = 1200, int pyr_size_param = 21);
-
+  FeatureManager(ros::NodeHandle nh);
   void set_parameters(visual_mtt2::visual_frontendConfig& config);
   void find_correspondences(cv::Mat& frame);
   static void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
@@ -24,12 +23,12 @@ private:
   //cv::Mat last_image_; // not used
 
   // Node parameters
-  int max_points_tracked_;
+  int    points_max_;
+  int    points_target_;
   double corner_quality_;
   double corner_quality_min_;
   double corner_quality_max_;
   double corner_quality_alpha_;
-  int nominal_corner_count_;
 
 #if CV_MAJOR_VERSION == 2
   // we won't be supporting opencv2
@@ -40,8 +39,7 @@ private:
 
   // keep pyramids from the last iteration
   std::vector<cv::Mat> last_pyramids_;
-  cv::Size pyr_size_;
-  int pyr_size_param_;
+  cv::Size pyramid_size_;
 
   // Settings
   cv::TermCriteria kltTerm_;

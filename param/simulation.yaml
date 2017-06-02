@@ -3,6 +3,8 @@
 
 # intrinsic camera parameters
 # (only used when tracking in normalized image coordinates)
+# (future: 2 camera matrices, one for each image size.
+# distortion coefficients are static and can be used for resized image)
 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/calibration/fx: 1348.206365
 visual_frontend/calibration/fy: 1347.862463
@@ -21,13 +23,15 @@ visual_frontend/calibration/p2: 0
 visual_frontend/reprojection_error: 1.1
 
 # feature manager
-visual_frontend/feature_type: "ORB"
+visual_frontend/feature_type:    "ORB"
 visual_frontend/matching_method: "BF"
-visual_frontend/max_points: 2000
+visual_frontend/points_max:      2000
+visual_frontend/points_target:   1200
 visual_frontend/corner_quality:       0.03  # NOT DYNAMICALLLY RECONFIGURABLE, AUTOMATICALLY ADJUSTED IN ALGORITHM
 visual_frontend/corner_quality_min:   0.03  # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/corner_quality_max:   0.05  # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
+visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
 
 
