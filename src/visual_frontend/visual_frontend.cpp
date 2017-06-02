@@ -5,12 +5,27 @@ namespace visual_mtt {
 VisualFrontend::VisualFrontend()
 {
   // get parameters from param server that are not dynamically reconfigurable
-  // bool x, y, z;
-  // nh.param<bool>("show_x", x, false);
-  // nh.param<bool>("show_y", y, false);
-  // nh.param<bool>("show_z", z, false);
+  double fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6;
+  nh.param<double>("visual_frontend/calibration/fx", fx, 0);
+  nh.param<double>("visual_frontend/calibration/fy", fy, 0);
+  nh.param<double>("visual_frontend/calibration/cx", cx, 0);
+  nh.param<double>("visual_frontend/calibration/cy", cy, 0);
+  nh.param<double>("visual_frontend/calibration/k1", k1, 0);
+  nh.param<double>("visual_frontend/calibration/k2", k2, 0);
+  nh.param<double>("visual_frontend/calibration/p1", p1, 0);
+  nh.param<double>("visual_frontend/calibration/p2", p2, 0);
+  nh.param<double>("visual_frontend/calibration/k3", k3, 0);
+  nh.param<double>("visual_frontend/calibration/k4", k4, 0);
+  nh.param<double>("visual_frontend/calibration/k5", k5, 0);
+  nh.param<double>("visual_frontend/calibration/k6", k6, 0);
 
-  // ROS stuff
+  calibration_ = (cv::Mat_<float>(3,3) <<
+    fx ,  0.0,  cx,
+    0.0,  fy ,  cy,
+    0.0,  0.0,  1.0);
+  distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
+
+  // ROS communication
   sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);

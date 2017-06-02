@@ -46,6 +46,9 @@ namespace visual_mtt {
     // timestamps, "add_frame" will sort of become a manager of these histories
     // (and provide CPU/GPU support of course)
 
+    cv::Mat calibration_; // not used yet
+    cv::Mat distortion_;  // not used yet
+
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in = cv::Mat(480, 640, CV_8UC3);                           // TODO: parameterize dimensions (maybe add logic for aspect ratio)
     cv::Mat hd_frame; // uMat

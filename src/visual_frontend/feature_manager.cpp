@@ -9,15 +9,7 @@
 FeatureManager::FeatureManager(ros::NodeHandle nh, int nominal_corner_count, int pyr_size_param)
 {
 
-  // develop a nice param setup (follow rransac repo pattern)
-
-
   first_image_ = true;
-
-  calibration_ = (cv::Mat_<float>(3,3) <<
-    1348.206365, 0.0,         351.089626,
-    0.0,         1347.862463, 272.416355,
-    0.0,         0.0,         1.0); // load from param
 
   // get the needed params that are not dynamically reconfigurable
   nh.param<double>("visual_frontend/corner_quality",       corner_quality_,       0.03 );

@@ -7,10 +7,7 @@
 class FeatureManager
 {
 public:
-  FeatureManager(
-    ros::NodeHandle nh,
-    int nominal_corner_count    = 1200,
-    int pyr_size_param          = 21);
+  FeatureManager(ros::NodeHandle nh, int nominal_corner_count = 1200, int pyr_size_param = 21);
 
   void set_parameters(visual_mtt2::visual_frontendConfig& config);
   void find_correspondences(cv::Mat& frame);
@@ -34,8 +31,6 @@ private:
   double corner_quality_alpha_;
   int nominal_corner_count_;
 
-
-  cv::Mat calibration_; // currently not used, can be used for rotation-based prediction
 #if CV_MAJOR_VERSION == 2
   // we won't be supporting opencv2
   cv::Ptr<cv::GoodFeaturesToTrackDetector> gftt_detector;
