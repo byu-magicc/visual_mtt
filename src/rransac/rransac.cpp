@@ -4,24 +4,17 @@ namespace visual_mtt {
 
 RRANSAC::RRANSAC()
 {
-  // receive parameters from launchfile
-  // bool x, y, z; // move to header
-  // nh.param<bool>("show_x", x, false);
-  // nh.param<bool>("show_y", y, false);
-  // nh.param<bool>("show_z", z, false);
-  // the original code used "nh_private_": "ros::NodeHandle nh_private_("~");"
-
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
-  std::cout << "initialized rransac object inside node" << std::endl; // temporary
 
   // ROS stuff
-  // TODO: fix terrible topic name
-  sub = nh.subscribe("measurements_and_homographies", 1, &RRANSAC::callback, this); // noob question: is there a way to specify message type here? (in addition to specifying in the callback function)
-  pub = nh.advertise<std_msgs::Float32>("tracks", 1); // temporary dummy std_msgs for compilation
+  sub = nh.subscribe("measurements", 1, &RRANSAC::callback, this);
+  pub = nh.advertise<std_msgs::Float32>("tracks", 1);
 }
 
-void RRANSAC::callback(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback(const std_msgs::Float32 data)
 {
   // homographies and measurements arrive in one message synchronized
   // for the current "scan"
@@ -35,8 +28,27 @@ void RRANSAC::callback(const std_msgs::Float32 data) // temporary dummy std_msgs
   // retrieve good models and publish
   // the message will have a timestamp associated with the frame of this
   // scan AND the current time (timestamp of model updates)
+
+  std::vector<cv::Point2f> pos;
+  std::vector<cv::Point2f> vel;
+
+  tracker_.add_measurements<Point2fAccess>(pos, vel, 0);
+
+
+  Eigen::Projective2d T;
+  T.setIdentity();
+
+  tracker_.apply_transformation(T);
+
+  // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
+  std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
 }
 
+// ----------------------------------------------------------------------------
 
+void RRANSAC::publish_tracks(std::vector<rransac::core::ModelPtr> tracks)
+{
+  
+}
 
 }

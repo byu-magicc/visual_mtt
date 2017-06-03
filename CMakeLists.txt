@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
-find_package(rransac 0.1 REQUIRED)
+find_package(rransac 0.2 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 
 
