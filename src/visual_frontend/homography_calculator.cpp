@@ -4,6 +4,8 @@
 // - provide a modular homography calculator that uses feature correspondences
 // - this will be replaced by a homography filter when IMU data is used
 
+namespace visual_mtt {
+
 HomographyCalculator::HomographyCalculator()
 {
   // this will probably merge with the homography_filter class eventually
@@ -99,3 +101,5 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
 
 
 }
+
+} // namespace visual_mtt

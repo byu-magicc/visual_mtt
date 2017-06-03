@@ -5,6 +5,7 @@
 // - provide options to use different feature types (ORB, GFTT)
 // - provide options to use different feature matching methods (LK, NN, BF)
 
+namespace visual_mtt {
 
 FeatureManager::FeatureManager(ros::NodeHandle nh)
 {
@@ -146,3 +147,4 @@ void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::
   }
 }
 
+} // namespace visual_mtt
