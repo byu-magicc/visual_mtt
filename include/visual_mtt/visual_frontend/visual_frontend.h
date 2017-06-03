@@ -36,7 +36,6 @@ namespace visual_mtt {
     // dynamic reconfigure server and callback
     void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
     dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
-    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig>::CallbackType function_;
 
     void set_parameters(visual_mtt2::visual_frontendConfig& config);
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
