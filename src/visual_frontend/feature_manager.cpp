@@ -53,7 +53,7 @@ void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
-  std::cout << "generating feature correspondences" << std::endl;
+  // std::cout << "generating feature correspondences" << std::endl;
   // FOR NOW: GENERATE BASIC FEATURE CORRESPONDENCES USING LK
   // THE FOLLOWING IS MOSTLY FROM ORIGINAL CODE
   // but omitting the orientation-based guess and adjusting inputs

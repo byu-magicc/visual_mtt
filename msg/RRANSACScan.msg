@@ -7,6 +7,7 @@
 
 std_msgs/Header Header
 
+# Assumes Row-Major memory storage
 float32[9] homography
 
 visual_mtt2/Source[] sources

@@ -28,7 +28,7 @@ void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& co
 void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& prev_features,
                                                 const std::vector<cv::Point2f>& next_features)
 {
-  std::cout << "generating homography" << std::endl;
+  // std::cout << "generating homography" << std::endl;
   // use feature correspondences to find homography
 
   // TODO: 5 or more are needed for a homography, but should we force a higher threshold?

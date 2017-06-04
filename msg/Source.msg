@@ -6,10 +6,11 @@
 std_msgs/String name
 
 # ID of the measurement source that found these measurements
-uint8 source_id
+uint8 id
 
-# Does this measurement source produce velocity measurements?
-bool has_velocity
+# Measurement dimensionality. Use this to know how many
+# elements are in the `position` and `velocity` arrays
+uint8 dimensionality
 
-# An array of measurement objects
-visual_mtt2/Measurement[] measurements
+Measurement[] positions
+Measurement[] velocities

@@ -14,31 +14,24 @@ RRANSAC::RRANSAC()
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback(const std_msgs::Float32 data)
+void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
-  // homographies and measurements arrive in one message synchronized
-  // for the current "scan"
-
-  // separate homography from measurements
-
-  // apply measurements to tracker_
-
-  // apply homographies to tracker_
 
   // retrieve good models and publish
   // the message will have a timestamp associated with the frame of this
   // scan AND the current time (timestamp of model updates)
 
-  std::vector<cv::Point2f> pos;
-  std::vector<cv::Point2f> vel;
-
-  tracker_.add_measurements<Point2fAccess>(pos, vel, 0);
-
-
-  Eigen::Projective2d T;
-  T.setIdentity();
-
+  // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
+  Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
+  Eigen::Projective2d T(H.cast<double>());
   tracker_.apply_transformation(T);
+  
+  // Add each source's measurements along with its ID to the R-RANSAC Tracker
+  for (auto src = rransac_scan->sources.begin(); src != rransac_scan->sources.end(); src++)
+    if (src->dimensionality == 2)
+      tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
+    else if (src->dimensionality == 3)
+      tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
 
   // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
   std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
