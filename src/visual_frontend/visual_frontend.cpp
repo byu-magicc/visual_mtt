@@ -40,8 +40,8 @@ VisualFrontend::VisualFrontend()
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
 
   // establish dynamic reconfigure and load defaults
-  function_ = boost::bind(&VisualFrontend::callback_reconfigure, this, _1, _2);
-  server_.setCallback(function_);
+  auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func);
 }
 
 // ----------------------------------------------------------------------------

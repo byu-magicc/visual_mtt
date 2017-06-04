@@ -21,11 +21,6 @@ find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
 )
 
-# Generate dynamic reconfigure parameters in the 'cfg' folder
-generate_dynamic_reconfigure_options(
-  cfg/visual_frontend.cfg
-)
-
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
 find_package(rransac 0.1 REQUIRED)
@@ -99,10 +94,9 @@ generate_messages(
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/visual_frontend.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
