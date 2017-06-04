@@ -28,14 +28,11 @@ namespace visual_mtt {
     VisualFrontend();
     //~VisualFrontend();
 
-    // subscription callbacks
+    // subscription and dynmaic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
     void callback_tracks(const std_msgs::Float32 data); // temporary message type
-
-    // dynamic reconfigure server and callback
     void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
-    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
 
     void set_parameters(visual_mtt2::visual_frontendConfig& config);
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
@@ -62,6 +59,9 @@ namespace visual_mtt {
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
     ros::Publisher  pub;
+
+    // dynamic reconfigure server
+    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
 
     // key algorithm members
     std::shared_ptr<FeatureManager>       feature_manager_;
