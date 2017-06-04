@@ -57,6 +57,8 @@ add_message_files(
   RRANSACScan.msg
   Source.msg
   Measurement.msg
+  Tracks.msg
+  Track.msg
 )
 
 ## Generate services in the 'srv' folder

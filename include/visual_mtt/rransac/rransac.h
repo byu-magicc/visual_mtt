@@ -10,8 +10,8 @@
 #include "visual_mtt2/RRANSACScan.h"
 #include "visual_mtt2/Source.h"
 #include "visual_mtt2/Measurement.h"
-#include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
-
+#include "visual_mtt2/Tracks.h"
+#include "visual_mtt2/Track.h"
 
 namespace visual_mtt {
 
@@ -34,7 +34,7 @@ namespace visual_mtt {
     void callback(const visual_mtt2::RRANSACScanPtr& rransac_scan);
 
     // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
-    void publish_tracks(std::vector<rransac::core::ModelPtr> tracks);
+    void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
   };
 
