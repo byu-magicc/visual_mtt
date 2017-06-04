@@ -36,7 +36,6 @@ void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 
   // publish the tracks onto ROS network
   publish_tracks(tracks);
-
 }
 
 // ----------------------------------------------------------------------------

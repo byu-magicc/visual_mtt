@@ -5,7 +5,7 @@
 # is intended to be sent from the visual frontend to the R-RANSAC node to 
 # feed into the R-RANSAC Tracker.
 
-std_msgs/Header Header
+std_msgs/Header header
 
 # Assumes Row-Major memory storage
 float32[9] homography
