@@ -29,7 +29,7 @@ VisualFrontend::VisualFrontend()
   sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
-  pub        = nh.advertise<std_msgs::Float32>("measurements_and_homographies", 1); // temporary dummy std_msgs for compilation
+  pub        = nh.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
 
   // key member objects
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager(nh));
@@ -174,6 +174,11 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 
 void VisualFrontend::generate_measurements()
 {
+  // Message for publishing measurements to R-RANSAC Tracker
+  visual_mtt2::RRANSACScan scan;
+  scan.header.stamp = ros::Time::now();
+  if (!homography_calculator_->homography_.empty())
+    memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
 
   for (int i=0; i<sources_.size(); i++)
   {
@@ -182,12 +187,43 @@ void VisualFrontend::generate_measurements()
       feature_manager_->next_matched_,
       homography_calculator_->pixel_diff_,
       homography_calculator_->good_transform_);
+
+    // Create a Source msg
+    visual_mtt2::Source src;
+    src.id = i;
+    src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
+
+    for (int j=0; j<sources_[i]->features_.size(); j++)
+    {
+
+      // TODO: Can I always assume that features_.size == features_vel_.size()?
+      auto pos = sources_[i]->features_[j];
+      auto vel = sources_[i]->features_vel_[j];
+
+      visual_mtt2::Measurement mpos, mvel;
+      mpos.data = {pos.x, pos.y};
+      mvel.data = {vel.x, vel.y};
+
+      src.positions.push_back(mpos);
+      src.velocities.push_back(mvel);
+    }
+
+
+
+    // Add source to scan message
+    scan.sources.push_back(src);
   }
+
+  pub.publish(scan);
+
   // each source will recieve (and can ignore or use):
     // recent images
     // feature correpsondences
     // homography
     // recent track data
+
+
+
 
 
 

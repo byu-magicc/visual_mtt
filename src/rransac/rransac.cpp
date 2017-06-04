@@ -4,6 +4,10 @@ namespace visual_mtt {
 
 RRANSAC::RRANSAC()
 {
+  // TODO: This is a hack. We need to set the surveilance region width/height here.
+  params_.frame_cols = 1000;
+  params_.frame_rows = 1000;
+  
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 

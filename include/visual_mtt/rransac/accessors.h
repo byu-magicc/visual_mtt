@@ -1,7 +1,6 @@
 #pragma once
 
 #include <rransac/access_type.h>
-#include <opencv2/opencv.hpp>
 
 #include "visual_mtt2/Measurement.h"
 
