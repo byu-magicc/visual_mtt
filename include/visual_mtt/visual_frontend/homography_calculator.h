@@ -6,22 +6,25 @@
 // dynamic reconfig
 #include "visual_mtt2/visual_frontendConfig.h"
 
-class HomographyCalculator
-{
-public:
-  HomographyCalculator();
-  void calculate_homography(const std::vector<cv::Point2f>& prev_features,
-                            const std::vector<cv::Point2f>& next_features);
-  void set_parameters(visual_mtt2::visual_frontendConfig& config);
+namespace visual_mtt {
 
-  cv::Mat homography_;
-  std::vector<uchar> inlier_mask_;
-  std::vector<cv::Point2f> pixel_diff_;
-  bool good_transform_;
+  class HomographyCalculator
+  {
+  public:
+    HomographyCalculator();
+    void calculate_homography(const std::vector<cv::Point2f>& prev_features,
+                              const std::vector<cv::Point2f>& next_features);
+    void set_parameters(visual_mtt2::visual_frontendConfig& config);
 
-private:
+    cv::Mat homography_;
+    std::vector<uchar> inlier_mask_;
+    std::vector<cv::Point2f> pixel_diff_;
+    bool good_transform_;
 
-  double reprojection_error_;
+  private:
 
-};
+    double reprojection_error_;
 
+  };
+
+}

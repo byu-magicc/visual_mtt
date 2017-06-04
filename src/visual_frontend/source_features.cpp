@@ -1,5 +1,7 @@
 #include "visual_frontend/source_features.h"
 
+namespace visual_mtt {
+
 SourceFeatures::SourceFeatures()
 {
 
@@ -80,3 +82,5 @@ void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;
 }
+
+} // namespace visual_mtt
