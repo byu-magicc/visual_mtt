@@ -119,7 +119,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_tracks(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
+void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 {
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)

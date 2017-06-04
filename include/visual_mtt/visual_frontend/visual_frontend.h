@@ -11,6 +11,7 @@
 #include "visual_mtt2/visual_frontendConfig.h"
 
 // messages
+#include "visual_mtt2/Tracks.h"
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
@@ -31,7 +32,7 @@ namespace visual_mtt {
     // subscription and dynamic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
-    void callback_tracks(const std_msgs::Float32 data); // temporary message type
+    void callback_tracks(const visual_mtt2::TracksPtr& data);
     void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
 
     // data management and execution
