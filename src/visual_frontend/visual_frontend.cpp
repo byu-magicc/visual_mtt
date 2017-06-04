@@ -91,6 +91,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // publish measurements and homography
 
 
+  // TODO: create a display function that considers whether tuning=true
   // display hd and sd frames
   cv::imshow("hd image", hd_frame);
   cv::imshow("sd image", sd_frame);

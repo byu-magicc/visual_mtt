@@ -28,12 +28,13 @@ namespace visual_mtt {
     VisualFrontend();
     //~VisualFrontend();
 
-    // subscription and dynmaic reconfigure callbacks
+    // subscription and dynamic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
     void callback_tracks(const std_msgs::Float32 data); // temporary message type
     void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
 
+    // data management and execution
     void set_parameters(visual_mtt2::visual_frontendConfig& config);
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
