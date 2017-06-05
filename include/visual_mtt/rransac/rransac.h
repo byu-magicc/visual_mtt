@@ -1,9 +1,17 @@
 #pragma once
 
+#include <ros/ros.h>
+
 #include <rransac/tracker.h>
 #include <rransac/access_type.h>
-#include <ros/ros.h>
-#include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
+
+#include "rransac/accessors.h"
+
+#include "visual_mtt2/RRANSACScan.h"
+#include "visual_mtt2/Source.h"
+#include "visual_mtt2/Measurement.h"
+#include "visual_mtt2/Tracks.h"
+#include "visual_mtt2/Track.h"
 
 namespace visual_mtt {
 
@@ -11,9 +19,6 @@ namespace visual_mtt {
   {
   public:
     RRANSAC();
-    //~RRANSAC();
-
-    void callback(const std_msgs::Float32); // temporary message type, in future, use custom homography+measurements message
 
   private:
     rransac::core::Parameters params_;
@@ -23,6 +28,13 @@ namespace visual_mtt {
     ros::NodeHandle nh;
     ros::Subscriber sub;
     ros::Publisher pub;
+
+    // ROS subscriber callback. Each callback a new measurement
+    // scan is received and the R-RANSAC Tracker is run.
+    void callback(const visual_mtt2::RRANSACScanPtr& rransac_scan);
+
+    // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
+    void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
   };
 

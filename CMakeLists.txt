@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
-find_package(rransac 0.1 REQUIRED)
+find_package(rransac 0.2 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 
 
@@ -52,11 +52,14 @@ message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+  FILES
+  RRANSACScan.msg
+  Source.msg
+  Measurement.msg
+  Tracks.msg
+  Track.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
