@@ -15,8 +15,8 @@ public:
   Source(){};
   ~Source(){};
 
-  virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel, bool good_transform){};
-  virtual void set_parameters(visual_mtt2::visual_frontendConfig& config){};
+  virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel, bool good_transform) = 0;
+  virtual void set_parameters(visual_mtt2::visual_frontendConfig& config) = 0;
 
   std::vector<cv::Point2f> features_;
 	std::vector<cv::Point2f> features_vel_;
