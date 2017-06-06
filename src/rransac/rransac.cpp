@@ -71,6 +71,9 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
 void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
+  // Save the original frame header
+  header_frame_ = rransac_scan->header;
+
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
   Eigen::Projective2d T(H.cast<double>());
@@ -125,7 +128,8 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     msg.tracks.push_back(track);
   }
 
-  // Add the current time to the tracks
+  // Include the original frame header and add the current time to the tracks
+  msg.header_frame = header_frame_;
   msg.header_update.stamp = ros::Time::now();
 
   // ROS publish

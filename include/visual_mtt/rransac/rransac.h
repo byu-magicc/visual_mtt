@@ -44,6 +44,9 @@ namespace visual_mtt {
     // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
+    // Saved frame header, received at each callback
+    std_msgs::Header header_frame_;
+
   };
 
 }

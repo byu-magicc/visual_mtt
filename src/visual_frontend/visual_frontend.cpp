@@ -132,18 +132,41 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
 
 void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 {
-  std::cout << "got new track" << std::endl;
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
   tracks_ = data;
+  std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
 
   // plot the track data over the appropriate frame, the "legacy view"
-
   // get the frame from history that matches the frame timestamp in data
+  // for now, cheat and use the most recent frame:
+  cv::Mat draw = hd_frame_in.clone();
 
-  // cycle through track data, plotting track markers
+  for (int i = 0; i < data->tracks.size(); i++)
+  {
+    cv::Point center;
+    center.x = data->tracks[i].position.x;
+    center.y = data->tracks[i].position.y;
+    // draw circle
+    cv::Scalar color = cv::Scalar(255, 0, 0); // TODO: make list of pre-generated random colors
+    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 TauR
 
-  // TODO: move the above to a separate function
+    // draw velocity (?)
+    // draw covariance (?)
+    // draw consensus set (?)
+
+    // draw model number and inlier ratio
+    // copying stringstream method from original code, is there a better way?
+    std::stringstream ssGMN;
+    ssGMN << data->tracks[i].id << ", " << data->tracks[i].inlier_ratio;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+
+  }
+
+  // draw top-left box
+
+  imshow("Tracks", draw);
+  // TODO: move the above to a separate function !!!
 
 
 
