@@ -7,7 +7,7 @@ RRANSAC::RRANSAC()
   // TODO: This is a hack. We need to set the surveilance region width/height here.
   params_.frame_cols = 1000;
   params_.frame_rows = 1000;
-  
+
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 
@@ -100,7 +100,7 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // Create the ROS message we will send
   visual_mtt2::Tracks msg;
-  
+
   for (int i=0; i<tracks.size(); i++)
   {
     visual_mtt2::Track track;
@@ -126,7 +126,7 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   }
 
   // Add the current time to the tracks
-  msg.timestamp = ros::Time::now();
+  msg.header_update.stamp = ros::Time::now();
 
   // ROS publish
   pub.publish(msg);

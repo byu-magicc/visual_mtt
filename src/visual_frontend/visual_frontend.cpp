@@ -132,8 +132,21 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
 
 void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 {
+  std::cout << "got new track" << std::endl;
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
+  tracks_ = data;
+
+  // plot the track data over the appropriate frame, the "legacy view"
+
+  // get the frame from history that matches the frame timestamp in data
+
+  // cycle through track data, plotting track markers
+
+  // TODO: move the above to a separate function
+
+
+
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
@@ -187,9 +200,9 @@ void VisualFrontend::generate_measurements()
 {
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt2::RRANSACScan scan;
-  scan.header.stamp = ros::Time::now();
+  scan.header.stamp = timestamp_frame_;
   if (!homography_calculator_->homography_.empty())
-    memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
+    std::memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
 
   for (int i=0; i<sources_.size(); i++)
   {
