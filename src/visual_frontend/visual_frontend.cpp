@@ -104,12 +104,12 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
   // TODO: create a display function that considers whether tuning=true
   // display hd and sd frames
-  cv::imshow("hd image", hd_frame);
-  cv::imshow("sd image", sd_frame);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
+  // cv::imshow("hd image", hd_frame);
+  // cv::imshow("sd image", sd_frame);
+  // // get the input from the keyboard
+  // char keyboard = cv::waitKey(10);
+  // if(keyboard == 'q')
+  //   ros::shutdown();
 }
 
 // ----------------------------------------------------------------------------
@@ -165,7 +165,11 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 
   // draw top-left box
 
-  imshow("Tracks", draw);
+  cv::imshow("Tracks", draw);
+  // get the input from the keyboard
+  char keyboard = cv::waitKey(10);
+  if(keyboard == 'q')
+    ros::shutdown();
   // TODO: move the above to a separate function !!!
 
 
