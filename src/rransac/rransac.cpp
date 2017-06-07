@@ -12,7 +12,8 @@ RRANSAC::RRANSAC()
   tracker_ = rransac::Tracker(params_);
 
   // ROS stuff
-  sub = nh.subscribe("measurements", 1, &RRANSAC::callback, this);
+  sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
+  sub_video = nh.subscribe("video", 1, &RRANSAC::callback_video, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
@@ -65,11 +66,17 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
   // Update the R-RANSAC Tracker with these new parameters
   tracker_.set_parameters(params_);
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+  total_tracks_ = 0;
 }
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
+void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
   // Save the original frame header
   header_frame_ = rransac_scan->header;
@@ -94,6 +101,14 @@ void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 
   // publish the tracks onto ROS network
   publish_tracks(tracks);
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
+{
+  // convert message data into OpenCV type cv::Mat
+  frame_ = cv_bridge::toCvCopy(frame, "bgr8")->image;
 }
 
 // ----------------------------------------------------------------------------
@@ -134,6 +149,61 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // ROS publish
   pub.publish(msg);
+
+  // generate visualization
+  draw_tracks(msg);
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::draw_tracks(const visual_mtt2::Tracks& tracks)
+{
+  cv::Mat draw = frame_.clone();
+
+  for (int i = 0; i < tracks.tracks.size(); i++)
+  {
+    total_tracks_ = std::max(total_tracks_, tracks.tracks[i].id);
+
+    cv::Point center;
+    center.x = tracks.tracks[i].position.x;
+    center.y = tracks.tracks[i].position.y;
+    // draw circle
+    cv::Scalar color = colors_[tracks.tracks[i].id];
+    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
+
+    // draw velocity (?)
+    // draw covariance (?)
+    // draw consensus set (?)
+
+    // draw model number and inlier ratio
+    // copying stringstream method from original code, is there a better way?
+    std::stringstream ssGMN;
+    ssGMN << tracks.tracks[i].id << ", " << tracks.tracks[i].inlier_ratio;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+
+  }
+
+  // draw top-left box
+  char text[40];
+	sprintf(text, "Total models: %d", total_tracks_);
+  cv::Point corner = cv::Point(10,2);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+	sprintf(text, "Current models:  %d", (int)tracks.tracks.size());
+  corner = cv::Point(10,22);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  cv::imshow("Tracks (rransac_node)", draw);
+  // get the input from the keyboard
+  char keyboard = cv::waitKey(10);
+  if(keyboard == 'q')
+    ros::shutdown();
+
+
+
+
 }
 
 }

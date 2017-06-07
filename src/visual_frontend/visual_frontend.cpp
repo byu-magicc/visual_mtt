@@ -183,7 +183,7 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
 	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  cv::imshow("Tracks", draw);
+  cv::imshow("Tracks (visual_frontend)", draw);
   // get the input from the keyboard
   char keyboard = cv::waitKey(10);
   if(keyboard == 'q')

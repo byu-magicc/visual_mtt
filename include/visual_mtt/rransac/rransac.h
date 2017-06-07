@@ -2,6 +2,9 @@
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+
 
 #include <rransac/tracker.h>
 #include <rransac/access_type.h>
@@ -14,6 +17,7 @@
 #include "visual_mtt2/Measurement.h"
 #include "visual_mtt2/Tracks.h"
 #include "visual_mtt2/Track.h"
+#include "sensor_msgs/Image.h"
 
 namespace visual_mtt {
 
@@ -28,7 +32,8 @@ namespace visual_mtt {
 
     // ROS
     ros::NodeHandle nh;
-    ros::Subscriber sub;
+    ros::Subscriber sub_scan;
+    ros::Subscriber sub_video;
     ros::Publisher pub;
 
     // dynamic reconfigure server
@@ -39,14 +44,25 @@ namespace visual_mtt {
 
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.
-    void callback(const visual_mtt2::RRANSACScanPtr& rransac_scan);
+    void callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan);
+
+    // ROS subscriber callback. Each callback a new frame
+    // frame is saved for drawing the tracking results.
+    void callback_video(const sensor_msgs::ImageConstPtr& frame);
 
     // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
+    // Draw tracks over original frame
+    void draw_tracks(const visual_mtt2::Tracks& tracks);
+
     // Saved frame header, received at each callback
     std_msgs::Header header_frame_;
 
+    // For visualization
+    cv::Mat frame_;
+    std::vector<cv::Scalar> colors_;
+    int total_tracks_;
   };
 
 }
