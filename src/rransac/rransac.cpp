@@ -101,6 +101,10 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 
   // publish the tracks onto ROS network
   publish_tracks(tracks);
+
+
+  // generate visualization
+  draw_tracks(tracks);
 }
 
 // ----------------------------------------------------------------------------
@@ -149,38 +153,41 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // ROS publish
   pub.publish(msg);
-
-  // generate visualization
-  draw_tracks(msg);
 }
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::draw_tracks(const visual_mtt2::Tracks& tracks)
+void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
   cv::Mat draw = frame_.clone();
 
-  for (int i = 0; i < tracks.tracks.size(); i++)
+  for (int i=0; i<tracks.size(); i++)
   {
-    total_tracks_ = std::max(total_tracks_, tracks.tracks[i].id);
+    total_tracks_ = std::max(total_tracks_, (int)tracks[i]->GMN); // TODO: use existing counter?
+    cv::Scalar color = colors_[tracks[i]->GMN];
 
+    // draw circle with center at position estimate
     cv::Point center;
-    center.x = tracks.tracks[i].position.x;
-    center.y = tracks.tracks[i].position.y;
-    // draw circle
-    cv::Scalar color = colors_[tracks.tracks[i].id];
+    center.x = tracks[i]->xhat(0);
+    center.y = tracks[i]->xhat(1);
     cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
 
-    // draw velocity (?)
+    // draw scaled velocity vector
+    cv::Point velocity;
+    double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
+    velocity.x = tracks[i]->xhat(2) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * velocity_scale;
+    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+
     // draw covariance (?)
-    // draw consensus set (?)
+
+    // draw consensus set
+
 
     // draw model number and inlier ratio
-    // copying stringstream method from original code, is there a better way?
     std::stringstream ssGMN;
-    ssGMN << tracks.tracks[i].id << ", " << tracks.tracks[i].inlier_ratio;
+    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
     cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
-
   }
 
   // draw top-left box
@@ -190,7 +197,7 @@ void RRANSAC::draw_tracks(const visual_mtt2::Tracks& tracks)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
 	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-	sprintf(text, "Current models:  %d", (int)tracks.tracks.size());
+	sprintf(text, "Current models:  %d", (int)tracks.size());
   corner = cv::Point(10,22);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
 	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));

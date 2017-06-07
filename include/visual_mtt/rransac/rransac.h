@@ -54,7 +54,7 @@ namespace visual_mtt {
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
     // Draw tracks over original frame
-    void draw_tracks(const visual_mtt2::Tracks& tracks);
+    void draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
     // Saved frame header, received at each callback
     std_msgs::Header header_frame_;
