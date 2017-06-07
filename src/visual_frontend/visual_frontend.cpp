@@ -42,6 +42,11 @@ VisualFrontend::VisualFrontend()
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 }
 
 // ----------------------------------------------------------------------------
@@ -148,8 +153,8 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
     center.x = data->tracks[i].position.x;
     center.y = data->tracks[i].position.y;
     // draw circle
-    cv::Scalar color = cv::Scalar(255, 0, 0); // TODO: make list of pre-generated random colors
-    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 TauR
+    cv::Scalar color = colors_[data->tracks[i].id];
+    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR
 
     // draw velocity (?)
     // draw covariance (?)

@@ -56,6 +56,9 @@ namespace visual_mtt {
 
     ros::Time timestamp_frame_;
 
+    // plot result:
+    std::vector<cv::Scalar> colors_;
+
   private:
     // ROS
     ros::NodeHandle nh;

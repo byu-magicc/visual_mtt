@@ -4,5 +4,5 @@ int32 id                        # Track ID (good model number)
 float32 inlier_ratio            # Track inlier ratio (confidence)
 
 geometry_msgs/Point position    # Position (x, y, z)
-geometry_msgs/Point velocity    # Celocity (vx, vy, vz)
+geometry_msgs/Point velocity    # Velocity (vx, vy, vz)
 float32[] covariance            # Error covariance (row-major)
