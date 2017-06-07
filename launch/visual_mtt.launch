@@ -9,7 +9,7 @@
   <arg name="show_moving_obj_video" default="false" />
   ''' -->
   <arg name="imgtopic" default="/video" />
-  <arg name="params" default="simulation" />
+  <arg name="params" default="default" />
   <arg name="tuning" default="false" />
   <!-- idea: make "tuning" replace "show_tracks_video", "show_diff_img_video", "show_moving_obj_video" -->
   <!-- "tuning" will display the measurements overlayed on the image and spawn the reconfigure gui -->

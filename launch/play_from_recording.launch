@@ -9,7 +9,7 @@
   <arg name="imutopic"    default="/imu/data" />
   <arg name="compressed"  default="false" />
   <!-- <arg name="show_tracks_video" default="true" /> -->
-  <arg name="params"      default="simulation" />
+  <arg name="params"      default="default" />
   <arg name="tuning"      default="true" />
 
   <!-- decompress video if needed -->

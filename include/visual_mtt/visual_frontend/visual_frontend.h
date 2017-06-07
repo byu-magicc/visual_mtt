@@ -28,7 +28,6 @@ namespace visual_mtt {
   {
   public:
     VisualFrontend();
-    //~VisualFrontend();
 
     // subscription and dynamic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data);
@@ -72,6 +71,9 @@ namespace visual_mtt {
 
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;
+
+    // Only plot process every `frame_stride_` frames
+    unsigned int frame_stride_ = 1;
 
   };
 

@@ -19,6 +19,9 @@ visual_frontend/calibration/k6: 0
 visual_frontend/calibration/p1: 0
 visual_frontend/calibration/p2: 0
 
+# general processing
+visual_frontend/frame_stride: 3
+
 # homography
 visual_frontend/reprojection_error: 1.1
 

@@ -49,11 +49,15 @@ VisualFrontend::VisualFrontend()
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
   // future work TODO:
-  // decimation logic (Nth frame)
   // resize frame to lower resolution (keep both)
     // a short history is needed for the low res for the sliding
     // a short history is needed for the high res so the track recognition can
     // locate the high-res frame associated with the track it's subscribing to
+
+  // Only process every Nth frame
+  static int frame = 0;
+  if (frame++ % frame_stride_ != 0)
+    return;
 
 
   // generate frame timestamp
@@ -155,7 +159,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
 void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "frontend update" << std::endl; // temporary
-  // add other param updates here
+  frame_stride_ = config.frame_stride;
 }
 
 
