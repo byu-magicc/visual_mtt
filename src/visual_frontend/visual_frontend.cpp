@@ -74,7 +74,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
 
   // save the frame timestamp
-  frame_timestamp_ = data->header.stamp;
+  timestamp_frame_ = data->header.stamp;
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
