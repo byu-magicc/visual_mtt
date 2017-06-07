@@ -141,7 +141,7 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
   tracks_ = data;
-  std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
+  // std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
 
   // plot the track data over the appropriate frame, the "legacy view"
   // get the frame from history that matches the frame timestamp in data

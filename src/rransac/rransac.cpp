@@ -172,12 +172,20 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     center.y = tracks[i]->xhat(1);
     cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
 
+    // draw red dot at the position estimate
+    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
+
     // draw scaled velocity vector
     cv::Point velocity;
     double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
     velocity.x = tracks[i]->xhat(2) * velocity_scale;
     velocity.y = tracks[i]->xhat(3) * velocity_scale;
     cv::line(draw, center, center + velocity, color, 1, CV_AA);
+
+    // draw model number and inlier ratio
+    std::stringstream ssGMN;
+    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
 
     // draw covariance (?)
 
@@ -188,11 +196,6 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
       center.y = tracks[i]->CS[j]->pos(1);
       cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
     }
-
-    // draw model number and inlier ratio
-    std::stringstream ssGMN;
-    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
   }
 
   // draw top-left box
