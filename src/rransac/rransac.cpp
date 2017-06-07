@@ -26,6 +26,45 @@ RRANSAC::RRANSAC()
 
 void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t level) {
 
+  // general
+  params_.dt = config.dt;
+
+  // R-RANSAC specific parameters
+  params_.Nw = config.Nw;
+  params_.M = config.M;
+  params_.tauR = config.tauR;
+  params_.sigmaR_pos = config.sigmaR_pos;
+  params_.sigmaR_vel = config.sigmaR_vel;
+  params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
+
+  // RANSAC specific parameters
+  params_.ell = config.ell;
+  params_.guided_sampling_threshold = config.guided_sampling_threshold;
+  params_.tauR_RANSAC = config.tauR_RANSAC;
+  params_.gamma = config.gamma;
+  params_.sigmaR_pos_RANSAC = config.sigmaR_pos_RANSAC;
+  params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
+
+  // model merging parameters
+  params_.tau_vel_percent_diff = config.tau_vel_percent_diff;
+  params_.tau_vel_abs_diff = config.tau_vel_abs_diff;
+  params_.tau_angle_abs_diff = config.tau_angle_abs_diff;
+  params_.tau_xpos_abs_diff = config.tau_xpos_abs_diff;
+  params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
+
+  // model pruning parameters
+  params_.frame_cols = config.frame_cols;
+  params_.frame_rows = config.frame_rows;
+  params_.tau_CMD_prune = config.tau_CMD_prune;
+
+  // track (i.e., Good Model) parameters
+  params_.tau_rho = config.tau_rho;
+  params_.tau_CMD = config.tau_CMD;
+  params_.tau_Vmax = config.tau_Vmax;
+  params_.tau_T = config.tau_T;
+
+  // Update the R-RANSAC Tracker with these new parameters
+  tracker_.set_parameters(params_);
 }
 
 // ----------------------------------------------------------------------------

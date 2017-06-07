@@ -1,6 +1,9 @@
 # All default param values are to be saved in a file like this. Such values
 # have first priority in rqt_reconfigure. The yaml is loaded at launch.
 
+###############################################################################
+#### Visual Frontend Node
+
 # intrinsic camera parameters
 # (only used when tracking in normalized image coordinates)
 # (future: 2 camera matrices, one for each image size.
@@ -43,3 +46,39 @@ visual_frontend/maximum_pixel_velocity: 10
 ###############################################################################
 #### R-RANSAC Node
 
+# general
+rransac/dt: 1
+
+# R-RANSAC specific parameters
+rransac/Nw: 10
+rransac/M: 5
+rransac/tauR: 50.0
+rransac/sigmaR_pos: 5.0
+rransac/sigmaR_vel: 1.0
+rransac/rransac_motion_model: 2
+
+# RANSAC specific parameters
+rransac/ell: 100
+rransac/guided_sampling_threshold: 1000
+rransac/tauR_RANSAC: 50.0
+rransac/gamma: 0.5
+rransac/sigmaR_pos_RANSAC: 5.0
+rransac/ransac_motion_model: 0
+
+# model merging parameters
+rransac/tau_vel_percent_diff: 0.25
+rransac/tau_vel_abs_diff: 900.0
+rransac/tau_angle_abs_diff: 15.0
+rransac/tau_xpos_abs_diff: 50.0
+rransac/tau_ypos_abs_diff: 50.0
+
+# model pruning parameters
+rransac/frame_cols: 1000
+rransac/frame_rows: 1000
+rransac/tau_CMD_prune: 10
+
+# track (i.e., good model) parameters
+rransac/tau_rho: 0.6
+rransac/tau_CMD: 4
+rransac/tau_Vmax: 30.0
+rransac/tau_T: 4
