@@ -58,7 +58,9 @@ class SimpleVideo2ROS:
 
             # Convert the frame to ROS format
             try:
-                image_pub.publish(bridge.cv2_to_imgmsg(frame, "bgr8"))
+                msg = bridge.cv2_to_imgmsg(frame, "bgr8")
+                msg.header.stamp = rospy.Time.now()
+                image_pub.publish(msg)
             except CvBridgeError, e:
                 print e
 

@@ -26,7 +26,7 @@ VisualFrontend::VisualFrontend()
   distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
 
   // ROS communication
-  sub_video  = nh.subscribe("video",  1, &VisualFrontend::callback_video,  this);
+  sub_video  = nh.subscribe("video",  9, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
   pub        = nh.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
@@ -49,15 +49,26 @@ VisualFrontend::VisualFrontend()
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 {
   // future work TODO:
-  // decimation logic (Nth frame)
   // resize frame to lower resolution (keep both)
     // a short history is needed for the low res for the sliding
     // a short history is needed for the high res so the track recognition can
     // locate the high-res frame associated with the track it's subscribing to
 
+  // Only process every Nth frame
+  static int frame = 0;
+  if (frame++ % frame_stride_ != 0)
+    return;
 
-  // generate frame timestamp
-  frame_timestamp_ = ros::Time::now();
+  // calculate the frame delay
+  ros::Duration delay = ros::Time::now() - data->header.stamp;
+
+  // average overhead delay when the queue is empty is 2.4ms
+  // warn if frame delay is greater than 10ms (ignoring first few frames)
+  if (delay.toSec()>0.01 && frame>15)
+    std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
+
+  // save the frame timestamp
+  frame_timestamp_ = data->header.stamp;
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -155,7 +166,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
 void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "frontend update" << std::endl; // temporary
-  // add other param updates here
+  frame_stride_ = config.frame_stride;
 }
 
 
