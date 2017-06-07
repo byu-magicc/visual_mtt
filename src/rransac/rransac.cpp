@@ -181,8 +181,13 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
     // draw covariance (?)
 
-    // draw consensus set
-
+    // draw consensus sets
+    for (int j=0; j<tracks[i]->CS.size(); j++)
+    {
+      center.x = tracks[i]->CS[j]->pos(0);
+      center.y = tracks[i]->CS[j]->pos(1);
+      cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
+    }
 
     // draw model number and inlier ratio
     std::stringstream ssGMN;
@@ -207,10 +212,6 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   char keyboard = cv::waitKey(10);
   if(keyboard == 'q')
     ros::shutdown();
-
-
-
-
 }
 
 }
