@@ -14,6 +14,18 @@ RRANSAC::RRANSAC()
   // ROS stuff
   sub = nh.subscribe("measurements", 1, &RRANSAC::callback, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
+
+  // establish dynamic reconfigure and load defaults
+  auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func);
+}
+
+// ----------------------------------------------------------------------------
+// Private Methods
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t level) {
+
 }
 
 // ----------------------------------------------------------------------------
