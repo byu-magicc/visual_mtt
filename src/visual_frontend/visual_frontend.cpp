@@ -65,7 +65,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // average overhead delay when the queue is empty is 2.4ms
   // warn if frame delay is greater than 10ms (ignoring first few frames)
   if (delay.toSec()>0.01 && frame>15)
-    std::cout << "message about real-time computation" << std::endl;
+    std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
 
   // save the frame timestamp
   frame_timestamp_ = data->header.stamp;
