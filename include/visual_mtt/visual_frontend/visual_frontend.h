@@ -58,6 +58,7 @@ namespace visual_mtt {
 
     // plot result:
     std::vector<cv::Scalar> colors_;
+    int total_tracks_;
 
   private:
     // ROS

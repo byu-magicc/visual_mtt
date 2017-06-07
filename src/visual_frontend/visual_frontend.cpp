@@ -47,6 +47,7 @@ VisualFrontend::VisualFrontend()
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+  total_tracks_ = 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -149,12 +150,14 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 
   for (int i = 0; i < data->tracks.size(); i++)
   {
+    total_tracks_ = std::max(total_tracks_, data->tracks[i].id);
+
     cv::Point center;
     center.x = data->tracks[i].position.x;
     center.y = data->tracks[i].position.y;
     // draw circle
     cv::Scalar color = colors_[data->tracks[i].id];
-    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR
+    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
 
     // draw velocity (?)
     // draw covariance (?)
@@ -169,12 +172,23 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
   }
 
   // draw top-left box
+  char text[40];
+	sprintf(text, "Total models: %d", total_tracks_);
+  cv::Point corner = cv::Point(10,2);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+	sprintf(text, "Current models:  %d", (int)data->tracks.size());
+  corner = cv::Point(10,22);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
   cv::imshow("Tracks", draw);
   // get the input from the keyboard
   char keyboard = cv::waitKey(10);
   if(keyboard == 'q')
     ros::shutdown();
+
   // TODO: move the above to a separate function !!!
 
 
