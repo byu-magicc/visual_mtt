@@ -24,6 +24,7 @@ visual_frontend/calibration/p2: 0
 
 # general processing
 visual_frontend/frame_stride: 3
+visual_frontend/downsize_scale: 0.8
 
 # homography
 visual_frontend/reprojection_error: 1.0

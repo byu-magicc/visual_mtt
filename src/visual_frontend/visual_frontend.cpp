@@ -74,7 +74,10 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
 
   // downsize image to standard definition
-  cv::resize(hd_frame_in, sd_frame_in, sd_frame_in.size(), 0, 0, cv::INTER_LINEAR);
+  cv::Size def;
+  def.width = hd_frame_in.cols*downsize_scale_;
+  def.height = hd_frame_in.rows*downsize_scale_;
+  cv::resize(hd_frame_in, sd_frame_in, def, 0, 0, cv::INTER_LINEAR);
 
   // add frames to recent history
   add_frame(hd_frame_in, hd_frame);
@@ -105,11 +108,11 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // TODO: create a display function that considers whether tuning=true
   // display hd and sd frames
   // cv::imshow("hd image", hd_frame);
-  // cv::imshow("sd image", sd_frame);
-  // // get the input from the keyboard
-  // char keyboard = cv::waitKey(10);
-  // if(keyboard == 'q')
-  //   ros::shutdown();
+  cv::imshow("sd image", sd_frame);
+  // get the input from the keyboard
+  char keyboard = cv::waitKey(10);
+  if(keyboard == 'q')
+    ros::shutdown();
 }
 
 // ----------------------------------------------------------------------------
@@ -169,6 +172,7 @@ void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
   std::cout << "frontend update" << std::endl; // temporary
   frame_stride_ = config.frame_stride;
+  downsize_scale_ = config.downsize_scale;
 }
 
 
