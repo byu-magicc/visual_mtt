@@ -7,17 +7,23 @@ RRANSAC::RRANSAC()
   // TODO: This is a hack. We need to set the surveilance region width/height here.
   params_.frame_cols = 1000;
   params_.frame_rows = 1000;
-  
+
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 
   // ROS stuff
-  sub = nh.subscribe("measurements", 1, &RRANSAC::callback, this);
+  sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
+  sub_video = nh.subscribe("video", 1, &RRANSAC::callback_video, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 }
 
 // ----------------------------------------------------------------------------
@@ -69,8 +75,11 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
+void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
+  // Save the original frame header
+  header_frame_ = rransac_scan->header;
+
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
   Eigen::Projective2d T(H.cast<double>());
@@ -91,6 +100,20 @@ void RRANSAC::callback(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 
   // publish the tracks onto ROS network
   publish_tracks(tracks);
+
+  // generate visualization
+  draw_tracks(tracks);
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
+{
+  // convert message data into OpenCV type cv::Mat
+  frame_ = cv_bridge::toCvCopy(frame, "bgr8")->image;
+
+  // Grab which sequence in the message stream this is (seq is deprecated)
+  frame_seq_ = frame->header.seq;
 }
 
 // ----------------------------------------------------------------------------
@@ -100,7 +123,7 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // Create the ROS message we will send
   visual_mtt2::Tracks msg;
-  
+
   for (int i=0; i<tracks.size(); i++)
   {
     visual_mtt2::Track track;
@@ -125,11 +148,79 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     msg.tracks.push_back(track);
   }
 
-  // Add the current time to the tracks
-  msg.timestamp = ros::Time::now();
+  // Include the original frame header and add the current time to the tracks
+  msg.header_frame = header_frame_;
+  msg.header_update.stamp = ros::Time::now();
 
   // ROS publish
   pub.publish(msg);
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
+{
+  cv::Mat draw = frame_.clone();
+
+  int total_tracks = 0;
+
+  for (int i=0; i<tracks.size(); i++)
+  {
+    total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
+    cv::Scalar color = colors_[tracks[i]->GMN];
+
+    // draw circle with center at position estimate
+    cv::Point center;
+    center.x = tracks[i]->xhat(0);
+    center.y = tracks[i]->xhat(1);
+    cv::circle(draw, center, (int)params_.tauR, color, 2, 8, 0);
+
+    // draw red dot at the position estimate
+    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
+
+    // draw scaled velocity vector
+    cv::Point velocity;
+    double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
+    velocity.x = tracks[i]->xhat(2) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * velocity_scale;
+    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+
+    // draw model number and inlier ratio
+    std::stringstream ssGMN;
+    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+
+    // draw covariance (?)
+
+    // draw consensus sets
+    for (int j=0; j<tracks[i]->CS.size(); j++)
+    {
+      center.x = tracks[i]->CS[j]->pos(0);
+      center.y = tracks[i]->CS[j]->pos(1);
+      cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
+    }
+  }
+
+  // draw top-left box
+  char text[40];
+
+  sprintf(text, "Frame %d", frame_seq_); 
+  cv::Point corner = cv::Point(10,2);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  
+  sprintf(text, "Total models: %d", total_tracks);
+  corner = cv::Point(10,22);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  sprintf(text, "Current models:  %d", (int)tracks.size());
+  corner = cv::Point(10,42);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  cv::imshow("Tracks", draw);
+  cv::waitKey(1);
 }
 
 }

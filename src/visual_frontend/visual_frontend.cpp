@@ -68,7 +68,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
 
   // save the frame timestamp
-  frame_timestamp_ = data->header.stamp;
+  timestamp_frame_ = data->header.stamp;
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -104,12 +104,12 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
   // TODO: create a display function that considers whether tuning=true
   // display hd and sd frames
-  cv::imshow("hd image", hd_frame);
-  cv::imshow("sd image", sd_frame);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
+  // cv::imshow("hd image", hd_frame);
+  // cv::imshow("sd image", sd_frame);
+  // // get the input from the keyboard
+  // char keyboard = cv::waitKey(10);
+  // if(keyboard == 'q')
+  //   ros::shutdown();
 }
 
 // ----------------------------------------------------------------------------
@@ -134,6 +134,8 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 {
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
+  tracks_ = data;
+  // std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
@@ -187,9 +189,9 @@ void VisualFrontend::generate_measurements()
 {
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt2::RRANSACScan scan;
-  scan.header.stamp = ros::Time::now();
+  scan.header.stamp = timestamp_frame_;
   if (!homography_calculator_->homography_.empty())
-    memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
+    std::memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
 
   for (int i=0; i<sources_.size(); i++)
   {
@@ -232,28 +234,6 @@ void VisualFrontend::generate_measurements()
     // feature correpsondences
     // homography
     // recent track data
-
-
-
-
-
-
-  // HACKED, TEMPORARY FOR TESTING !!!!
-  // display measurements
-  cv::Mat draw = hd_frame.clone();
-  // plot measurements
-  for (int jj=0; jj<sources_[0]->features_.size(); jj++)
-  {
-    cv::Scalar color = cv::Scalar(255, 0, 255);
-    //std::cout << "filtered point" << std::endl;
-    cv::circle(draw, sources_[0]->features_[jj], 2, color, 2, CV_AA);
-  }
-
-  cv::imshow("homography outlier measurements", draw);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
 
   // see source_measurement.h for question about measurement structure
 }

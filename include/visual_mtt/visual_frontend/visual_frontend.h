@@ -52,7 +52,9 @@ namespace visual_mtt {
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
-    ros::Time frame_timestamp_;
+    visual_mtt2::TracksPtr tracks_;
+
+    ros::Time timestamp_frame_;
 
   private:
     // ROS
