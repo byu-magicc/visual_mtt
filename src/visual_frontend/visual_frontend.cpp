@@ -104,17 +104,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     // (use updated recent track data)
   generate_measurements();
 
-  // publish measurements and homography
-
-
-  // TODO: create a display function that considers whether tuning=true
-  // display hd and sd frames
-  // cv::imshow("hd image", hd_frame);
-  cv::imshow("sd image", sd_frame);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
 }
 
 // ----------------------------------------------------------------------------
@@ -172,7 +161,6 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
 
 void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-  std::cout << "frontend update" << std::endl; // temporary
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
   // TODO: scale camera calibration for sd_image
@@ -208,8 +196,8 @@ void VisualFrontend::generate_measurements()
       homography_calculator_->pixel_diff_,
       homography_calculator_->good_transform_);
 
-
-    // if in tuning mode, display the measurements for each source
+    // when in tuning mode, display the measurements from each source
+    // TODO: make pure virtual 'draw' function in source.h to keep this clean?
     if (tuning_)
     {
       // display measurements
@@ -227,7 +215,6 @@ void VisualFrontend::generate_measurements()
     char keyboard = cv::waitKey(10);
     if(keyboard == 'q')
       ros::shutdown();
-
 
     // Create a Source msg
     visual_mtt2::Source src;
@@ -249,21 +236,12 @@ void VisualFrontend::generate_measurements()
       src.velocities.push_back(mvel);
     }
 
-
-
     // Add source to scan message
     scan.sources.push_back(src);
   }
 
   pub.publish(scan);
 
-  // each source will recieve (and can ignore or use):
-    // recent images
-    // feature correpsondences
-    // homography
-    // recent track data
-
-  // see source_measurement.h for question about measurement structure
 }
 
 }
