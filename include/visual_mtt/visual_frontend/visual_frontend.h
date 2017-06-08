@@ -5,6 +5,7 @@
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <ros/ros.h>
+#include <ros/console.h>
 #include <dynamic_reconfigure/server.h>
 #include <chrono>
 #include <thread>
@@ -76,6 +77,7 @@ namespace visual_mtt {
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;
 
+    // tuning mode
     bool tuning_;
 
     // Only plot process every `frame_stride_` frames

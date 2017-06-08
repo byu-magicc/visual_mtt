@@ -27,8 +27,19 @@ VisualFrontend::VisualFrontend()
     0.0,  0.0,  1.0);
   distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
 
+  // if tuning mode is enabled, use infinte queue
+  // this allows the developer to see how quickly the delay changes
+  int q;
+  if (tuning_)
+  {
+    q = 0;
+    ROS_WARN("tuning mode enabled: using infinite image queue");
+  }
+  else
+    q = 10;
+
   // ROS communication
-  sub_video  = nh.subscribe("video", 10, &VisualFrontend::callback_video,  this);
+  sub_video  = nh.subscribe("video",  q, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
   pub        = nh.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
@@ -65,9 +76,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   ros::Duration delay = ros::Time::now() - data->header.stamp;
 
   // average overhead delay when the queue is empty is 2.4ms
-  // warn if frame delay is greater than 10ms (ignoring first few frames)
-  if (delay.toSec()>0.05 && frame>15)
-    std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
+  // warn if frame delay is greater than 50ms (ignoring first few frames)
+  if (delay.toSec()>0.05 && frame>30)
+    ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
   // save the frame timestamp
   timestamp_frame_ = data->header.stamp;
@@ -88,9 +99,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
   // manage features (could be LK, NN, Brute Force)
   feature_manager_->find_correspondences(hd_frame); // in future operate on sd
 
-  // consider if IMU is ignored (param from launchfile)
+  // TODO: consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_calculator (feature correspondences)
-  // if IMU not ignored, call the homography_filter filter update
+  // if IMU not ignored, call the homography_filter filter propagate
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
@@ -103,14 +114,13 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
     // (use already-generated homography)
     // (use updated recent track data)
   generate_measurements();
-
 }
 
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
 {
-  // we expect to be getting data for this at >500 Hz
+  // we expect to be getting data for this at >500 Hz (adjust queue for this)
   //
   // for in-frame tracking, we'll need 2 homographies:
   // one between the sliding frames for background subtraction
@@ -129,7 +139,6 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
   tracks_ = data;
-  // std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
@@ -138,23 +147,21 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 
   // recognition bank will host a function for checking new tracks with
   // existing id descriptors, this node will host a ROS service to interface
-
 }
 
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level)
 {
-  // update parameters:
-  // VisualFrontend, FeatureManager, HomographyCalculator, Sources
+  // update: frontend, feature_manager_, homography_calculator_, sources_
   set_parameters(config);
   feature_manager_->set_parameters(config);
   homography_calculator_->set_parameters(config);
 
   for (int i=0; i<sources_.size(); i++)
-  {
     sources_[i]->set_parameters(config);
-  }
+
+  ROS_INFO("visual frontend: parameters have been updated");
 };
 
 // ----------------------------------------------------------------------------
@@ -166,23 +173,20 @@ void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
   // TODO: scale camera calibration for sd_image
 }
 
-
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
 {
-
   // why does this need its own method?
   // see https://github.com/jdmillard/opencv-cuda
   memberMat = newMat;
-
 }
 
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::generate_measurements()
 {
-  // intentional delay for testing queue timing and warning!
+  // optional delay for testing queue timing and warnings!
   // std::this_thread::sleep_for(std::chrono::milliseconds((int)1000.0/24));
 
   // Message for publishing measurements to R-RANSAC Tracker
