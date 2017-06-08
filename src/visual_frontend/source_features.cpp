@@ -5,8 +5,7 @@ namespace visual_mtt {
 SourceFeatures::SourceFeatures()
 {
 
-  std::cout << "feature source instantiated" << std::endl;
-  // come up with a nice param setup (follow rransac repo)
+  name_ = "Homography Outliers";
 
 }
 
@@ -77,10 +76,10 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 
 void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-  std::cout << "source update" << std::endl;
-  // update key class members with params
+
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;
+
 }
 
 } // namespace visual_mtt

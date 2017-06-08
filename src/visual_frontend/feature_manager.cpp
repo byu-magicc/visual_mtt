@@ -41,7 +41,6 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
 void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-  std::cout << "feature_manager update" << std::endl; // temporary
 
   points_max_ = config.points_max;
   points_target_ = config.points_target;

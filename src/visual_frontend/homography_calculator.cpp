@@ -16,9 +16,7 @@ HomographyCalculator::HomographyCalculator()
 
 void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-  std::cout << "homography_calculator update" << std::endl; // temporary
 
-  // update key class members with params
   reprojection_error_ = config.reprojection_error;
 
 }

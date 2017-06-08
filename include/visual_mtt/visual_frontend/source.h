@@ -19,10 +19,7 @@ public:
   std::vector<cv::Point2f> features_;
   std::vector<cv::Point2f> features_vel_;
 
-  // how to structure measurements? using an object might be overkill since
-  // it will be immediately transformed to a ros message TODO: discussion.
-
+  std::string name_;
 private:
-  std::string name;
 
 };

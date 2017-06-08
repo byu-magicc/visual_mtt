@@ -48,7 +48,7 @@ namespace visual_mtt {
     cv::Mat distortion_;  // not used yet
 
     cv::Mat hd_frame_in;
-    cv::Mat sd_frame_in = cv::Mat(480, 640, CV_8UC3);                           // TODO: parameterize dimensions (maybe add logic for aspect ratio)
+    cv::Mat sd_frame_in;
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
@@ -74,8 +74,13 @@ namespace visual_mtt {
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;
 
+    bool tuning_;
+
     // Only plot process every `frame_stride_` frames
     unsigned int frame_stride_ = 1;
+
+    // downsize scale
+    double downsize_scale_;
 
   };
 
