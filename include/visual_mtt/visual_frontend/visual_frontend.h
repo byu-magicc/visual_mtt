@@ -74,6 +74,8 @@ namespace visual_mtt {
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;
 
+    bool tuning_;
+
     // Only plot process every `frame_stride_` frames
     unsigned int frame_stride_ = 1;
 

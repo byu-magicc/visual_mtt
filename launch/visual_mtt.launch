@@ -46,6 +46,7 @@
     output="log">
   </node>
 
+  <param name="tuning" type="bool" value="$(arg tuning)"/>
 
 
 </launch>

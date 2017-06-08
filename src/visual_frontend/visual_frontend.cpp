@@ -19,6 +19,8 @@ VisualFrontend::VisualFrontend()
   nh.param<double>("visual_frontend/calibration/k5", k5, 0);
   nh.param<double>("visual_frontend/calibration/k6", k6, 0);
 
+  nh.param<bool>("tuning", tuning_, 0);
+
   calibration_ = (cv::Mat_<float>(3,3) <<
     fx ,  0.0,  cx,
     0.0,  fy ,  cy,
@@ -173,6 +175,7 @@ void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
   std::cout << "frontend update" << std::endl; // temporary
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
+  // TODO: scale camera calibration for sd_image
 }
 
 
@@ -204,6 +207,27 @@ void VisualFrontend::generate_measurements()
       feature_manager_->next_matched_,
       homography_calculator_->pixel_diff_,
       homography_calculator_->good_transform_);
+
+
+    // if in tuning mode, display the measurements for each source
+    if (tuning_)
+    {
+      // display measurements
+      cv::Mat draw = hd_frame.clone();
+      // plot measurements
+      for (int j=0; j<sources_[i]->features_.size(); j++)
+      {
+        cv::Scalar color = cv::Scalar(255, 0, 255);
+        cv::circle(draw, sources_[i]->features_[j], 2, color, 2, CV_AA);
+      }
+      std::string test = "hi";
+      cv::imshow(sources_[i]->name_, draw);
+    }
+    // get the input from the keyboard
+    char keyboard = cv::waitKey(10);
+    if(keyboard == 'q')
+      ros::shutdown();
+
 
     // Create a Source msg
     visual_mtt2::Source src;

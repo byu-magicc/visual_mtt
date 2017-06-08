@@ -7,6 +7,7 @@ SourceFeatures::SourceFeatures()
 
   std::cout << "feature source instantiated" << std::endl;
   // come up with a nice param setup (follow rransac repo)
+  name_ = "Homography Outliers";
 
 }
 
