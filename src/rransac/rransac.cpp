@@ -19,6 +19,11 @@ RRANSAC::RRANSAC()
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 }
 
 // ----------------------------------------------------------------------------
@@ -66,12 +71,6 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
   // Update the R-RANSAC Tracker with these new parameters
   tracker_.set_parameters(params_);
-
-  // populate plotting colors
-  colors_ = std::vector<cv::Scalar>();
-  for (int i = 0; i < 1000; i++)
-    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
-  total_tracks_ = 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -102,7 +101,6 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   // publish the tracks onto ROS network
   publish_tracks(tracks);
 
-
   // generate visualization
   draw_tracks(tracks);
 }
@@ -113,6 +111,9 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
 {
   // convert message data into OpenCV type cv::Mat
   frame_ = cv_bridge::toCvCopy(frame, "bgr8")->image;
+
+  // Grab which sequence in the message stream this is (seq is deprecated)
+  frame_seq_ = frame->header.seq;
 }
 
 // ----------------------------------------------------------------------------
@@ -161,16 +162,18 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
   cv::Mat draw = frame_.clone();
 
+  int total_tracks = 0;
+
   for (int i=0; i<tracks.size(); i++)
   {
-    total_tracks_ = std::max(total_tracks_, (int)tracks[i]->GMN); // TODO: use existing counter?
+    total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
     cv::Scalar color = colors_[tracks[i]->GMN];
 
     // draw circle with center at position estimate
     cv::Point center;
     center.x = tracks[i]->xhat(0);
     center.y = tracks[i]->xhat(1);
-    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
+    cv::circle(draw, center, (int)params_.tauR, color, 2, 8, 0);
 
     // draw red dot at the position estimate
     cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
@@ -200,21 +203,24 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // draw top-left box
   char text[40];
-	sprintf(text, "Total models: %d", total_tracks_);
+
+  sprintf(text, "Frame %d", frame_seq_); 
   cv::Point corner = cv::Point(10,2);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-
-	sprintf(text, "Current models:  %d", (int)tracks.size());
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  
+  sprintf(text, "Total models: %d", total_tracks);
   corner = cv::Point(10,22);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  cv::imshow("Tracks (rransac_node)", draw);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
+  sprintf(text, "Current models:  %d", (int)tracks.size());
+  corner = cv::Point(10,42);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  cv::imshow("Tracks", draw);
+  cv::waitKey(1);
 }
 
 }

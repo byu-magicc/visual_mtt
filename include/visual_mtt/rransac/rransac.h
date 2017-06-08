@@ -2,9 +2,9 @@
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
+
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
-
 
 #include <rransac/tracker.h>
 #include <rransac/access_type.h>
@@ -36,6 +36,14 @@ namespace visual_mtt {
     ros::Subscriber sub_video;
     ros::Publisher pub;
 
+    // Saved frame header, received at each callback
+    std_msgs::Header header_frame_;
+    int frame_seq_;
+
+    // For visualization
+    cv::Mat frame_;
+    std::vector<cv::Scalar> colors_;
+
     // dynamic reconfigure server
     dynamic_reconfigure::Server<visual_mtt2::rransacConfig> server_;
 
@@ -55,14 +63,6 @@ namespace visual_mtt {
 
     // Draw tracks over original frame
     void draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
-
-    // Saved frame header, received at each callback
-    std_msgs::Header header_frame_;
-
-    // For visualization
-    cv::Mat frame_;
-    std::vector<cv::Scalar> colors_;
-    int total_tracks_;
   };
 
 }

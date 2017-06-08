@@ -26,7 +26,7 @@ visual_frontend/calibration/p2: 0
 visual_frontend/frame_stride: 3
 
 # homography
-visual_frontend/reprojection_error: 1.1
+visual_frontend/reprojection_error: 1.0
 
 # feature manager
 visual_frontend/feature_type:    "GFTT"
@@ -51,7 +51,7 @@ rransac/dt: 1
 
 # R-RANSAC specific parameters
 rransac/Nw: 10
-rransac/M: 5
+rransac/M: 30
 rransac/tauR: 50.0
 rransac/sigmaR_pos: 5.0
 rransac/sigmaR_vel: 1.0
@@ -73,8 +73,8 @@ rransac/tau_xpos_abs_diff: 50.0
 rransac/tau_ypos_abs_diff: 50.0
 
 # model pruning parameters
-rransac/frame_cols: 1000
-rransac/frame_rows: 1000
+rransac/frame_cols: 2000
+rransac/frame_rows: 2000
 rransac/tau_CMD_prune: 10
 
 # track (i.e., good model) parameters

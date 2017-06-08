@@ -42,12 +42,6 @@ VisualFrontend::VisualFrontend()
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
-
-  // populate plotting colors
-  colors_ = std::vector<cv::Scalar>();
-  for (int i = 0; i < 1000; i++)
-    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
-  total_tracks_ = 0;
 }
 
 // ----------------------------------------------------------------------------
@@ -142,57 +136,6 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
   // sources such as direct methods)
   tracks_ = data;
   // std::cout << "Number of Tracks: " << data->tracks.size() << std::endl; // for debugging
-
-  // plot the track data over the appropriate frame, the "legacy view"
-  // get the frame from history that matches the frame timestamp in data
-  // for now, cheat and use the most recent frame:
-  cv::Mat draw = hd_frame_in.clone();
-
-  for (int i = 0; i < data->tracks.size(); i++)
-  {
-    total_tracks_ = std::max(total_tracks_, data->tracks[i].id);
-
-    cv::Point center;
-    center.x = data->tracks[i].position.x;
-    center.y = data->tracks[i].position.y;
-    // draw circle
-    cv::Scalar color = colors_[data->tracks[i].id];
-    cv::circle(draw, center, 50, color, 2, 8, 0); // TODO: change 50 to TauR (using param server?)
-
-    // draw velocity (?)
-    // draw covariance (?)
-    // draw consensus set (?)
-
-    // draw model number and inlier ratio
-    // copying stringstream method from original code, is there a better way?
-    std::stringstream ssGMN;
-    ssGMN << data->tracks[i].id << ", " << data->tracks[i].inlier_ratio;
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
-
-  }
-
-  // draw top-left box
-  char text[40];
-	sprintf(text, "Total models: %d", total_tracks_);
-  cv::Point corner = cv::Point(10,2);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-
-	sprintf(text, "Current models:  %d", (int)data->tracks.size());
-  corner = cv::Point(10,22);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-	cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-
-  cv::imshow("Tracks (visual_frontend)", draw);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
-
-  // TODO: move the above to a separate function !!!
-
-
-
 
   // call track_recognition bank (will use newest information and the high-res
   // video associated with the most recent update to maintain id descriptors.)
@@ -291,28 +234,6 @@ void VisualFrontend::generate_measurements()
     // feature correpsondences
     // homography
     // recent track data
-
-
-
-
-
-
-  // HACKED, TEMPORARY FOR TESTING !!!!
-  // display measurements
-  cv::Mat draw = hd_frame.clone();
-  // plot measurements
-  for (int jj=0; jj<sources_[0]->features_.size(); jj++)
-  {
-    cv::Scalar color = cv::Scalar(255, 0, 255);
-    //std::cout << "filtered point" << std::endl;
-    cv::circle(draw, sources_[0]->features_[jj], 2, color, 2, CV_AA);
-  }
-
-  cv::imshow("homography outlier measurements", draw);
-  // get the input from the keyboard
-  char keyboard = cv::waitKey(10);
-  if(keyboard == 'q')
-    ros::shutdown();
 
   // see source_measurement.h for question about measurement structure
 }
