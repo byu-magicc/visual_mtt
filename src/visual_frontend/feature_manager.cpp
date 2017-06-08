@@ -54,6 +54,10 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // THE FOLLOWING IS MOSTLY FROM ORIGINAL CODE
   // but omitting the orientation-based guess and adjusting inputs
 
+  // clear history
+  prev_matched_.clear();
+  next_matched_.clear();
+
   // Convert to grayscale
   cv::Mat mono;
   cv::cvtColor(img, mono, CV_RGB2GRAY);
@@ -74,8 +78,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
                              status, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 
     // store only matched features
-    prev_matched_.clear();
-    next_matched_.clear();
     for(unsigned int ii = 0; ii < status.size(); ++ii)
     {
       if (status[ii])
