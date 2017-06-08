@@ -208,13 +208,8 @@ void VisualFrontend::generate_measurements()
         cv::Scalar color = cv::Scalar(255, 0, 255);
         cv::circle(draw, sources_[i]->features_[j], 2, color, 2, CV_AA);
       }
-      std::string test = "hi";
       cv::imshow(sources_[i]->name_, draw);
     }
-    // get the input from the keyboard
-    char keyboard = cv::waitKey(10);
-    if(keyboard == 'q')
-      ros::shutdown();
 
     // Create a Source msg
     visual_mtt2::Source src;
@@ -238,6 +233,14 @@ void VisualFrontend::generate_measurements()
 
     // Add source to scan message
     scan.sources.push_back(src);
+  }
+
+  if (tuning_)
+  {
+    // get the input from the keyboard
+    char keyboard = cv::waitKey(1);
+    if(keyboard == 'q')
+      ros::shutdown();
   }
 
   pub.publish(scan);
