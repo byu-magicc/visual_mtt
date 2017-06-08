@@ -41,18 +41,15 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
 void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-
   points_max_ = config.points_max;
   points_target_ = config.points_target;
   gftt_detector_->setMaxFeatures(points_max_);
-
 }
 
 // ----------------------------------------------------------------------------
 
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
-  // std::cout << "generating feature correspondences" << std::endl;
   // FOR NOW: GENERATE BASIC FEATURE CORRESPONDENCES USING LK
   // THE FOLLOWING IS MOSTLY FROM ORIGINAL CODE
   // but omitting the orientation-based guess and adjusting inputs
@@ -118,7 +115,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // update corner quality
   gftt_detector_->setQualityLevel(corner_quality_);
-  // std::cout << "New quality: " << gftt_detector_->getQualityLevel() << std::endl;
 
   // save features for the next iteration.
   prev_features_.clear();
@@ -130,7 +126,9 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // if few features were found, skip feature pairing on the next iteration
   if (prev_features_.size() < 10)
   {
-    std::cout << "few features found in this frame." << std::endl; // create a proper warning message
+    ROS_WARN_STREAM("(" << "#" << ") " << "few features found: " << prev_features_.size());
+    // TODO: replace # with frame number
+    // TODO: increase the 10 threshold?
     first_image_ = true;
   }
 }
@@ -146,4 +144,4 @@ void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::
   }
 }
 
-} // namespace visual_mtt
+}
