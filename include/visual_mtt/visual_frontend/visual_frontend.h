@@ -6,6 +6,8 @@
 #include <cv_bridge/cv_bridge.h>
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
+#include <chrono>
+#include <thread>
 
 // dynamic reconfig
 #include "visual_mtt2/visual_frontendConfig.h"

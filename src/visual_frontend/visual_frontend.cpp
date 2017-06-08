@@ -28,7 +28,7 @@ VisualFrontend::VisualFrontend()
   distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
 
   // ROS communication
-  sub_video  = nh.subscribe("video",  9, &VisualFrontend::callback_video,  this);
+  sub_video  = nh.subscribe("video", 10, &VisualFrontend::callback_video,  this);
   sub_imu    = nh.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
   pub        = nh.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
@@ -66,7 +66,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
 
   // average overhead delay when the queue is empty is 2.4ms
   // warn if frame delay is greater than 10ms (ignoring first few frames)
-  if (delay.toSec()>0.01 && frame>15)
+  if (delay.toSec()>0.05 && frame>15)
     std::cout << "message about real-time computation: " << delay.toSec() << " (" << frame << ")" << std::endl;
 
   // save the frame timestamp
@@ -182,6 +182,9 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 
 void VisualFrontend::generate_measurements()
 {
+  // intentional delay for testing queue timing and warning!
+  // std::this_thread::sleep_for(std::chrono::milliseconds((int)1000.0/24));
+
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt2::RRANSACScan scan;
   scan.header.stamp = timestamp_frame_;

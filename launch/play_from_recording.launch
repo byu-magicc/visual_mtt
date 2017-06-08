@@ -48,5 +48,6 @@
   </node>
 
   <!-- Play the user's rosbag -->
-  <node unless="$(eval bagpath == '')" pkg="rosbag" type="play" name="player" args="-l $(arg bagpath)" launch-prefix="xterm -e" />
+  <param unless="$(eval bagpath == '')" name="use_sim_time" type="bool" value="true"/>
+  <node unless="$(eval bagpath == '')" pkg="rosbag" type="play" name="player" args="-l $(arg bagpath) --clock" launch-prefix="xterm -e" />
 </launch>

@@ -36,6 +36,7 @@
     <!-- <param name="show_diff_img_video" value="$(arg show_diff_img_video)" /> -->
     <!-- Show moving objects to debug LK optical flow with homography -->
     <!-- <param name="show_moving_obj_video" value="$(arg show_moving_obj_video)" /> -->
+    <remap from="video" to="$(arg imgtopic)"/>
   </node>
 
   <!-- start dynamic reconfigure gui -->
