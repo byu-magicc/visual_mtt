@@ -17,8 +17,6 @@
 
 // Near-term list:
 // TODO: header file
-// TODO: in usb_cam, the camera .yaml file path is put on the param server,
-// then node pulls in the yaml values on its own.
 // TODO: separate into node.cpp and camera_sim.cpp to match other nodes?
 // TODO: add namespace
 
@@ -39,38 +37,37 @@ private:
   // data
   cv::Mat frame_;
 
-  sensor_msgs::CameraInfo cinfo_;
+  // saved message to be published
+  sensor_msgs::CameraInfoPtr camera_info_;
 
   // camera manager class
-  std::shared_ptr<camera_info_manager::CameraInfoManager> cmanager_;
-
+  std::shared_ptr<camera_info_manager::CameraInfoManager> camera_manager_;
 };
 
 // ----------------------------------------------------------------------------
 
 CameraSim::CameraSim()
 {
-  // create a private node handle for use with param server
-  ros::NodeHandle nh("~"); // not used yet
+  // create a private node handle (only for use with param server)
+  ros::NodeHandle nh("~");
 
-  // get parameters from param server that are not dynamically reconfigurable
+  // get parameters from param server
   std::string camera_info_path;
   nh.param<std::string>("camera_info_path", camera_info_path, "");
-  std::cout << camera_info_path << std::endl; // temporary
 
-  // configure the camera manager class
-  cmanager_.reset(new camera_info_manager::CameraInfoManager(nh, "camera", camera_info_path));
+  // configure the camera manager class, this gets info from the camera .yaml
+  // http://docs.ros.org/kinetic/api/camera_info_manager/html/classcamera__info__manager_1_1CameraInfoManager.html#a369891debacb0b8c38f038e5b40e3fc6
+  camera_manager_.reset(new camera_info_manager::CameraInfoManager(nh_, "camera", camera_info_path));
 
+  // generate the CameraInfo message
+  sensor_msgs::CameraInfoPtr camera_info_(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
 
-
-
-
+  std::cout << camera_info_->width << std::endl;
 
   // ROS communication
   image_transport::ImageTransport it(nh_);
   sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
   pub_ = it.advertiseCamera("output", 1);
-
 }
 
 // ----------------------------------------------------------------------------
@@ -81,14 +78,14 @@ void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
   // when it's read from .mp4 file, thus replacing the python script
   frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
+  // sanity check: compare dimensions of frame to .yaml (if first frame?)
+  // stuff
+
   // convert to image transport
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame_).toImageMsg();
 
-  // create empty camera info for testing
-  sensor_msgs::CameraInfoPtr ci; // arguments in usb_cam: (new sensor_msgs::CameraInfo(cinfo_->getCameraInfo()))
-
-  // publish frame and camera info together
-  pub_.publish(msg, ci);
+  // publish frame and camera info together (can only publish <msg>Ptr types)
+  pub_.publish(msg, camera_info_);
 }
 
 // ----------------------------------------------------------------------------

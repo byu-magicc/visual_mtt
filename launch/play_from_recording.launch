@@ -50,17 +50,10 @@
     <param name="input" value="$(arg videopath)"/>
     <param name="fps" value="$(arg fps)"/>
     <remap from="output" to="$(arg imgtopic)"/>
+    <!-- TODO: make output remap to custom name, then output of camera_sim to imgtopic -->
   </node>
   <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="camera_sim" name="camera_sim" output="screen">
-    <!-- <param name="video_device" value="$(arg device)" /> -->
-    <!-- <param name="image_width" value="640" /> -->
-    <!-- <param name="image_height" value="480" /> -->
-    <!-- <param name="pixel_format" value="yuyv" /> -->
-    <!-- <param name="camera_frame_id" value="usb_cam" /> -->
-    <!-- <param name="io_method" value="mmap"/> -->
-    <!-- <param name="framerate" value="30" /> -->
     <param name="camera_info_path" value="file://$(find visual_mtt2)/param/$(arg camera).yaml"/>
-    <!-- <param name="camera_name" value="chiny_cam" /> -->
     <remap from="input" to="$(arg imgtopic)"/>
     <remap from="output" to="camera/image"/>
   </node>
