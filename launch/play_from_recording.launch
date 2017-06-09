@@ -44,7 +44,7 @@
   </include>
 
   <!-- play video -->
-  <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="simplevideo2ros.py" name="player" output="screen">
+  <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="video_player.py" name="player" output="screen">
     <param name="input" value="$(arg videopath)"/>
     <param name="fps" value="$(arg fps)"/>
     <remap from="output" to="$(arg imgtopic)"/>
