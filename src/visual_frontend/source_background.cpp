@@ -7,6 +7,3 @@ SourceBackground::SourceBackground()
   // come up with a nice param setup (follow rransac repo)
 
 }
-
-
-

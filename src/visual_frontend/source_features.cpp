@@ -49,16 +49,26 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 
       // }
     }
+
+    features_ = features_filtered;
+    features_vel_ = features_vel_filtered;
+
     if (features.size() > 0)
     {
       // if a high proportion of features are outliers, print a warning
       if ((double)numberOfPossibleMovers / (double)features.size() > homography_error_thold_)
       {
-        std::cout << "many homography outliers: may be the result of a bad homography alignment." << std::endl; // create a proper warning message
+        ROS_WARN_STREAM("(" << "#" << ") " << "feature source: many homography outliers, discarding measurements");
+        // TODO: replace # with frame number
+        // TODO: make homography_error_thold_ dynamically reconfigurable !!
+        features_.clear();
+        features_vel_.clear();
       }
     }
-    features_ = features_filtered;
-    features_vel_ = features_vel_filtered;
+
+    // TODO: good_transform flag not yet used! (if false, discard measurements)
+    // perhaps put such logic at the top to avoid unnecessary execution
+
   }
   else
   {
@@ -67,19 +77,14 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
     // mask_frame_ = Mat(mono.rows, mono.cols, CV_8U, 255);
     // mask = Mat::zeros(mono.rows, mono.cols, CV_8UC1);
   }
-
-
-
 }
 
 // ----------------------------------------------------------------------------
 
 void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;
-
 }
 
-} // namespace visual_mtt
+}

@@ -16,9 +16,7 @@ HomographyCalculator::HomographyCalculator()
 
 void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-
   reprojection_error_ = config.reprojection_error;
-
 }
 
 // ----------------------------------------------------------------------------
@@ -26,10 +24,10 @@ void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& co
 void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& prev_features,
                                                 const std::vector<cv::Point2f>& next_features)
 {
-  // std::cout << "generating homography" << std::endl;
   // use feature correspondences to find homography
 
-  // TODO: 5 or more are needed for a homography, but should we force a higher threshold?
+  // TODO: 5 or more are needed for a homography,
+  // we should force a higher threshold so there can be outliers (measurements)
   if (prev_features.size() > 4)
   {
     // calculate the homography
@@ -45,10 +43,12 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
     {
       inlier_count += inlier_mask_[i] ? 1 : 0;
     }
-    // TODO: should this (20) be a fraction of the pairs?
+
+    // TODO: should this (20) be a % of the pairs rather than a set value?
     if (inlier_count < 20)
     {
-      std::cout << "Warning: Only " << inlier_count << " inliers; homography calculation may be inaccurate" << std::endl; // create a proper warning message
+      ROS_WARN_STREAM("(" << "#" << ") " << "homography calculator: few homography inliers (" << inlier_count << ")");
+      // TODO: replace # with frame number
       good_transform_ = false;
     }
     else
@@ -71,33 +71,29 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
   }
   else
   {
+    // TODO:
     // the number of feature correspondences was too low to create a homography
     // what to do about:
     // homography_
     // pixel_diff_
     // ?
 
-    // for homography_, we could not update, then flag to signal "bad transform"
+    // for homography_, we could not update, set "good_transform_" to false
     // for pixel_diff_, we could just clear it
-    // then the bad transform flag would signal to the measurement methods
+    // then the good_transform_ flag would signal to the measurement methods
     // not to generate new measurements
 
     // the old homography_ would then be sent to R-RANSAC to "propagate"
     // the histories appropriately. This appraoch would probably only be
     // reliable for a single frame since it isn't a true propagation. The
     // (future) homograpy filter be a much better approach.
+
     pixel_diff_.clear();
     good_transform_ = false;
 
-
+    // TODO: create a warning at this else (meaning too few features to generate a homography)
+    // TODO: create an error (red) warning if good_transform_=false many times in a row
   }
-
-
-
-
-
-
-
 }
 
-} // namespace visual_mtt
+}

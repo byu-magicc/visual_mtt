@@ -14,7 +14,7 @@ endif()
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
-	roscpp
+  roscpp
   std_msgs
   sensor_msgs
   message_generation
@@ -131,12 +131,12 @@ include_directories( include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_rransac
-	src/rransac/node.cpp
+  src/rransac/node.cpp
   src/rransac/rransac.cpp)
 
 add_executable(${PROJECT_NAME}_visual_frontend
-	src/visual_frontend/node.cpp
-	src/visual_frontend/visual_frontend.cpp
+  src/visual_frontend/node.cpp
+  src/visual_frontend/visual_frontend.cpp
   src/visual_frontend/homography_calculator.cpp
   src/visual_frontend/feature_manager.cpp
   src/visual_frontend/source_background.cpp

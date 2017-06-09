@@ -1,16 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <launch>
-  <!-- args to be passed in -->
+
   <arg name="videopath"   default="" />
-  <arg name="bagpath"     default="" />
   <arg name="fps"         default="24" />
+
+  <arg name="bagpath"     default="" />
   <arg name="imgtopic"    default="/video" />
-  <arg name="imutopic"    default="/imu/data" />
   <arg name="compressed"  default="false" />
-  <!-- <arg name="show_tracks_video" default="true" /> -->
+
   <arg name="params"      default="default" />
   <arg name="tuning"      default="true" />
+  <arg name="show_tracks" default="true" />
+
+  <!-- videopath:     path to video file            (video only)            -->
+  <!-- fps:           desired framerate             (video only)            -->
+
+  <!-- bagpath:       path to recording             (rosbag only)           -->
+  <!-- imgtopic:      set to topic from recording   (rosbag only)           -->
+  <!-- compressed:    set if compressed             (rosbag only)           -->
+
+  <!-- params:        name of .yaml contained the desired parameter values  -->
+  <!-- tuning:        enables dynamic reconfigure and displays measurements -->
+  <!-- show_tracks:   enables display of tracking results                   -->
+
+  <!-- #################################################################### -->
 
   <!-- decompress video if needed -->
   <node if="$(arg compressed)"
@@ -21,33 +35,23 @@
     args="compressed in:=$(arg imgtopic) raw out:=$(arg imgtopic)">
   </node>
 
-  <!-- Launch R-RANSAC -->
+  <!-- launch visual_mtt -->
   <include file="$(find visual_mtt2)/launch/visual_mtt.launch">
-    <!-- <arg name="use_imu" value="false" /> -->
-    <!-- Show the output of the camera with RRANSAC tracks overlaid -->
-    <!-- <arg name="show_tracks_video" value="$(arg show_tracks_video)" /> -->
-    <!-- Show the difference image for debugging how well the homography is doing -->
-    <!-- <arg name="show_diff_img_video" value="false" /> -->
-    <!-- Show moving objects to debug LK optical flow with homography -->
-    <!-- <arg name="show_moving_obj_video" value="false" /> -->
-    <!-- Allow subscribing to compressed video topics (only applies for rosbags) -->
-    <!-- <arg name="compressed" value="$(arg compressed)" /> -->
-    <!-- remap image and imu topics -->
-
-    <arg name="imgtopic" value="$(arg imgtopic)" />
-    <arg name="params" value="$(arg params)" />
+    <arg name="params" value="$(arg params)"/>
     <arg name="tuning" value="$(arg tuning)"/>
-    <!-- <arg name="imutopic" value="$(arg imutopic)" /> -->
+    <arg name="show_tracks" value="$(arg show_tracks)"/>
+    <arg name="imgtopic" value="$(arg imgtopic)"/>
   </include>
 
-  <!-- Play the user's video -->
-  <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="simplevideo2ros.py" name="simplevideo2ros" output="screen">
+  <!-- play video -->
+  <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="video_player.py" name="player" output="screen">
     <param name="input" value="$(arg videopath)"/>
     <param name="fps" value="$(arg fps)"/>
     <remap from="output" to="$(arg imgtopic)"/>
   </node>
 
-  <!-- Play the user's rosbag -->
+  <!-- play rosbag -->
   <param unless="$(eval bagpath == '')" name="use_sim_time" type="bool" value="true"/>
   <node unless="$(eval bagpath == '')" pkg="rosbag" type="play" name="player" args="-l $(arg bagpath) --clock" launch-prefix="xterm -e" />
+
 </launch>

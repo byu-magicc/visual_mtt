@@ -5,8 +5,13 @@ namespace visual_mtt {
 RRANSAC::RRANSAC()
 {
   // TODO: This is a hack. We need to set the surveilance region width/height here.
+  // this is something to think about in the context of normalized image coordinates
   params_.frame_cols = 1000;
   params_.frame_rows = 1000;
+
+  // get parameters from param server that are not dynamically reconfigurable
+  // TODO: is it worth it to use a private node handle here?
+  nh.param<bool>("rransac/show_tracks", show_tracks_, 0);
 
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
@@ -71,6 +76,8 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
   // Update the R-RANSAC Tracker with these new parameters
   tracker_.set_parameters(params_);
+
+  ROS_INFO("rransac: parameters have been updated");
 }
 
 // ----------------------------------------------------------------------------
@@ -102,7 +109,8 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   publish_tracks(tracks);
 
   // generate visualization
-  draw_tracks(tracks);
+  if (show_tracks_)
+    draw_tracks(tracks);
 }
 
 // ----------------------------------------------------------------------------
@@ -204,11 +212,11 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // draw top-left box
   char text[40];
 
-  sprintf(text, "Frame %d", frame_seq_); 
+  sprintf(text, "Frame %d", frame_seq_);
   cv::Point corner = cv::Point(10,2);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-  
+
   sprintf(text, "Total models: %d", total_tracks);
   corner = cv::Point(10,22);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);

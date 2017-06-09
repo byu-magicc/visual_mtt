@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-""" simpleVideo2ros.py - Version 1.1 2013-12-20
+"""
+    simpleVideo2ros.py - Version 1.1 2013-12-20
 
     Read in a recorded video file and republish as a ROS Image topic.
 
@@ -18,7 +19,6 @@
     GNU General Public License for more details at:
 
     http://www.gnu.org/licenses/gpl.html
-
 """
 
 import rospy
@@ -30,14 +30,15 @@ import time
 
 class SimpleVideo2ROS:
     def __init__(self):
-        rospy.init_node('simplevideo2ros', anonymous=False)
+        rospy.init_node('video_player', anonymous=False)
 
         rospy.on_shutdown(self.cleanup)
 
         """ Define the input (path to video file) as a ROS parameter so it
             can be defined in a launch file or on the command line """
         self.input = rospy.get_param("~input", "")
-        print(self.input)
+        # print(self.input)
+
 
         """ Define the image publisher with generic topic name "output" so that it can
             be remapped in the launch file. """
@@ -75,7 +76,7 @@ class SimpleVideo2ROS:
         return frame
 
     def cleanup(self):
-            print "Shutting down video2ros node."
+            # print "Shutting down video2ros node."
             cv2.destroyAllWindows()
 
 def main(args):
@@ -83,7 +84,7 @@ def main(args):
     try:
         v2r = SimpleVideo2ROS()
     except KeyboardInterrupt:
-        print "Shutting down simpleVideo2ros..."
+        # print "Shutting down simpleVideo2ros..."
         cv2.destroyAllWindows()
 
 if __name__ == '__main__':

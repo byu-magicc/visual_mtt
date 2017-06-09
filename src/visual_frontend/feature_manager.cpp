@@ -13,11 +13,11 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
   // get the needed params that are not dynamically reconfigurable
   int pyramid_size;
-  nh.param<double>("visual_frontend/corner_quality",       corner_quality_,       0.03 );
-  nh.param<double>("visual_frontend/corner_quality_min",   corner_quality_min_,   0.03 );
-  nh.param<double>("visual_frontend/corner_quality_max",   corner_quality_max_,   0.05 );
-  nh.param<double>("visual_frontend/corner_quality_alpha", corner_quality_alpha_, 0.999);
-  nh.param<int>   ("visual_frontend/pyramid_size",         pyramid_size,          21   );
+  nh.param<double>("corner_quality",       corner_quality_,       0.03 );
+  nh.param<double>("corner_quality_min",   corner_quality_min_,   0.03 );
+  nh.param<double>("corner_quality_max",   corner_quality_max_,   0.05 );
+  nh.param<double>("corner_quality_alpha", corner_quality_alpha_, 0.999);
+  nh.param<int>   ("pyramid_size",         pyramid_size,          21   );
 
   pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
 
@@ -41,21 +41,22 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
 void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
-
   points_max_ = config.points_max;
   points_target_ = config.points_target;
   gftt_detector_->setMaxFeatures(points_max_);
-
 }
 
 // ----------------------------------------------------------------------------
 
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
-  // std::cout << "generating feature correspondences" << std::endl;
   // FOR NOW: GENERATE BASIC FEATURE CORRESPONDENCES USING LK
   // THE FOLLOWING IS MOSTLY FROM ORIGINAL CODE
   // but omitting the orientation-based guess and adjusting inputs
+
+  // clear history
+  prev_matched_.clear();
+  next_matched_.clear();
 
   // Convert to grayscale
   cv::Mat mono;
@@ -77,8 +78,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
                              status, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 
     // store only matched features
-    prev_matched_.clear();
-    next_matched_.clear();
     for(unsigned int ii = 0; ii < status.size(); ++ii)
     {
       if (status[ii])
@@ -118,7 +117,6 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // update corner quality
   gftt_detector_->setQualityLevel(corner_quality_);
-  // std::cout << "New quality: " << gftt_detector_->getQualityLevel() << std::endl;
 
   // save features for the next iteration.
   prev_features_.clear();
@@ -130,7 +128,9 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // if few features were found, skip feature pairing on the next iteration
   if (prev_features_.size() < 10)
   {
-    std::cout << "few features found in this frame." << std::endl; // create a proper warning message
+    ROS_WARN_STREAM("(" << "#" << ") " << "few features found: " << prev_features_.size());
+    // TODO: replace # with frame number
+    // TODO: increase the 10 threshold?
     first_image_ = true;
   }
 }
@@ -146,4 +146,4 @@ void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::
   }
 }
 
-} // namespace visual_mtt
+}
