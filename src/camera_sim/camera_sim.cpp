@@ -6,6 +6,7 @@
 #include <ros/console.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <camera_info_manager/camera_info_manager.h>
 
 // messages
 #include "sensor_msgs/Image.h"
@@ -37,6 +38,12 @@ private:
 
   // data
   cv::Mat frame_;
+
+  sensor_msgs::CameraInfo cinfo_;
+
+  // camera manager class
+  std::shared_ptr<camera_info_manager::CameraInfoManager> cmanager_;
+
 };
 
 // ----------------------------------------------------------------------------
@@ -47,12 +54,23 @@ CameraSim::CameraSim()
   ros::NodeHandle nh("~"); // not used yet
 
   // get parameters from param server that are not dynamically reconfigurable
-  // stuff
+  std::string camera_info_path;
+  nh.param<std::string>("camera_info_path", camera_info_path, "");
+  std::cout << camera_info_path << std::endl; // temporary
+
+  // configure the camera manager class
+  cmanager_.reset(new camera_info_manager::CameraInfoManager(nh, "camera", camera_info_path));
+
+
+
+
+
 
   // ROS communication
   image_transport::ImageTransport it(nh_);
-  sub_ = nh_.subscribe("video", 1, &CameraSim::callback,  this);
-  pub_ = it.advertiseCamera("camera/image", 1);
+  sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
+  pub_ = it.advertiseCamera("output", 1);
+
 }
 
 // ----------------------------------------------------------------------------
@@ -60,7 +78,7 @@ CameraSim::CameraSim()
 void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
 {
   // convert image to OpenCV because that's how it will be in the future
-  // when it's read from .mp4 file.
+  // when it's read from .mp4 file, thus replacing the python script
   frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
   // convert to image transport
@@ -69,7 +87,7 @@ void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
   // create empty camera info for testing
   sensor_msgs::CameraInfoPtr ci; // arguments in usb_cam: (new sensor_msgs::CameraInfo(cinfo_->getCameraInfo()))
 
-  // publish two messages together
+  // publish frame and camera info together
   pub_.publish(msg, ci);
 }
 

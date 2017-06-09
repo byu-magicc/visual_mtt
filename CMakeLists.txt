@@ -20,6 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   dynamic_reconfigure
   image_transport
+  camera_info_manager
 )
 
 find_package(OpenCV 3 REQUIRED)
