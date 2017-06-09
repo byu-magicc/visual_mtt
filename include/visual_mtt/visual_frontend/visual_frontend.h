@@ -16,7 +16,7 @@
 // messages
 #include "visual_mtt2/Tracks.h"
 #include "visual_mtt2/RRANSACScan.h"
-#include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation)
+#include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation of imu callback)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
 // key algorithm members

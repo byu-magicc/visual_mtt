@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   message_generation
   dynamic_reconfigure
+  image_transport
 )
 
 find_package(OpenCV 3 REQUIRED)
