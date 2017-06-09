@@ -14,10 +14,12 @@
 // This only shows the syntax for dual-message publishing and image transport.
 // Eventually read in video rather than subscribe, then replace video_player.py
 
+// Near-term list:
 // TODO: header file
 // TODO: in usb_cam, the camera .yaml file path is put on the param server,
 // then node pulls in the yaml values on its own.
 // TODO: separate into node.cpp and camera_sim.cpp to match other nodes?
+// TODO: add namespace
 
 class CameraSim
 {
