@@ -43,6 +43,7 @@ namespace visual_mtt {
     // For visualization
     cv::Mat frame_;
     std::vector<cv::Scalar> colors_;
+    bool show_tracks_;
 
     // dynamic reconfigure server
     dynamic_reconfigure::Server<visual_mtt2::rransacConfig> server_;

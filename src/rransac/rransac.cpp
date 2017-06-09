@@ -9,6 +9,10 @@ RRANSAC::RRANSAC()
   params_.frame_cols = 1000;
   params_.frame_rows = 1000;
 
+  // get parameters from param server that are not dynamically reconfigurable
+  // TODO: is it worth it to use a private node handle here?
+  nh.param<bool>("rransac/show_tracks", show_tracks_, 0);
+
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 
@@ -103,7 +107,8 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   publish_tracks(tracks);
 
   // generate visualization
-  draw_tracks(tracks);
+  if (show_tracks_)
+    draw_tracks(tracks);
 }
 
 // ----------------------------------------------------------------------------
