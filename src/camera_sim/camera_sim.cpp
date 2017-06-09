@@ -52,17 +52,16 @@ CameraSim::CameraSim()
   ros::NodeHandle nh("~");
 
   // get parameters from param server
-  std::string camera_info_path;
+  std::string camera_name, camera_info_path;
+  nh.param<std::string>("camera_name",      camera_name,      "");
   nh.param<std::string>("camera_info_path", camera_info_path, "");
 
   // configure the camera manager class, this gets info from the camera .yaml
   // http://docs.ros.org/kinetic/api/camera_info_manager/html/classcamera__info__manager_1_1CameraInfoManager.html#a369891debacb0b8c38f038e5b40e3fc6
-  camera_manager_.reset(new camera_info_manager::CameraInfoManager(nh_, "camera", camera_info_path));
+  camera_manager_.reset(new camera_info_manager::CameraInfoManager(nh_, camera_name, camera_info_path));
 
   // generate the CameraInfo message
   sensor_msgs::CameraInfoPtr camera_info_(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
-
-  std::cout << camera_info_->width << std::endl;
 
   // ROS communication
   image_transport::ImageTransport it(nh_);
