@@ -76,6 +76,8 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
   // Update the R-RANSAC Tracker with these new parameters
   tracker_.set_parameters(params_);
+
+  ROS_INFO("rransac: parameters have been updated");
 }
 
 // ----------------------------------------------------------------------------
