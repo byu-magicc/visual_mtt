@@ -5,6 +5,7 @@ namespace visual_mtt {
 RRANSAC::RRANSAC()
 {
   // TODO: This is a hack. We need to set the surveilance region width/height here.
+  // this is something to think about in the context of normalized image coordinates
   params_.frame_cols = 1000;
   params_.frame_rows = 1000;
 
@@ -204,11 +205,11 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // draw top-left box
   char text[40];
 
-  sprintf(text, "Frame %d", frame_seq_); 
+  sprintf(text, "Frame %d", frame_seq_);
   cv::Point corner = cv::Point(10,2);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-  
+
   sprintf(text, "Total models: %d", total_tracks);
   corner = cv::Point(10,22);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);

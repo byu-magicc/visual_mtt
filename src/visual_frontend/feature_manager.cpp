@@ -13,11 +13,11 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
   // get the needed params that are not dynamically reconfigurable
   int pyramid_size;
-  nh.param<double>("visual_frontend/corner_quality",       corner_quality_,       0.03 );
-  nh.param<double>("visual_frontend/corner_quality_min",   corner_quality_min_,   0.03 );
-  nh.param<double>("visual_frontend/corner_quality_max",   corner_quality_max_,   0.05 );
-  nh.param<double>("visual_frontend/corner_quality_alpha", corner_quality_alpha_, 0.999);
-  nh.param<int>   ("visual_frontend/pyramid_size",         pyramid_size,          21   );
+  nh.param<double>("corner_quality",       corner_quality_,       0.03 );
+  nh.param<double>("corner_quality_min",   corner_quality_min_,   0.03 );
+  nh.param<double>("corner_quality_max",   corner_quality_max_,   0.05 );
+  nh.param<double>("corner_quality_alpha", corner_quality_alpha_, 0.999);
+  nh.param<int>   ("pyramid_size",         pyramid_size,          21   );
 
   pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
 

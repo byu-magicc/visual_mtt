@@ -61,7 +61,7 @@ namespace visual_mtt {
 
   private:
     // ROS
-    ros::NodeHandle nh;
+    ros::NodeHandle nh_;
     ros::Subscriber sub_video;
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
