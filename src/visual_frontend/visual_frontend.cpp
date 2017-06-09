@@ -19,7 +19,7 @@ VisualFrontend::VisualFrontend()
   nh.param<double>("visual_frontend/calibration/k5", k5, 0);
   nh.param<double>("visual_frontend/calibration/k6", k6, 0);
 
-  nh.param<bool>("tuning", tuning_, 0);
+  nh.param<bool>("visual_frontend/tuning", tuning_, 0);
 
   calibration_ = (cv::Mat_<float>(3,3) <<
     fx ,  0.0,  cx,
@@ -29,6 +29,7 @@ VisualFrontend::VisualFrontend()
 
   // if tuning mode is enabled, use infinte queue
   // this allows the developer to see how quickly the delay changes
+  // REMOVE THIS AFTER WE HAVE UTILIZATION
   int q;
   if (tuning_)
   {

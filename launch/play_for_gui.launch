@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!-- NOT YET SUPPORTED BY v1.0!!! -->
+
 <launch>
 	<!-- args to be passed in -->
 	<arg name="videopath" default="" />
