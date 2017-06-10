@@ -2,8 +2,10 @@
 
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
+#include <image_transport/image_transport.h>
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 #include <rransac/tracker.h>
@@ -33,7 +35,7 @@ namespace visual_mtt {
     // ROS
     ros::NodeHandle nh;
     ros::Subscriber sub_scan;
-    ros::Subscriber sub_video;
+    image_transport::Subscriber sub_video;
     ros::Publisher pub;
 
     // Saved frame header, received at each callback

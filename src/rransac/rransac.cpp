@@ -17,8 +17,9 @@ RRANSAC::RRANSAC()
   tracker_ = rransac::Tracker(params_);
 
   // ROS stuff
+  image_transport::ImageTransport it(nh);
+  sub_video = it.subscribe("video", 1, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
-  sub_video = nh.subscribe("video", 1, &RRANSAC::callback_video, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
