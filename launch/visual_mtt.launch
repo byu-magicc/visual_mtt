@@ -19,14 +19,14 @@
 
   <!-- start the visual frontend -->
   <node pkg="visual_mtt2" type="visual_frontend" name="visual_frontend" output="screen">
-    <param name="tuning" type="bool" value="$(arg tuning)"/>
-    <remap from="video" to="$(arg imgtopic)"/>
+    <param name="tuning" type="bool" value="$(arg tuning)" />
+    <remap from="video" to="$(arg imgtopic)" />
   </node>
 
   <!-- start R-RANSAC -->
   <node pkg="visual_mtt2" type="rransac" name="rransac" output="screen">
-    <param name="show_tracks" type="bool" value="$(arg show_tracks)"/>
-    <remap from="video" to="$(arg imgtopic)"/>
+    <param name="show_tracks" type="bool" value="$(arg show_tracks)" />
+    <remap from="video" to="$(arg imgtopic)" />
   </node>
 
   <!-- start dynamic reconfigure gui -->
