@@ -9,6 +9,10 @@
 #include <dynamic_reconfigure/server.h>
 #include <chrono>
 #include <thread>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <tf/transform_listener.h>
+#include <tf/transform_broadcaster.h>
 
 // dynamic reconfig
 #include "visual_mtt2/visual_frontendConfig.h"
@@ -33,7 +37,7 @@ namespace visual_mtt {
     VisualFrontend();
 
     // subscription and dynamic reconfigure callbacks
-    void callback_video(const sensor_msgs::ImageConstPtr& data);
+    void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
     void callback_tracks(const visual_mtt2::TracksPtr& data);
     void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
@@ -62,7 +66,7 @@ namespace visual_mtt {
   private:
     // ROS
     ros::NodeHandle nh_;
-    ros::Subscriber sub_video;
+    image_transport::CameraSubscriber sub_video;
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
     ros::Publisher  pub;

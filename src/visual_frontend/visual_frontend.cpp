@@ -30,22 +30,14 @@ VisualFrontend::VisualFrontend()
     0.0,  0.0,  1.0);
   distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
 
-  // if tuning mode is enabled, use infinte queue
-  // this allows the developer to see how quickly the delay changes
-  // REMOVE THIS AFTER WE HAVE UTILIZATION PARAMETER
-  int q;
   if (tuning_)
-  {
-    q = 0;
-    ROS_WARN("tuning mode enabled: using infinite image queue");
-  }
-  else
-    q = 10;
+    ROS_WARN("tuning mode enabled");
 
   // ROS communication
-  sub_video  = nh_.subscribe("video",  q, &VisualFrontend::callback_video,  this);
-  sub_imu    = nh_.subscribe("imu",    1, &VisualFrontend::callback_imu,    this);
-  sub_tracks = nh_.subscribe("tracks", 1, &VisualFrontend::callback_tracks, this);
+  image_transport::ImageTransport it(nh_);
+  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
+  sub_imu    = nh_.subscribe(     "imu",    1, &VisualFrontend::callback_imu,    this);
+  sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
   pub        = nh_.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
 
   // key member objects
@@ -63,7 +55,7 @@ VisualFrontend::VisualFrontend()
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data)
+void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
   // future work TODO:
   // resize frame to lower resolution (keep both)

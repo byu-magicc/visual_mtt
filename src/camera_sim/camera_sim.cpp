@@ -16,7 +16,7 @@
 // Eventually read in video rather than subscribe, then replace video_player.py
 
 // Near-term list:
-// TODO: header file
+// TODO: cpp header file
 // TODO: separate into node.cpp and camera_sim.cpp to match other nodes?
 // TODO: add namespace
 
@@ -34,11 +34,8 @@ private:
   ros::Subscriber sub_;
   image_transport::CameraPublisher pub_;
 
-  // data
+  // image data
   cv::Mat frame_;
-
-  // saved message to be published
-  sensor_msgs::CameraInfoPtr camera_info_;
 
   // camera manager class
   std::shared_ptr<camera_info_manager::CameraInfoManager> camera_manager_;
@@ -48,7 +45,7 @@ private:
 
 CameraSim::CameraSim()
 {
-  // create a private node handle (only for use with param server)
+  // private node handle for params and keeping image topics organized
   ros::NodeHandle nh("~");
 
   // get parameters from param server
@@ -57,16 +54,13 @@ CameraSim::CameraSim()
   nh.param<std::string>("camera_info_path", camera_info_path, "");
 
   // configure the camera manager class, this gets info from the camera .yaml
-  // http://docs.ros.org/kinetic/api/camera_info_manager/html/classcamera__info__manager_1_1CameraInfoManager.html#a369891debacb0b8c38f038e5b40e3fc6
+  // docs.ros.org/kinetic/api/camera_info_manager/html/classcamera__info__manager_1_1CameraInfoManager.html
   camera_manager_.reset(new camera_info_manager::CameraInfoManager(nh_, camera_name, camera_info_path));
 
-  // generate the CameraInfo message
-  sensor_msgs::CameraInfoPtr camera_info_(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
-
   // ROS communication
-  image_transport::ImageTransport it(nh_);
+  image_transport::ImageTransport it(nh); // use private node handle
   sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
-  pub_ = it.advertiseCamera("output", 1);
+  pub_ = it.advertiseCamera("image_raw", 1);
 }
 
 // ----------------------------------------------------------------------------
@@ -74,17 +68,22 @@ CameraSim::CameraSim()
 void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
 {
   // convert image to OpenCV because that's how it will be in the future
-  // when it's read from .mp4 file, thus replacing the python script
+  // when it's read from .mp4 file, eventually replacing the python script
   frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
-  // sanity check: compare dimensions of frame to .yaml (if first frame?)
-  // stuff
+  // sanity check: compare dimensions of frame to .yaml (on first frame?)
+  // stuff, warning
 
   // convert to image transport
   sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame_).toImageMsg();
+  msg->header = data->header;
+
+  // get the camera info
+  sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
+  ci->header.stamp = data->header.stamp;
 
   // publish frame and camera info together (can only publish <msg>Ptr types)
-  pub_.publish(msg, camera_info_);
+  pub_.publish(msg, ci);
 }
 
 // ----------------------------------------------------------------------------

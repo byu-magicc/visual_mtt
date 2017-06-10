@@ -5,7 +5,7 @@
   <arg name="params"      default="default" />
   <arg name="tuning"      default="false" />
   <arg name="show_tracks" default="true" />
-  <arg name="imgtopic"    default="/video" />
+  <arg name="imgtopic"    default="/image_raw" />
 
   <!-- params:        name of .yaml contained the desired parameter values  -->
   <!-- tuning:        enables dynamic reconfigure and displays measurements -->
