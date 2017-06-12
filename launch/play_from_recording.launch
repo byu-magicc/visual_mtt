@@ -39,7 +39,7 @@
 
 
   <!-- helpful args to simplify logic -->
-  <arg name="final_video" value="/$(arg camera_name)/image_raw" />
+  <arg name="final_video" value="/$(arg camera_name)" />
   <arg if="$(eval not(bag_path == ''))" name="bag" value="true" />
   <arg if="$(eval     bag_path == '' )" name="bag" value="false" />
 
@@ -77,33 +77,38 @@
   <arg if="$(eval     bag and compressed and not(has_info))"       name="c_no_info" value="true" />
   <arg if="$(eval not(bag and compressed and not(has_info)))"      name="c_no_info" value="false" />
 
-  <!-- play rosbag -->
+  <!-- make all nodes use sim time -->
   <param unless="$(eval bag_path == '')" name="use_sim_time" type="bool" value="true" />
-  <node unless="$(eval bag_path == '')" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
 
 
   <!-- CASE 1: RAW VIDEO, HAS camera_info -->
-  <!-- remap topics -->
-  <!-- TODO -->
+  <!-- remap published topics -->
+  <node if="$(arg r_all)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e">
+    <remap from="$(arg bag_topic)/image_raw" to="$(arg final_video)/image_raw" />
+    <remap from="$(arg bag_topic)/camera_info" to="$(arg final_video)/camera_info" />
+    <!-- TODO: figure out how to remap the entire namespace -->
+  </node>
 
 
   <!-- CASE 2: RAW VIDEO, MISSING camera_info -->
   <!-- simulate camera_info -->
+  <node if="$(arg r_no_info)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
   <node if="$(arg r_no_info)" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
     <param name="camera_name" value="$(arg camera_name)" />
     <param name="camera_info_path" value="$(arg camera_path)" />
-    <remap from="input" to="$(arg bag_topic)" />
+    <remap from="input" to="$(arg bag_topic)/image_raw" />
   </node>
 
 
   <!-- CASE 3: COMPRESSED VIDEO, HAS camera_info -->
   <!-- decompress, remap camera_info to same base topic -->
+  <node if="$(arg c_all)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
   <node if="$(arg c_all)"
     pkg="image_transport"
     type="republish"
     name="decompress"
     output="log"
-    args="compressed in:=$(arg bag_topic) out:=$(arg final_video)">
+    args="compressed in:=$(arg bag_topic) out:=$(arg final_video)/image_raw">
   </node>
   <!-- REMAP THE CINFO TOPIC TO SAME BASE TOPIC as final_video! -->
   <!-- TODO -->
@@ -111,6 +116,7 @@
 
   <!-- CASE 4: COMPRESSED VIDEO, MISSING camera_info -->
   <!-- decompress, simulate camera_info -->
+  <node if="$(arg c_no_info)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
   <node if="$(arg c_no_info)"
     pkg="image_transport"
     type="republish"
@@ -134,7 +140,7 @@
     <arg name="params" value="$(arg params)" />
     <arg name="tuning" value="$(arg tuning)" />
     <arg name="show_tracks" value="$(arg show_tracks)" />
-    <arg name="imgtopic" value="$(arg final_video)" />
+    <arg name="imgtopic" value="$(arg final_video)/image_raw" />
   </include>
 
 </launch>
