@@ -2,17 +2,15 @@
 
 // libraries
 #include <iostream>
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <ros/ros.h>
-#include <ros/console.h>
-#include <dynamic_reconfigure/server.h>
 #include <chrono>
 #include <thread>
+
+#include <ros/ros.h>
+#include <ros/console.h>
+#include <opencv2/opencv.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <tf/transform_listener.h>
-#include <tf/transform_broadcaster.h>
 
 // dynamic reconfig
 #include "visual_mtt2/visual_frontendConfig.h"
