@@ -19,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   message_generation
   dynamic_reconfigure
+  image_transport
+  camera_info_manager
 )
 
 find_package(OpenCV 3 REQUIRED)
@@ -142,21 +144,27 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/source_background.cpp
   src/visual_frontend/source_features.cpp)
 
+add_executable(${PROJECT_NAME}_camera_sim
+  src/camera_sim/camera_sim.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
 set_target_properties(${PROJECT_NAME}_rransac PROPERTIES OUTPUT_NAME rransac PREFIX "")
 set_target_properties(${PROJECT_NAME}_visual_frontend PROPERTIES OUTPUT_NAME visual_frontend PREFIX "")
+set_target_properties(${PROJECT_NAME}_camera_sim PROPERTIES OUTPUT_NAME camera_sim PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(${PROJECT_NAME}_rransac ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_visual_frontend ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+add_dependencies(${PROJECT_NAME}_camera_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_rransac ${catkin_LIBRARIES} ${RRANSAC_LIBS} ${OpenCV_LIBS})
 target_link_libraries(${PROJECT_NAME}_visual_frontend ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
 ## Install ##

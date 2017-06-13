@@ -16,7 +16,7 @@
     <arg name="show_tracks_video" value="$(arg show_tracks_video)" />
   </include>
 
-  <node pkg="web_video_server" type="web_video_server" name="web_video_server"/>
-  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-  <node name="publish_topics_on_network" pkg="visual_mtt" type="publish_topics_on_network.sh"/>
+  <node pkg="web_video_server" type="web_video_server" name="web_video_server" />
+  <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch" />
+  <node name="publish_topics_on_network" pkg="visual_mtt" type="publish_topics_on_network.sh" />
 </launch>

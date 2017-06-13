@@ -1,57 +1,149 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!-- This launch file can accomodate various recording configurations. -->
+<!-- See visual_mtt repo wiki for a guide of what needs to be provided! -->
+
 <launch>
 
-  <arg name="videopath"   default="" />
+  <!-- for video -->
+  <arg name="video_path"  default="" />
   <arg name="fps"         default="24" />
 
-  <arg name="bagpath"     default="" />
-  <arg name="imgtopic"    default="/video" />
+  <!-- for rosbag -->
+  <arg name="bag_path"    default="" />
+  <arg name="bag_topic"   default="/camera/image_raw" />
+  <arg name="info_topic"  default="" />
   <arg name="compressed"  default="false" />
+  <arg name="has_info"    default="true" />
 
+  <!-- camera parameters (video or rosbag that didn't record camera_info) -->
+  <arg name="camera_name" default="camera_sim" />
+  <arg name="camera_path" default="file://$(find visual_mtt2)/param/$(arg camera_name).yaml" />
+
+  <!-- visual_mtt flags -->
   <arg name="params"      default="default" />
   <arg name="tuning"      default="true" />
   <arg name="show_tracks" default="true" />
 
-  <!-- videopath:     path to video file            (video only)            -->
-  <!-- fps:           desired framerate             (video only)            -->
 
-  <!-- bagpath:       path to recording             (rosbag only)           -->
-  <!-- imgtopic:      set to topic from recording   (rosbag only)           -->
-  <!-- compressed:    set if compressed             (rosbag only)           -->
+  <!-- video_path:    path to video file          (video only)              -->
+  <!-- fps:           desired framerate           (video only)              -->
 
-  <!-- params:        name of .yaml contained the desired parameter values  -->
+  <!-- bag_path:      path to .bag file           (rosbag only)             -->
+  <!-- bag_topic:     bag image topic             (rosbag only)             -->
+  <!-- info_topic:    camera_info topic           (rosbag only)             -->
+  <!-- compressed:    compressed recording?       (rosbag only)             -->
+  <!-- has_info:      camera_info topic recorded? (rosbag only)             -->
+
+  <!-- camera_name:   camera name                 (for known camera_info)   -->
+  <!-- camera_path:   path to camera .yaml        (for known camera_info)   -->
+
+  <!-- params:        name of .yaml containing camera parameter values      -->
   <!-- tuning:        enables dynamic reconfigure and displays measurements -->
   <!-- show_tracks:   enables display of tracking results                   -->
 
+
+  <!-- helpful args to simplify logic -->
+  <arg name="final_video" value="/$(arg camera_name)" />   <!-- TODO: remove this arg -->
+  <arg if="$(eval not(bag_path == ''))" name="bag" value="true" />
+  <arg if="$(eval     bag_path == '' )" name="bag" value="false" />
+
   <!-- #################################################################### -->
 
-  <!-- decompress video if needed -->
-  <node if="$(arg compressed)"
+  <!-- VIDEO -->
+
+  <!-- play video and simulate camera -->
+  <node unless="$(eval video_path == '')" pkg="visual_mtt2" type="video_player.py" name="player" output="screen">
+    <param name="input" value="$(arg video_path)" />
+    <param name="fps" value="$(arg fps)" />
+    <remap from="output" to="/frame" />
+  </node>
+  <node unless="$(eval video_path == '')" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+    <param name="camera_name" value="$(arg camera_name)" />
+    <param name="camera_info_path" value="$(arg camera_path)" />
+    <remap from="input" to="/frame" />
+  </node>
+
+  <!-- #################################################################### -->
+
+  <!-- ROSBAG -->
+
+  <!-- four categories of rosbags, set a boolean argument for each -->
+  <!-- raw video, has camera_info -->
+  <arg if="$(eval     bag and not(compressed) and has_info)"       name="r_all"     value="true" />
+  <arg if="$(eval not(bag and not(compressed) and has_info))"      name="r_all"     value="false" />
+  <!-- raw video, missing camera_info -->
+  <arg if="$(eval     bag and not(compressed) and not(has_info))"  name="r_no_info" value="true" />
+  <arg if="$(eval not(bag and not(compressed) and not(has_info)))" name="r_no_info" value="false" />
+  <!-- compressed video, has camera_info -->
+  <arg if="$(eval     bag and compressed and has_info)"            name="c_all"     value="true" />
+  <arg if="$(eval not(bag and compressed and has_info))"           name="c_all"     value="false" />
+  <!-- compressed video, missing camera_info -->
+  <arg if="$(eval     bag and compressed and not(has_info))"       name="c_no_info" value="true" />
+  <arg if="$(eval not(bag and compressed and not(has_info)))"      name="c_no_info" value="false" />
+
+  <!-- make all nodes use sim time -->
+  <param unless="$(eval bag_path == '')" name="use_sim_time" type="bool" value="true" />
+
+
+  <!-- CASE 1: RAW VIDEO, HAS camera_info -->
+  <!-- remap needed topics -->
+  <node if="$(arg r_all)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e">
+    <remap from="$(arg bag_topic)/image_raw"   to="$(arg final_video)/image_raw" />
+    <remap from="$(arg bag_topic)/camera_info" to="$(arg final_video)/camera_info" />
+  </node>
+
+
+  <!-- CASE 2: RAW VIDEO, MISSING camera_info -->
+  <!-- simulate camera_info -->
+  <node if="$(arg r_no_info)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
+  <node if="$(arg r_no_info)" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+    <param name="camera_name" value="$(arg camera_name)" />
+    <param name="camera_info_path" value="$(arg camera_path)" />
+    <remap from="input" to="$(arg bag_topic)/image_raw" />
+  </node>
+
+
+  <!-- CASE 3: COMPRESSED VIDEO, HAS camera_info -->
+  <!-- decompress, remap camera_info to same base topic -->
+  <node if="$(arg c_all)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e">
+    <remap from="$(arg info_topic)" to="$(arg final_video)/camera_info" />
+  </node>
+  <node if="$(arg c_all)"
     pkg="image_transport"
     type="republish"
-    name="republish"
+    name="decompress"
     output="log"
-    args="compressed in:=$(arg imgtopic) raw out:=$(arg imgtopic)">
+    args="compressed in:=$(arg bag_topic) out:=$(arg final_video)/image_raw">
   </node>
+
+
+  <!-- CASE 4: COMPRESSED VIDEO, MISSING camera_info -->
+  <!-- decompress, simulate camera_info -->
+  <node if="$(arg c_no_info)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
+  <node if="$(arg c_no_info)"
+    pkg="image_transport"
+    type="republish"
+    name="decompress"
+    output="log"
+    args="compressed in:=$(arg bag_topic) out:=/frame">
+  </node>
+  <node if="$(arg c_no_info)" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+    <param name="camera_name" value="$(arg camera_name)" />
+    <param name="camera_info_path" value="$(arg camera_path)" />
+    <remap from="input" to="/frame" />
+  </node>
+
+  <!-- #################################################################### -->
+
+  <!-- VISUAL_MTT -->
 
   <!-- launch visual_mtt -->
   <include file="$(find visual_mtt2)/launch/visual_mtt.launch">
-    <arg name="params" value="$(arg params)"/>
-    <arg name="tuning" value="$(arg tuning)"/>
-    <arg name="show_tracks" value="$(arg show_tracks)"/>
-    <arg name="imgtopic" value="$(arg imgtopic)"/>
+    <arg name="params" value="$(arg params)" />
+    <arg name="tuning" value="$(arg tuning)" />
+    <arg name="show_tracks" value="$(arg show_tracks)" />
+    <arg name="imgtopic" value="$(arg final_video)/image_raw" />
   </include>
-
-  <!-- play video -->
-  <node unless="$(eval videopath == '')" pkg="visual_mtt2" type="video_player.py" name="player" output="screen">
-    <param name="input" value="$(arg videopath)"/>
-    <param name="fps" value="$(arg fps)"/>
-    <remap from="output" to="$(arg imgtopic)"/>
-  </node>
-
-  <!-- play rosbag -->
-  <param unless="$(eval bagpath == '')" name="use_sim_time" type="bool" value="true"/>
-  <node unless="$(eval bagpath == '')" pkg="rosbag" type="play" name="player" args="-l $(arg bagpath) --clock" launch-prefix="xterm -e" />
 
 </launch>
