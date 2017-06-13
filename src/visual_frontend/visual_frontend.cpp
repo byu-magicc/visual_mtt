@@ -8,27 +8,7 @@ VisualFrontend::VisualFrontend()
   ros::NodeHandle nh("~");
 
   // get parameters from param server that are not dynamically reconfigurable
-  double fx, fy, cx, cy, k1, k2, p1, p2, k3, k4, k5, k6;
-  nh.param<double>("calibration/fx", fx, 0);
-  nh.param<double>("calibration/fy", fy, 0);
-  nh.param<double>("calibration/cx", cx, 0);
-  nh.param<double>("calibration/cy", cy, 0);
-  nh.param<double>("calibration/k1", k1, 0);
-  nh.param<double>("calibration/k2", k2, 0);
-  nh.param<double>("calibration/p1", p1, 0);
-  nh.param<double>("calibration/p2", p2, 0);
-  nh.param<double>("calibration/k3", k3, 0);
-  nh.param<double>("calibration/k4", k4, 0);
-  nh.param<double>("calibration/k5", k5, 0);
-  nh.param<double>("calibration/k6", k6, 0);
-
   nh.param<bool>("tuning", tuning_, 0);
-
-  calibration_ = (cv::Mat_<float>(3,3) <<
-    fx ,  0.0,  cx,
-    0.0,  fy ,  cy,
-    0.0,  0.0,  1.0);
-  distortion_ = (cv::Mat_<float>(8,1) << k1, k2, p1, p2, k3, k4, k5, k6);
 
   if (tuning_)
     ROS_WARN("tuning mode enabled");
@@ -57,12 +37,6 @@ VisualFrontend::VisualFrontend()
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
-  // future work TODO:
-  // resize frame to lower resolution (keep both)
-    // a short history is needed for the low res for the sliding
-    // a short history is needed for the high res so the track recognition can
-    // locate the high-res frame associated with the track it's subscribing to
-
   // Only process every Nth frame
   static int frame = 0;
   if (frame++ % frame_stride_ != 0)
@@ -76,7 +50,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   if (delay.toSec()>0.05 && frame>30)
     ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
-  // save the frame timestamp
+  // save the camera parameters and frame timestamp
+  camera_info_ = *cinfo;
   timestamp_frame_ = data->header.stamp;
 
   // convert message data into OpenCV type cv::Mat

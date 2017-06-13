@@ -51,17 +51,12 @@ namespace visual_mtt {
     // timestamps, "add_frame" will sort of become a manager of these histories
     // (and provide CPU/GPU support of course)
 
-    cv::Mat calibration_; // not used yet
-    cv::Mat distortion_;  // not used yet
-
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in;
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
     visual_mtt2::TracksPtr tracks_;
-
-    ros::Time timestamp_frame_;
 
   private:
     // ROS
@@ -77,6 +72,10 @@ namespace visual_mtt {
     // key algorithm members
     std::shared_ptr<FeatureManager>       feature_manager_;
     std::shared_ptr<HomographyCalculator> homography_calculator_;
+
+    // camera parameters
+    sensor_msgs::CameraInfo camera_info_;
+    ros::Time timestamp_frame_;
 
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;

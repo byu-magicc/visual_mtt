@@ -37,6 +37,8 @@ private:
   // image data
   cv::Mat frame_;
 
+  bool guessed_;
+
   // camera manager class
   std::shared_ptr<camera_info_manager::CameraInfoManager> camera_manager_;
 };
@@ -52,6 +54,13 @@ CameraSim::CameraSim()
   std::string camera_name, camera_info_path;
   nh.param<std::string>("camera_name",      camera_name,      "");
   nh.param<std::string>("camera_info_path", camera_info_path, "");
+
+  // if the default camera_sim is being used, parameters are being guessed
+  if (camera_name=="camera_sim")
+  {
+    guessed_ = true;
+    ROS_WARN("camera sim: intrinsic camera parameters will be guessed");
+  }
 
   // configure the camera manager class, this gets info from the camera .yaml
   // docs.ros.org/kinetic/api/camera_info_manager/html/classcamera__info__manager_1_1CameraInfoManager.html
@@ -81,6 +90,17 @@ void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
   // get the camera info
   sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
   ci->header.stamp = data->header.stamp;
+
+  // update the height, width, and principal point if parameters are guessed
+  if (guessed_)
+  {
+    ci->height = frame_.rows;
+    ci->width = frame_.cols;
+    // ci->K[0] = 700;                // fx (keep original guess)
+    // ci->K[4] = 700;                // fy (keep original guess)
+    ci->K[2] = (double)frame_.cols/2; // cx
+    ci->K[5] = (double)frame_.rows/2; // cy
+  }
 
   // publish frame and camera info together (can only publish <msg>Ptr types)
   pub_.publish(msg, ci);

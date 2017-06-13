@@ -3,17 +3,16 @@ Visual Multiple Target Tracker
 
 This ROS package includes a visual measurement frontend that feeds the **R-RANSAC Tracker** (see [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac)).
 
-Run visual_mtt on recorded video:
-```bash
-# play from video:
-roslaunch visual_mtt2 play_from_recording.launch videopath:="/path/to/video.mp4"
-# play from raw rosbag:
-roslaunch visual_mtt2 play_from_recording.launch bagpath:="/path/to/recording.bag" imgtopic:="/name_of_recorded_topic"
-# play from compressed rosbag:
-roslaunch visual_mtt2 play_from_recording.launch bagpath:="/path/to/recording.bag" compressed:="true" imgtopic:="/image_converter/output_video"
-```
+See the [Pre-Recorded Video](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/videos-and-rosbags) wiki page for a guide to using the `play_from_recording.launch` file.
 
-### Philosophies
+## Installation
+
+1. Install `rransaclib`
+2. Clone repo into `src` of a catkin workspace.
+3. 
+
+
+## Philosophies
 (for early development)
 
 * Automatic CUDA: run the exact same codebase for CUDA-enabled and CUDA-denied applications. [Simple Exapmle](https://github.com/jdmillard/opencv-cuda).
