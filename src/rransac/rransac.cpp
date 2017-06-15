@@ -249,20 +249,34 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // draw top-left box
   char text[40];
 
-  sprintf(text, "Frame %d", frame_seq_);
-  cv::Point corner = cv::Point(10,2);
+  sprintf(text, "Frame: %d", frame_seq_);
+  cv::Point corner = cv::Point(5,5);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
   sprintf(text, "Total models: %d", total_tracks);
-  corner = cv::Point(10,22);
+  corner = cv::Point(5,25);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  sprintf(text, "Current models:  %d", (int)tracks.size());
-  corner = cv::Point(10,42);
+  sprintf(text, "Current models: %d", (int)tracks.size());
+  corner = cv::Point(5,45);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  // utilization rectangle background color
+  cv::Scalar background;
+  if (utilization_ > 0.9)
+    background = cv::Scalar(0, 0, 255);
+  else
+    background = cv::Scalar(255, 255, 255);
+
+  sprintf(text, "Utilization: %d%%", (int)(utilization_*100));
+  corner = cv::Point(5,65);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+
 
   cv::imshow("Tracks", draw);
   cv::waitKey(1);
