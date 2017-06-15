@@ -158,7 +158,7 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 void VisualFrontend::generate_measurements()
 {
   // optional delay for testing queue timing and warnings!
-  // std::this_thread::sleep_for(std::chrono::milliseconds((int)1000.0/24));
+  std::this_thread::sleep_for(std::chrono::milliseconds((int)1000.0/24));
 
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt2::RRANSACScan scan;

@@ -21,6 +21,9 @@
 #include "visual_mtt2/Track.h"
 #include "sensor_msgs/Image.h"
 
+#include <iostream>
+#include <algorithm>
+
 namespace visual_mtt {
 
   class RRANSAC
@@ -39,9 +42,16 @@ namespace visual_mtt {
     ros::Publisher pub;
 
     // Saved frame and scan headers, received at each callback
+    std_msgs::Header header_frame_last_;
     std_msgs::Header header_frame_;
     std_msgs::Header header_scan_;
     int frame_seq_;
+
+    // Low-pass filter for spf (1/fps) and utilization
+    double spf_           = 0;
+    double utilization_   = 0;
+    double alpha_         = 0.05; // for fps filter
+    double time_constant_ = 5;    // for utilization filter
 
     // For visualization
     cv::Mat frame_;

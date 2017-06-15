@@ -30,6 +30,9 @@ RRANSAC::RRANSAC()
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+
+  // for first iteration, populate with something non-zero
+  header_frame_.stamp = ros::Time::now();
 }
 
 // ----------------------------------------------------------------------------
@@ -86,8 +89,26 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
   // Save the original frame header
+  header_frame_last_ = header_frame_;
   header_frame_ = rransac_scan->header_frame;
   header_scan_  = rransac_scan->header_scan;
+
+
+  // Use frame header to update "seconds per frame" through low-pass filter
+  ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
+  std::cout << "---" << std::endl;
+  spf_ = alpha_*elapsed.toSec() + (1-alpha_)*spf_;
+  std::cout << spf_ << std::endl;
+
+  // Use scan and frame headers to update utilization through low-pass filter
+  double alpha = 1/(time_constant_/spf_ + 1);
+  elapsed = header_scan_.stamp - header_frame_.stamp;
+  utilization_ = alpha*(elapsed.toSec()/spf_) + (1-alpha)*utilization_;
+  utilization_ = std::min(utilization_, (double)1);
+  std::cout << utilization_ << std::endl;
+
+
+
 
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
