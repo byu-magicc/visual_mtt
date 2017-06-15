@@ -86,7 +86,8 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
   // Save the original frame header
-  header_frame_ = rransac_scan->header;
+  header_frame_ = rransac_scan->header_frame;
+  header_scan_  = rransac_scan->header_scan;
 
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());

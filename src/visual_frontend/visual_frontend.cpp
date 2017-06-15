@@ -162,7 +162,7 @@ void VisualFrontend::generate_measurements()
 
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt2::RRANSACScan scan;
-  scan.header.stamp = timestamp_frame_;
+  scan.header_frame.stamp = timestamp_frame_;
   if (!homography_calculator_->homography_.empty())
     std::memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
 
@@ -221,8 +221,10 @@ void VisualFrontend::generate_measurements()
       ros::shutdown();
   }
 
-  pub.publish(scan);
+  // timestamp after scan is completed finished
+  scan.header_scan.stamp = ros::Time::now();
 
+  pub.publish(scan);
 }
 
 }

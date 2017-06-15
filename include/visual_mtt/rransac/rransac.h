@@ -38,8 +38,9 @@ namespace visual_mtt {
     image_transport::Subscriber sub_video;
     ros::Publisher pub;
 
-    // Saved frame header, received at each callback
+    // Saved frame and scan headers, received at each callback
     std_msgs::Header header_frame_;
+    std_msgs::Header header_scan_;
     int frame_seq_;
 
     // For visualization
