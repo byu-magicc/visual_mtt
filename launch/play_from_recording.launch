@@ -7,7 +7,7 @@
 
   <!-- for video -->
   <arg name="video_path"  default="" />
-  <arg name="fps"         default="24" />
+  <arg name="fps"         default="30" />
 
   <!-- for rosbag -->
   <arg name="bag_path"    default="" />
