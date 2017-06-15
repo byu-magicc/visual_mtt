@@ -93,17 +93,31 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   header_frame_ = rransac_scan->header_frame;
   header_scan_  = rransac_scan->header_scan;
 
+  // Perform fps and utilization filtering
+  double alpha1, alpha2;
+  if (frame_seq_<30)
+  {
+    // early on converge quickly, allowing noise
+    alpha1 = 0.95;
+    alpha2 = 0.95;
+  }
+  else
+  {
+    // attenuate noise after values have converged
+    // for utilization filter (alpha2), maintain the desired time constant
+    alpha1 = alpha1_;
+    alpha2 = 1/(time_constant_/spf_ + 1);
+  }
 
-  // Use frame header to update "seconds per frame" through low-pass filter
+  // update "seconds per frame" through low-pass filter
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
   std::cout << "---" << std::endl;
-  spf_ = alpha_*elapsed.toSec() + (1-alpha_)*spf_;
+  spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
   std::cout << spf_ << std::endl;
 
-  // Use scan and frame headers to update utilization through low-pass filter
-  double alpha = 1/(time_constant_/spf_ + 1);
+  // update utilization through low-pass filter
   elapsed = header_scan_.stamp - header_frame_.stamp;
-  utilization_ = alpha*(elapsed.toSec()/spf_) + (1-alpha)*utilization_;
+  utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
   utilization_ = std::min(utilization_, (double)1);
   std::cout << utilization_ << std::endl;
 

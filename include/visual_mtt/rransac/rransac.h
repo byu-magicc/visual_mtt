@@ -50,8 +50,8 @@ namespace visual_mtt {
     // Low-pass filter for spf (1/fps) and utilization
     double spf_           = 0;
     double utilization_   = 0;
-    double alpha_         = 0.05; // for fps filter
-    double time_constant_ = 5;    // for utilization filter
+    double alpha1_        = 0.02; // fps filter: arbitrary large time constant
+    double time_constant_ = 5;    // utilization filter: chose time constant
 
     // For visualization
     cv::Mat frame_;
