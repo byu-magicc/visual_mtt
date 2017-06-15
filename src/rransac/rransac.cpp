@@ -93,6 +93,7 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   header_frame_ = rransac_scan->header_frame;
   header_scan_  = rransac_scan->header_scan;
 
+
   // Perform fps and utilization filtering
   double alpha1, alpha2;
   if (frame_seq_<30)
@@ -108,20 +109,13 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
     alpha1 = alpha1_;
     alpha2 = 1/(time_constant_/spf_ + 1);
   }
-
   // update "seconds per frame" through low-pass filter
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
-  std::cout << "---" << std::endl;
   spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
-  std::cout << spf_ << std::endl;
-
   // update utilization through low-pass filter
   elapsed = header_scan_.stamp - header_frame_.stamp;
   utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
   utilization_ = std::min(utilization_, (double)1);
-  std::cout << utilization_ << std::endl;
-
-
 
 
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
@@ -275,8 +269,6 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   corner = cv::Point(5,65);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-
-
 
   cv::imshow("Tracks", draw);
   cv::waitKey(1);
