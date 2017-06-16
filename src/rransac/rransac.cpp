@@ -18,7 +18,7 @@ RRANSAC::RRANSAC()
 
   // ROS stuff
   image_transport::ImageTransport it(nh);
-  sub_video = it.subscribe("video", 1, &RRANSAC::callback_video, this);
+  sub_video = it.subscribe("video", 10, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
