@@ -30,9 +30,6 @@ RRANSAC::RRANSAC()
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
-
-  // for first iteration, populate with something non-zero
-  header_frame_.stamp = ros::Time::now();
 }
 
 // ----------------------------------------------------------------------------
@@ -109,12 +106,17 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
     alpha1 = alpha1_;
     alpha2 = 1/(time_constant_/spf_ + 1);
   }
-  // update "seconds per frame" through low-pass filter
+
+  // update "seconds per frame" and utilization through low-pass filters
+  // enforce realistic time differences (for rosbag looping)
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
-  spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
-  // update utilization through low-pass filter
+  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+    spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
+
   elapsed = header_scan_.stamp - header_frame_.stamp;
-  utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
+  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+    utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
+
   utilization_ = std::min(utilization_, (double)1);
 
 
