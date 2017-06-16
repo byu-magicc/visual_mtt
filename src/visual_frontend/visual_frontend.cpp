@@ -18,7 +18,8 @@ VisualFrontend::VisualFrontend()
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
   sub_imu    = nh_.subscribe(     "imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
-  pub        = nh_.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
+  pub_scan   = nh_.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
+  pub_stats  = nh_.advertise<visual_mtt2::Stats>("stats", 1);
 
   // key member objects
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager(nh));
@@ -31,6 +32,9 @@ VisualFrontend::VisualFrontend()
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
+
+  // temporary 0, until recognition is implemented
+  t_recognition_ = ros::Duration(0);
 }
 
 // ----------------------------------------------------------------------------
@@ -42,6 +46,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   if (frame++ % frame_stride_ != 0)
     return;
 
+  tic_ = ros::Time::now();
   // calculate the frame delay
   ros::Duration delay = ros::Time::now() - data->header.stamp;
 
@@ -69,22 +74,30 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
   // manage features (could be LK, NN, Brute Force)
   feature_manager_->find_correspondences(hd_frame); // in future operate on sd
+  toc_ = ros::Time::now();
+  t_features_ = toc_ - tic_;
 
   // TODO: consider if IMU is ignored (param from launchfile)
   // if IMU     ignored, call homography_calculator (feature correspondences)
   // if IMU not ignored, call the homography_filter filter propagate
+  tic_ = ros::Time::now();
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
     // there is a reason *matched_ vectors are members of the subclass
     // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
+  toc_ = ros::Time::now();
+  t_homography_ = toc_ - tic_;
 
   // call measurement sources execution
     // (use updated recent images)
     // (use already-generated feature correpsondences)
     // (use already-generated homography)
     // (use updated recent track data)
+  tic_ = ros::Time::now();
   generate_measurements();
+  toc_ = ros::Time::now();
+  t_measurements_ = toc_ - tic_;
 }
 
 // ----------------------------------------------------------------------------
@@ -221,10 +234,19 @@ void VisualFrontend::generate_measurements()
       ros::shutdown();
   }
 
-  // timestamp after scan is completed finished
+  // timestamp after scan is completed
   scan.header_scan.stamp = ros::Time::now();
+  pub_scan.publish(scan);
 
-  pub.publish(scan);
+  // publish stats
+  visual_mtt2::Stats stats;
+  stats.stride = frame_stride_;
+  stats.times.push_back(t_features_.toSec());
+  stats.times.push_back(t_homography_.toSec());
+  stats.times.push_back(t_measurements_.toSec());
+  stats.times.push_back(t_recognition_.toSec());
+
+  pub_stats.publish(stats);
 }
 
 }

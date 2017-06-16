@@ -18,6 +18,7 @@
 // messages
 #include "visual_mtt2/Tracks.h"
 #include "visual_mtt2/RRANSACScan.h"
+#include "visual_mtt2/Stats.h"
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation of imu callback)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
@@ -62,7 +63,8 @@ namespace visual_mtt {
     image_transport::CameraSubscriber sub_video;
     ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
-    ros::Publisher  pub;
+    ros::Publisher  pub_scan;
+    ros::Publisher  pub_stats;
 
     // dynamic reconfigure server
     dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
@@ -82,11 +84,14 @@ namespace visual_mtt {
     bool tuning_;
 
     // Only plot process every `frame_stride_` frames
-    unsigned int frame_stride_ = 1;
+    unsigned int frame_stride_;
 
     // downsize scale
     double downsize_scale_;
 
+    // internal timers
+    ros::Time tic_, toc_;
+    ros::Duration t_features_, t_homography_, t_measurements_, t_recognition_;
   };
 
 }

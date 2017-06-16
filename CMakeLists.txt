@@ -61,6 +61,7 @@ add_message_files(
   Measurement.msg
   Tracks.msg
   Track.msg
+  Stats.msg
 )
 
 ## Generate services in the 'srv' folder

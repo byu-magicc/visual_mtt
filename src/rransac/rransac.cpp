@@ -20,6 +20,7 @@ RRANSAC::RRANSAC()
   image_transport::ImageTransport it(nh);
   sub_video = it.subscribe("video", 1, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
+  sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
@@ -85,46 +86,6 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
 void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
-  // Save the original frame header
-  header_frame_last_ = header_frame_;
-  header_frame_ = rransac_scan->header_frame;
-  header_scan_  = rransac_scan->header_scan;
-
-
-  // Perform fps and utilization filtering
-  double alpha1, alpha2;
-  if (frame_seq_<30)
-  {
-    // early on converge quickly, allowing noise
-    alpha1 = 0.95;
-    alpha2 = 0.95;
-  }
-  else
-  {
-    // attenuate noise after values have converged
-    // for utilization filter (alpha2), maintain the desired time constant
-    alpha1 = alpha1_;
-    alpha2 = 1/(time_constant_/spf_ + 1);
-  }
-
-  // update "seconds per frame" and utilization through low-pass filters
-  // enforce realistic time differences (for rosbag looping)
-  ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
-  std::cout << elapsed.toSec() << std::endl;
-  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
-    spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
-  std::cout << spf_ << std::endl;
-
-  elapsed = header_scan_.stamp - header_frame_.stamp;
-  std::cout << elapsed.toSec() << std::endl;
-  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
-    utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
-
-  std::cout << utilization_ << std::endl;
-  utilization_ = std::min(utilization_, (double)1);
-  std::cout << utilization_ << std::endl;
-  std::cout << "---------" << std::endl;
-
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
   Eigen::Projective2d T(H.cast<double>());
@@ -160,6 +121,57 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
 
   // Grab which sequence in the message stream this is (seq is deprecated)
   frame_seq_ = frame->header.seq;
+
+  // Estimate fps
+  // Update saved headers
+  header_frame_last_ = header_frame_;
+  header_frame_ = frame->header;
+
+  double alpha;
+  if (frame_seq_<30)
+  {
+    // early on converge quickly, allowing noise
+    alpha = 0.95;
+  }
+  else
+  {
+    // attenuate noise after values have converged
+    alpha = alpha_;
+  }
+
+  // enforce realistic time differences (for rosbag looping)
+  ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
+  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+    fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback_stats(const visual_mtt2::Stats& data)
+{
+  // Save stride
+  frame_stride_ = data.stride;
+  double t_available = (1/fps_)*frame_stride_;
+  double t_computation = 0;
+  for (int i; i<data.times.size(); i++)
+  {
+    t_computation += data.times[i];
+  }
+
+  // Low-pass filter utilization
+  double alpha;
+  if (frame_seq_<30)
+  {
+    // early on converge quickly, allowing noise
+    alpha = 0.95;
+  }
+  else
+  {
+    // attenuate noise after values have converged, maintain time constant
+    alpha = 1/(time_constant_/t_available + 1);
+  }
+
+  utilization_ = alpha*(t_computation/t_available) + (1-alpha)*utilization_;
 }
 
 // ----------------------------------------------------------------------------
