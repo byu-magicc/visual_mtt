@@ -48,8 +48,8 @@ namespace visual_mtt {
     int frame_seq_;
 
     // Low-pass filter for spf (1/fps) and utilization
-    double spf_           = 0;
-    double utilization_   = 0;
+    double spf_           = 0.1;
+    double utilization_   = 0.5;
     double alpha1_        = 0.1; // fps filter: arbitrarily large time constant
     double time_constant_ = 3;   // utilization filter: chose time constant
 

@@ -110,15 +110,20 @@ void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
   // update "seconds per frame" and utilization through low-pass filters
   // enforce realistic time differences (for rosbag looping)
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
+  std::cout << elapsed.toSec() << std::endl;
   if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
     spf_ = alpha1*elapsed.toSec() + (1-alpha1)*spf_;
+  std::cout << spf_ << std::endl;
 
   elapsed = header_scan_.stamp - header_frame_.stamp;
+  std::cout << elapsed.toSec() << std::endl;
   if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
     utilization_ = alpha2*(elapsed.toSec()/spf_) + (1-alpha2)*utilization_;
 
+  std::cout << utilization_ << std::endl;
   utilization_ = std::min(utilization_, (double)1);
-
+  std::cout << utilization_ << std::endl;
+  std::cout << "---------" << std::endl;
 
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
