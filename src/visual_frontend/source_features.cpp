@@ -61,8 +61,6 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
         ROS_WARN_STREAM("(" << "#" << ") " << "feature source: many homography outliers, discarding measurements");
         // TODO: replace # with frame number
         // TODO: make homography_error_thold_ dynamically reconfigurable !!
-        features_.clear();
-        features_vel_.clear();
       }
     }
 
