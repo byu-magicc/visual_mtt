@@ -98,6 +98,16 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   generate_measurements();
   toc_ = ros::Time::now();
   t_measurements_ = toc_ - tic_;
+
+  // publish stats
+  visual_mtt2::Stats stats;
+  stats.stride = frame_stride_;
+  stats.times.push_back(t_features_.toSec());
+  stats.times.push_back(t_homography_.toSec());
+  stats.times.push_back(t_measurements_.toSec());
+  stats.times.push_back(t_recognition_.toSec());
+
+  pub_stats.publish(stats);
 }
 
 // ----------------------------------------------------------------------------
@@ -237,16 +247,6 @@ void VisualFrontend::generate_measurements()
   // timestamp after scan is completed
   scan.header_scan.stamp = ros::Time::now();
   pub_scan.publish(scan);
-
-  // publish stats
-  visual_mtt2::Stats stats;
-  stats.stride = frame_stride_;
-  stats.times.push_back(t_features_.toSec());
-  stats.times.push_back(t_homography_.toSec());
-  stats.times.push_back(t_measurements_.toSec());
-  stats.times.push_back(t_recognition_.toSec());
-
-  pub_stats.publish(stats);
 }
 
 }
