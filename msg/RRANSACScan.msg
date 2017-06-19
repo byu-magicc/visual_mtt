@@ -2,10 +2,11 @@
 # transform information that links the previous scan's coordinate frame
 # to this one. For visual data, this transform is a perspective projectivity
 # that is called a homography in the computer vision world. This message
-# is intended to be sent from the visual frontend to the R-RANSAC node to 
+# is intended to be sent from the visual frontend to the R-RANSAC node to
 # feed into the R-RANSAC Tracker.
 
-std_msgs/Header header
+std_msgs/Header header_frame
+std_msgs/Header header_scan
 
 # Assumes Row-Major memory storage
 float32[9] homography

@@ -4,24 +4,6 @@
 ###############################################################################
 #### Visual Frontend Node
 
-# intrinsic camera parameters
-# (only used when tracking in normalized image coordinates)
-# (future: 2 camera matrices, one for each image size.
-# distortion coefficients are static and can be used for resized image)
-# NOT DYNAMICALLLY RECONFIGURABLE
-visual_frontend/calibration/fx: 1348.206365
-visual_frontend/calibration/fy: 1347.862463
-visual_frontend/calibration/cx: 351.089626
-visual_frontend/calibration/cy: 272.416355
-visual_frontend/calibration/k1: 0
-visual_frontend/calibration/k2: 0
-visual_frontend/calibration/k3: 0
-visual_frontend/calibration/k4: 0
-visual_frontend/calibration/k5: 0
-visual_frontend/calibration/k6: 0
-visual_frontend/calibration/p1: 0
-visual_frontend/calibration/p2: 0
-
 # general processing
 visual_frontend/frame_stride: 3
 visual_frontend/downsize_scale: 0.8

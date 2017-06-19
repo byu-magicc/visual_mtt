@@ -19,7 +19,11 @@
 #include "visual_mtt2/Measurement.h"
 #include "visual_mtt2/Tracks.h"
 #include "visual_mtt2/Track.h"
+#include "visual_mtt2/Stats.h"
 #include "sensor_msgs/Image.h"
+
+#include <iostream>
+#include <algorithm>
 
 namespace visual_mtt {
 
@@ -35,12 +39,21 @@ namespace visual_mtt {
     // ROS
     ros::NodeHandle nh;
     ros::Subscriber sub_scan;
+    ros::Subscriber sub_stats;
     image_transport::Subscriber sub_video;
     ros::Publisher pub;
 
-    // Saved frame header, received at each callback
+    // Saved frame and scan headers, received at each callback
+    std_msgs::Header header_frame_last_;
     std_msgs::Header header_frame_;
     int frame_seq_;
+
+    // Low-pass filter for fps and utilization
+    double fps_           = 30;
+    int    frame_stride_  = 1;
+    double utilization_   = 0.75;
+    double alpha_         = 0.003; // fps filter: large time constant ~10s
+    double time_constant_ = 1.5;   // utilization filter: chose time constant
 
     // For visualization
     cv::Mat frame_;
@@ -56,6 +69,10 @@ namespace visual_mtt {
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.
     void callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan);
+
+    // ROS subscriber callback. Each callback a new set of stats
+    // stats are received and local members are updated.
+    void callback_stats(const visual_mtt2::Stats& data);
 
     // ROS subscriber callback. Each callback a new frame
     // frame is saved for drawing the tracking results.

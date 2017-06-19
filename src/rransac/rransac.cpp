@@ -18,8 +18,9 @@ RRANSAC::RRANSAC()
 
   // ROS stuff
   image_transport::ImageTransport it(nh);
-  sub_video = it.subscribe("video", 1, &RRANSAC::callback_video, this);
+  sub_video = it.subscribe("video", 10, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
+  sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
@@ -85,9 +86,6 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
 void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
 {
-  // Save the original frame header
-  header_frame_ = rransac_scan->header;
-
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
   Eigen::Projective2d T(H.cast<double>());
@@ -123,6 +121,57 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
 
   // Grab which sequence in the message stream this is (seq is deprecated)
   frame_seq_ = frame->header.seq;
+
+  // Estimate fps
+  // Update saved headers
+  header_frame_last_ = header_frame_;
+  header_frame_ = frame->header;
+
+  double alpha;
+  if (frame_seq_<30)
+  {
+    // early on converge quickly, allowing noise
+    alpha = 0.95;
+  }
+  else
+  {
+    // attenuate noise after values have converged
+    alpha = alpha_;
+  }
+
+  // enforce realistic time differences (for rosbag looping)
+  ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
+  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+    fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
+}
+
+// ----------------------------------------------------------------------------
+
+void RRANSAC::callback_stats(const visual_mtt2::Stats& data)
+{
+  // Save stride
+  frame_stride_ = data.stride;
+  double t_available = (1/fps_)*frame_stride_;
+  double t_computation = 0;
+  for (int i; i<data.times.size(); i++)
+  {
+    t_computation += data.times[i];
+  }
+
+  // Low-pass filter utilization
+  double alpha;
+  if (frame_seq_<30)
+  {
+    // early on converge quickly, allowing noise
+    alpha = 0.95;
+  }
+  else
+  {
+    // attenuate noise after values have converged, maintain time constant
+    alpha = 1/(time_constant_/t_available + 1);
+  }
+
+  utilization_ = alpha*(t_computation/t_available) + (1-alpha)*utilization_;
 }
 
 // ----------------------------------------------------------------------------
@@ -213,19 +262,31 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // draw top-left box
   char text[40];
 
-  sprintf(text, "Frame %d", frame_seq_);
-  cv::Point corner = cv::Point(10,2);
+  sprintf(text, "Frame: %d", frame_seq_);
+  cv::Point corner = cv::Point(5,5);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
   sprintf(text, "Total models: %d", total_tracks);
-  corner = cv::Point(10,22);
+  corner = cv::Point(5,25);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  sprintf(text, "Current models:  %d", (int)tracks.size());
-  corner = cv::Point(10,42);
+  sprintf(text, "Current models: %d", (int)tracks.size());
+  corner = cv::Point(5,45);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+  // utilization rectangle background color
+  cv::Scalar background;
+  if (utilization_ > 0.9)
+    background = cv::Scalar(0, 0, 255);
+  else
+    background = cv::Scalar(255, 255, 255);
+
+  sprintf(text, "Utilization: %d%%", (int)(utilization_*100));
+  corner = cv::Point(5,65);
+  cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
   cv::imshow("Tracks", draw);
