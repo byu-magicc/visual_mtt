@@ -27,7 +27,20 @@ find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
 find_package(rransac 1.0.0 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
+find_package(OpenCV 3 REQUIRED)
+message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
 
+option(VISUAL_MTT_CUDA "Enable CUDA support for the R-RANSAC visual measurement frontend" OFF)
+if(VISUAL_MTT_CUDA)
+  message(STATUS "==> Visual MTT with CUDA-enabled OpenCV requested")
+  if(OpenCV_CUDA_VERSION)
+    message(STATUS "+++ CUDA-enabled OpenCV found, CUDA Version: " ${OpenCV_CUDA_VERSION})
+    add_definitions(-DOPENCV_CUDA)
+  else()
+    string(ASCII 27 ESC)
+    message(STATUS "${ESC}[1;31m+++${ESC}[0m" " CUDA-enabled OpenCV not found")
+  endif()
+endif()
 
 ################################################
 ## Declare ROS messages, services and actions ##
