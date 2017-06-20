@@ -140,8 +140,16 @@ add_executable(${PROJECT_NAME}_rransac
 add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/node.cpp
   src/visual_frontend/visual_frontend.cpp
+
+  # Feature management
+  src/visual_frontend/feature_manager/feature_manager.cpp
+  src/visual_frontend/feature_manager/lkt_tracker.cpp
+
+  # Homography calculation and management
   src/visual_frontend/homography_calculator.cpp
-  src/visual_frontend/feature_manager.cpp
+  
+  # Measurement sources
+  src/visual_frontend/source_background.cpp
   src/visual_frontend/source_features.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim

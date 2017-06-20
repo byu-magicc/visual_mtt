@@ -23,7 +23,7 @@
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
 // key algorithm members
-#include "feature_manager.h"
+#include "feature_manager/feature_manager.h"
 #include "homography_calculator.h"
 #include "source_features.h"
 

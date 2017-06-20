@@ -1,57 +1,31 @@
-#include "visual_frontend/feature_manager.h"
-
-// GOAL:
-// - provide a feature manager that finds feature correspondences
-// - provide options to use different feature types (ORB, GFTT)
-// - provide options to use different feature matching methods (LK, NN, BF)
+#include "visual_frontend/feature_manager/lkt_tracker.h"
 
 namespace visual_frontend {
 
-FeatureManager::FeatureManager(ros::NodeHandle nh)
+LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
+                       double corner_quality_max, double corner_quality_alpha,
+                       int pyramid_size)
+
+  : corner_quality_(corner_quality), corner_quality_min_(corner_quality_min),
+    corner_quality_max_(corner_quality_max), corner_quality_alpha_(corner_quality_alpha)
 {
-  first_image_ = true;
-
-  // get the needed params that are not dynamically reconfigurable
-  int pyramid_size;
-  nh.param<double>("corner_quality",       corner_quality_,       0.03 );
-  nh.param<double>("corner_quality_min",   corner_quality_min_,   0.03 );
-  nh.param<double>("corner_quality_max",   corner_quality_max_,   0.05 );
-  nh.param<double>("corner_quality_alpha", corner_quality_alpha_, 0.999);
-  nh.param<int>   ("pyramid_size",         pyramid_size,          21   );
-
-  pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
-
-  double minDistance=10;           // TODO use rosparam? probably not worth dynamically reconfigurable.
-  int blockSize=3;                 // TODO use rosparam? probably not worth dynamically reconfigurable.
-  bool useHarrisDetector=false;    // just hardcode the false in?
-  // double k=0.04;                // opencv default is 0.04, plus this isn't needed if above is false
-
+  // Create a Good Features to Track feature detector
+  double minDistance = 10;
+  int blockSize = 3;
+  bool useHarrisDetector = false;
   gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector);
 
+  // Termination criteria for the OpenCV LK Optical Flow algorithm
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
-  // TODO: use rosparam?
+
+  // The size of the search window at each pyramid level for LK Optical Flow
+  pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
 }
 
 // ----------------------------------------------------------------------------
 
-void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
+void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched)
 {
-  points_max_ = config.points_max;
-  points_target_ = config.points_target;
-  gftt_detector_->setMaxFeatures(points_max_);
-}
-
-// ----------------------------------------------------------------------------
-
-void FeatureManager::find_correspondences(cv::Mat& img)
-{
-  // FOR NOW: GENERATE BASIC FEATURE CORRESPONDENCES USING LK
-  // THE FOLLOWING IS MOSTLY FROM ORIGINAL CODE
-  // but omitting the orientation-based guess and adjusting inputs
-
-  // clear history
-  prev_matched_.clear();
-  next_matched_.clear();
 
   // Convert to grayscale
   cv::Mat mono;
@@ -73,14 +47,12 @@ void FeatureManager::find_correspondences(cv::Mat& img)
                              status, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 
     // store only matched features
-    for(unsigned int ii = 0; ii < status.size(); ++ii)
-    {
+    for(int ii = 0; ii < status.size(); ii++)
       if (status[ii])
       {
-        prev_matched_.push_back(prev_features_[ii]);
-        next_matched_.push_back(next_features[ii]);
+        prev_matched.push_back(prev_features_[ii]);
+        next_matched.push_back(next_features[ii]);
       }
-    }
 
     // compensate for lense distortion and project onto normalized image plane
     cv::undistortPoints(prev_matched_, prev_matched_, camera_matrix_, dist_coeff_);
@@ -102,13 +74,10 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // first determine the direction based on the number of features found
   int quality_step_dir = 0;
   if (features.size() < points_target_)
-  {
     quality_step_dir = -1;
-  }
   else
-  {
     quality_step_dir = 1;
-  }
+
   // apply alpha filter and upper/lower bounds
   corner_quality_ = corner_quality_*corner_quality_alpha_ + quality_step_dir*(1-corner_quality_alpha_);
   corner_quality_ = std::max(corner_quality_min_, corner_quality_);
@@ -119,7 +88,10 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // save features for the next iteration.
   prev_features_.clear();
-  keyPointVecToPoint2f(features, prev_features_);
+
+  // Unpack keypoints and create regular features points
+  for (auto&& key : features)
+    prev_features_.push_back(key.pt);
 
   // save pyramids for the next iteration.
   last_pyramids_ = current_pyramids;
@@ -128,21 +100,17 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   if (prev_features_.size() < 10)
   {
     ROS_WARN_STREAM("(" << "#" << ") " << "few features found: " << prev_features_.size());
-    // TODO: replace # with frame number
-    // TODO: increase the 10 threshold?
     first_image_ = true;
   }
 }
 
 // ----------------------------------------------------------------------------
 
-void FeatureManager::keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts)
+void LKTTracker::set_max_features(int max_points, int max_)
 {
-  // TODO rename this method
-  for (int i = 0; i < keys.size(); i++)
-  {
-    pts.push_back(keys[i].pt);
-  }
+  gftt_detector_->setMaxFeatures(points_max_);
 }
+
+// ----------------------------------------------------------------------------
 
 }

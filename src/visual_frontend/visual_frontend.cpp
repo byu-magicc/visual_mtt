@@ -22,7 +22,7 @@ VisualFrontend::VisualFrontend()
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
 
   // key member objects
-  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager(nh));
+  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
   homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
 
   // populate vector of desired measurement sources
