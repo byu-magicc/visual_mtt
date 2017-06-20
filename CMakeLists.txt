@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-project(visual_mtt2)
+project(visual_mtt)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
 set(CMAKE_CXX_STANDARD 11)
@@ -117,7 +117,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   CATKIN_DEPENDS cv_bridge message_runtime
 #  INCLUDE_DIRS include
-#  LIBRARIES visual_mtt2
+#  LIBRARIES visual_mtt
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -206,7 +206,7 @@ target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LI
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_visual_mtt2.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_visual_mtt.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

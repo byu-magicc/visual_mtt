@@ -1,6 +1,6 @@
 #include "rransac/rransac.h"
 
-namespace visual_mtt {
+namespace rransac {
 
 RRANSAC::RRANSAC()
 {
@@ -21,7 +21,7 @@ RRANSAC::RRANSAC()
   sub_video = it.subscribe("video", 10, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
-  pub = nh.advertise<visual_mtt2::Tracks>("tracks", 1);
+  pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
 
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
@@ -37,7 +37,7 @@ RRANSAC::RRANSAC()
 // Private Methods
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t level) {
+void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level) {
 
   // general
   params_.dt = config.dt;
@@ -84,7 +84,7 @@ void RRANSAC::callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t 
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan)
+void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
 {
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
@@ -147,7 +147,7 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_stats(const visual_mtt2::Stats& data)
+void RRANSAC::callback_stats(const visual_mtt::Stats& data)
 {
   // Save stride
   frame_stride_ = data.stride;
@@ -180,11 +180,11 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
 
   // Create the ROS message we will send
-  visual_mtt2::Tracks msg;
+  visual_mtt::Tracks msg;
 
   for (int i=0; i<tracks.size(); i++)
   {
-    visual_mtt2::Track track;
+    visual_mtt::Track track;
 
     // General track information
     track.id            = tracks[i]->GMN;

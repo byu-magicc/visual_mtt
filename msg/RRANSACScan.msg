@@ -11,4 +11,4 @@ std_msgs/Header header_scan
 # Assumes Row-Major memory storage
 float32[9] homography
 
-visual_mtt2/Source[] sources
+Source[] sources

@@ -6,4 +6,4 @@
 std_msgs/Header header_frame
 std_msgs/Header header_update
 
-visual_mtt2/Track[] tracks
+Track[] tracks

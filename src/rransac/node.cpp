@@ -6,8 +6,8 @@ int main(int argc, char** argv)
   // start node
   ros::init(argc, argv, "rransac_node");
 
-  // instantiate the visual_mtt::RRANSAC shell class
-  visual_mtt::RRANSAC rransac;
+  // instantiate the rransac::RRANSAC shell class
+  rransac::RRANSAC rransac;
 
   ros::spin();
   return 0;

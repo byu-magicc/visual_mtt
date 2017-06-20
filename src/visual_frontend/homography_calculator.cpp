@@ -4,7 +4,7 @@
 // - provide a modular homography calculator that uses feature correspondences
 // - this will be replaced by a homography filter when IMU data is used
 
-namespace visual_mtt {
+namespace visual_frontend {
 
 HomographyCalculator::HomographyCalculator()
 {
@@ -14,7 +14,7 @@ HomographyCalculator::HomographyCalculator()
 
 // ----------------------------------------------------------------------------
 
-void HomographyCalculator::set_parameters(visual_mtt2::visual_frontendConfig& config)
+void HomographyCalculator::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   reprojection_error_ = config.reprojection_error;
 }
