@@ -13,7 +13,7 @@ LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
   double minDistance = 10;
   int blockSize = 3;
   bool useHarrisDetector = false;
-  gftt_detector_ = cv::GFTTDetector::create(0, corner_quality_, minDistance, blockSize, useHarrisDetector);
+  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector);
 
   // Termination criteria for the OpenCV LK Optical Flow algorithm
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
@@ -66,6 +66,22 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
   std::vector<cv::KeyPoint> features;
   gftt_detector_->detect(mono, features);
 
+  // perform adaptive corner quality using discrete alpha filtering
+  // first determine the direction based on the number of features found
+  int quality_step_dir = 0;
+  if (features.size() < points_target_)
+    quality_step_dir = -1;
+  else
+    quality_step_dir = 1;
+
+  // apply alpha filter and upper/lower bounds
+  corner_quality_ = corner_quality_*corner_quality_alpha_ + quality_step_dir*(1-corner_quality_alpha_);
+  corner_quality_ = std::max(corner_quality_min_, corner_quality_);
+  corner_quality_ = std::min(corner_quality_max_, corner_quality_);
+
+  // update corner quality
+  gftt_detector_->setQualityLevel(corner_quality_);
+
   // save features for the next iteration.
   prev_features_.clear();
 
@@ -86,9 +102,9 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::set_max_features(int points_max)
+void LKTTracker::set_max_features(int max_points, int max_)
 {
-  gftt_detector_->setMaxFeatures(points_max);
+  gftt_detector_->setMaxFeatures(points_max_);
 }
 
 // ----------------------------------------------------------------------------
