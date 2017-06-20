@@ -10,8 +10,8 @@ namespace visual_mtt {
 FeatureManager::FeatureManager()
 {
 
-  // Initialize feature tracker
-  set_tracker();
+  // Initialize feature tracker with default type
+  set_tracker(KLT_TRACKER);
 
 }
 
@@ -19,6 +19,11 @@ FeatureManager::FeatureManager()
 
 void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
 {
+
+  // Check to see if feature tracker type has changed
+  if (feature_tracker_type_ != static_cast<enum FeatureTrackerType>(config.feature_type))
+    set_tracker(static_cast<enum FeatureTrackerType>(config.feature_type));
+
   feature_tracker_->set_max_features(config.points_max, config.points_target);
 }
 
@@ -31,6 +36,8 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   prev_matched_.clear();
   next_matched_.clear();
 
+  // Find the feature correspondences across current and previous frame
+  // and expose as public data members: `prev_matched_` and `next_matched_`.
   feature_tracker_->find_correspondences(img, prev_matched_, next_matched_);
 
 }
@@ -39,12 +46,13 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 // Private Methods
 // ----------------------------------------------------------------------------
 
-void FeatureManager::set_tracker()
+void FeatureManager::set_tracker(enum FeatureTrackerType type)
 {
 
+  // Create a instance of a private node handle
   ros::NodeHandle nh("~");
 
-  // if (detector_type == asdf)
+  if (type == KLT_TRACKER)
   {
 
     // Retrieve the needed parameters for the LKT Tracker
@@ -59,6 +67,13 @@ void FeatureManager::set_tracker()
     // Create a new feature tracker
     feature_tracker_ = std::make_shared<LKTTracker>(cqual, cqual_min, cqual_max, cqual_alpha, pyramid_size);
   }
+  else if (type == ORB_BF_MATCHER)
+  {
+    ROS_WARN("ORB_BF_MATCHER not implemented");
+  }
+
+  // Store what type of feature tracker we are for later
+  feature_tracker_type_ = type;
 
 }
 

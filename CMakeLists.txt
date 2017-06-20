@@ -149,7 +149,6 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/homography_calculator.cpp
   
   # Measurement sources
-  src/visual_frontend/source_background.cpp
   src/visual_frontend/source_features.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim

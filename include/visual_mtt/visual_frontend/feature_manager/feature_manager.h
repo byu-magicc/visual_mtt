@@ -14,6 +14,8 @@
 
 namespace visual_mtt {
 
+  enum FeatureTrackerType { KLT_TRACKER, ORB_BF_MATCHER };
+
   class FeatureManager
   {
   public:
@@ -35,8 +37,9 @@ namespace visual_mtt {
   private:
     // feature detector/tracker
     std::shared_ptr<FeatureTracker> feature_tracker_;
+    enum FeatureTrackerType feature_tracker_type_;
 
-    void set_tracker();
+    void set_tracker(enum FeatureTrackerType type);
   };
 
 }
