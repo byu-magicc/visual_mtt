@@ -1,7 +1,7 @@
 Visual Multiple Target Tracker
 ==============================
 
-This ROS package includes a visual measurement frontend that feeds the **R-RANSAC Tracker** (see [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac)).
+This ROS package, known as `visual_mtt`, includes a visual measurement frontend that feeds the **R-RANSAC Tracker** (see [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac)).
 
 ## Installation
 
@@ -17,17 +17,10 @@ To play a video file, use the following `roslaunch` command:
 $ roslaunch visual_mtt2 play_from_recording.launch video_path:=/path/to/video.mp4 fps:=30
 ```
 
-See the [Pre-Recorded Video](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/videos-and-rosbags) wiki page for a guide to using the `play_from_recording.launch` file.
+See the [Play From Recording](videos-and-rosbags) wiki page for a guide to using the `play_from_recording.launch` file for rosbags and videos.
 
+## Tuning
+When the `tuning` arg is set true in the main launch file, `visual_mtt.launch`, key parameters can be dynamically reconfigured using sliders. See the the detailed guide [here](tuning) to know what to look for. Once tuned, you can save a parameter .yaml for your specific application.
 
-## Philosophies
-(for early development)
-
-* Automatic CUDA: run the exact same codebase for CUDA-enabled and CUDA-denied applications. [Simple Exapmle](https://github.com/jdmillard/opencv-cuda).
-* Benchmarking (ongoing discussion). Idea: live computation profiling under the hood at all times. This would be different than benchmarking because it would provide specific information about key segments of the algorithm.
-* Create the visual_frontend and rransac nodes to be generic and modular. Then have launchfiles remap topics and set appropriate flags. This way, the order of nodes can be rearranged for specific applications.
-* Clean timestamps. Final tracks that are published will have two(?) timestamps. The first timestamp will be that of the frame from which the updates were processed, the second will be the time at which the tracks were published. This ought to be discussed.
-* Provide options for features (GFTT, ORB)
-* Expand the `Nth frame` functionality to support decimation and "sliding". This would provide higher update rates while still separating frames enough to detect movement. Decimation and sliding params would be chosen based on computational limitations. Homography calculation would need to take this into account.
-* Clean IMU implementation (needs details)
-* Ability to see visualization of measurements generated from each source as well as dynamic reconfiguration of thresholds.
+## Hardware Integration
+Integrating `visual_mtt` with hardware is a matter of connecting the appropriate ROS topics, providing parameters, and disabling the display windows. See the detailed guide [here](hardware-integration)
