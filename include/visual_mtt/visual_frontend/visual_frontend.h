@@ -25,7 +25,6 @@
 // key algorithm members
 #include "feature_manager.h"
 #include "homography_calculator.h"
-#include "source_background.h"
 #include "source_features.h"
 
 namespace visual_mtt {

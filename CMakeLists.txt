@@ -25,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
-find_package(rransac 0.2 REQUIRED)
+find_package(rransac 1.0.0 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 
 
@@ -142,7 +142,6 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/visual_frontend.cpp
   src/visual_frontend/homography_calculator.cpp
   src/visual_frontend/feature_manager.cpp
-  src/visual_frontend/source_background.cpp
   src/visual_frontend/source_features.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim

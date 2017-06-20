@@ -58,7 +58,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
       // if a high proportion of features are outliers, print a warning
       if ((double)numberOfPossibleMovers / (double)features.size() > homography_error_thold_)
       {
-        ROS_WARN_STREAM("(" << "#" << ") " << "feature source: many homography outliers, discarding measurements");
+        // ROS_WARN_STREAM("(" << "#" << ") " << "feature source: many homography outliers, discarding measurements");
         // TODO: replace # with frame number
         // TODO: make homography_error_thold_ dynamically reconfigurable !!
       }

@@ -52,8 +52,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
   // average overhead delay when the queue is empty is 2.4ms
   // warn if frame delay is greater than 50ms (ignoring first few frames)
-  if (delay.toSec()>0.05 && frame>30)
-    ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
+  // if (delay.toSec()>0.05 && frame>30)
+  //   ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
   // save the camera parameters and frame timestamp
   camera_info_ = *cinfo;
