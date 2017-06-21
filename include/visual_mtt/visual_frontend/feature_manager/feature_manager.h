@@ -12,7 +12,7 @@
 #include "feature_tracker.h"
 #include "lkt_tracker.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   enum FeatureTrackerType { KLT_TRACKER, ORB_BF_MATCHER };
 

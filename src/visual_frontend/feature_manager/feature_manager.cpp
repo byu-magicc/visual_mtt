@@ -5,7 +5,7 @@
 // - provide options to use different feature types (ORB, GFTT)
 // - provide options to use different feature matching methods (LK, NN, BF)
 
-namespace visual_mtt {
+namespace visual_frontend {
 
 FeatureManager::FeatureManager()
 {
@@ -17,7 +17,7 @@ FeatureManager::FeatureManager()
 
 // ----------------------------------------------------------------------------
 
-void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
+void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
 
   // Check to see if feature tracker type has changed

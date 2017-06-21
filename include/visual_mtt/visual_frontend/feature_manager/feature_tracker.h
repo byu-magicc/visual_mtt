@@ -1,6 +1,6 @@
 #pragma once
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class FeatureTracker
   {

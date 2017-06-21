@@ -6,7 +6,7 @@
 
 #include "feature_tracker.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class LKTTracker : public FeatureTracker
   {
