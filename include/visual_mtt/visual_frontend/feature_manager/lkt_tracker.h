@@ -14,13 +14,12 @@ namespace visual_frontend {
     LKTTracker(double corner_quality, double corner_quality_min, double corner_quality_max, double corner_quality_alpha, int pyramid_size);
     
     virtual void find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched);
-    virtual void set_max_features(int max_points, int max_);
+    virtual void set_max_features(int max_points);
 
   private:
     std::vector<cv::Point2f> prev_features_;
 
     // node parameters
-    int    points_target_;          // Target number of points for GFFT to find
     double corner_quality_;         // Corner Quality param of GFFT
     double corner_quality_min_;
     double corner_quality_max_;

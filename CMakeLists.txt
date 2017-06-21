@@ -145,8 +145,9 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/feature_manager/feature_manager.cpp
   src/visual_frontend/feature_manager/lkt_tracker.cpp
 
-  # Homography calculation and management
-  src/visual_frontend/homography_calculator.cpp
+  # Homography management
+  src/visual_frontend/homography_manager/homography_manager.cpp
+  src/visual_frontend/homography_manager/simple_homography.cpp
   
   # Measurement sources
   src/visual_frontend/source_features.cpp)

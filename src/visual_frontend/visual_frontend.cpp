@@ -21,10 +21,6 @@ VisualFrontend::VisualFrontend()
   pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
 
-  // key member objects
-  feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager());
-  homography_calculator_ = std::shared_ptr<HomographyCalculator>(new HomographyCalculator());
-
   // populate vector of desired measurement sources
   //sources_.push_back(std::shared_ptr<SourceBackground>(new SourceBackground()));
   sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
@@ -92,16 +88,29 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
+<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
   // find feature pairs (could be LK, NN, Brute Force)
   feature_manager_->find_correspondences(hd_frame); // in future operate on sd
+=======
+  // manage features (could be LK, NN, Brute Force)
+  feature_manager_.find_correspondences(hd_frame); // in future operate on sd
+>>>>>>> abstracting the HomographyManager
   toc_ = ros::Time::now();
   t_features_ = toc_ - tic_;
 
   // calculate the homography
   tic_ = ros::Time::now();
+<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
+=======
+  homography_manager_.calculate_homography(
+    feature_manager_.prev_matched_,
+    feature_manager_.next_matched_);
+    // there is a reason *matched_ vectors are members of the subclass
+    // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
+>>>>>>> abstracting the HomographyManager
   toc_ = ros::Time::now();
   t_homography_ = toc_ - tic_;
 
@@ -158,10 +167,10 @@ void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
 
 void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
 {
-  // update: frontend, feature_manager_, homography_calculator_, sources_
+  // update: frontend, feature_manager_, homography_manager_, sources_
   set_parameters(config);
-  feature_manager_->set_parameters(config);
-  homography_calculator_->set_parameters(config);
+  feature_manager_.set_parameters(config);
+  homography_manager_.set_parameters(config);
 
   for (int i=0; i<sources_.size(); i++)
     sources_[i]->set_parameters(config);
@@ -197,16 +206,24 @@ void VisualFrontend::generate_measurements()
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt::RRANSACScan scan;
   scan.header_frame.stamp = timestamp_frame_;
-  if (!homography_calculator_->homography_.empty())
-    std::memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
+  if (!homography_manager_.homography_.empty())
+    std::memcpy(&scan.homography, homography_manager_.homography_.data, scan.homography.size()*sizeof(float));
+
 
   for (int i=0; i<sources_.size(); i++)
   {
     sources_[i]->generate_measurements(
+<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
       homography_calculator_->homography_,
       feature_manager_->prev_matched_,
       feature_manager_->next_matched_,
       homography_calculator_->good_transform_);
+=======
+      homography_manager_.homography_,
+      feature_manager_.next_matched_,
+      homography_manager_.pixel_diff_,
+      homography_manager_.good_transform_);
+>>>>>>> abstracting the HomographyManager
 
     // when in tuning mode, display the measurements from each source
     // TODO: make pure virtual 'draw' function in source.h to keep this clean!

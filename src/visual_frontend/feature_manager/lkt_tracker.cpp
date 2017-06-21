@@ -70,22 +70,6 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
   std::vector<cv::KeyPoint> features;
   gftt_detector_->detect(mono, features);
 
-  // perform adaptive corner quality using discrete alpha filtering
-  // first determine the direction based on the number of features found
-  int quality_step_dir = 0;
-  if (features.size() < points_target_)
-    quality_step_dir = -1;
-  else
-    quality_step_dir = 1;
-
-  // apply alpha filter and upper/lower bounds
-  corner_quality_ = corner_quality_*corner_quality_alpha_ + quality_step_dir*(1-corner_quality_alpha_);
-  corner_quality_ = std::max(corner_quality_min_, corner_quality_);
-  corner_quality_ = std::min(corner_quality_max_, corner_quality_);
-
-  // update corner quality
-  gftt_detector_->setQualityLevel(corner_quality_);
-
   // save features for the next iteration.
   prev_features_.clear();
 
@@ -106,9 +90,8 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::set_max_features(int points_max, int points_target)
+void LKTTracker::set_max_features(int points_max)
 {
-  points_target_ = points_target;
   gftt_detector_->setMaxFeatures(points_max);
 }
 

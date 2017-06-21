@@ -10,11 +10,11 @@ namespace visual_frontend {
     // image and the currently passed in image.
     virtual void find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched) = 0;
 
-    virtual void set_max_features(int max_points, int max_) = 0;
+    virtual void set_max_features(int max_points) = 0;
 
   protected:
     bool first_image_ = true;
-          
+    
   };
 
 }

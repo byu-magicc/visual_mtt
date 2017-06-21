@@ -9,10 +9,9 @@ namespace visual_frontend {
 
 FeatureManager::FeatureManager()
 {
-
+  
   // Initialize feature tracker with default type
   set_tracker(KLT_TRACKER);
-
 }
 
 // ----------------------------------------------------------------------------
@@ -24,7 +23,7 @@ void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
   if (feature_tracker_type_ != static_cast<enum FeatureTrackerType>(config.feature_type))
     set_tracker(static_cast<enum FeatureTrackerType>(config.feature_type));
 
-  feature_tracker_->set_max_features(config.points_max, config.points_target);
+  feature_tracker_->set_max_features(config.points_max);
 }
 
 // ----------------------------------------------------------------------------
