@@ -10,10 +10,7 @@ LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
     corner_quality_max_(corner_quality_max), corner_quality_alpha_(corner_quality_alpha)
 {
   // Create a Good Features to Track feature detector
-  double minDistance = 10;
-  int blockSize = 3;
-  bool useHarrisDetector = false;
-  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector);
+  gftt_detector_ = init_gftt();
 
   // Termination criteria for the OpenCV LK Optical Flow algorithm
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
@@ -66,6 +63,8 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
   std::vector<cv::KeyPoint> features;
   gftt_detector_->detect(mono, features);
 
+
+#ifndef OPENCV_CUDA
   // perform adaptive corner quality using discrete alpha filtering
   // first determine the direction based on the number of features found
   int quality_step_dir = 0;
@@ -81,6 +80,7 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
   // update corner quality
   gftt_detector_->setQualityLevel(corner_quality_);
+#endif
 
   // save features for the next iteration.
   prev_features_.clear();
@@ -104,9 +104,30 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 void LKTTracker::set_max_features(int max_points, int max_)
 {
-  gftt_detector_->setMaxFeatures(points_max_);
+#ifndef OPENCV_CUDA
+  points_target_ = points_target;
+  gftt_detector_->setMaxFeatures(points_max);
+#endif
 }
 
 // ----------------------------------------------------------------------------
+// Private Methods
+// ---------------------------------------------------------------------------
+
+cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt()
+{
+  const double minDistance = 10;
+  const int blockSize = 3;
+  const bool useHarrisDetector = false;
+
+#ifdef OPENCV_CUDA
+  const int points_max = 10000;
+  return cv::cuda::createGoodFeaturesToTrackDetector(CV_8UC1, points_max, corner_quality_, minDistance, blockSize, useHarrisDetector);
+#else
+  return cv::GFTTDetector::create(0, corner_quality_, minDistance, blockSize, useHarrisDetector);
+#endif
+}
+
+// ---------------------------------------------------------------------------
 
 }

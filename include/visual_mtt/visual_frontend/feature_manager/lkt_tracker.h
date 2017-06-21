@@ -4,9 +4,16 @@
 
 #include <opencv2/opencv.hpp>
 
+#include "visual_frontend/ucv.h"
 #include "feature_tracker.h"
 
 namespace visual_frontend {
+
+#ifdef OPENCV_CUDA
+  typedef cv::cuda::CornersDetector cvFeatureDetector_t;
+#else
+  typedef cv::GFTTDetector cvFeatureDetector_t;
+#endif
 
   class LKTTracker : public FeatureTracker
   {
@@ -26,7 +33,7 @@ namespace visual_frontend {
     double corner_quality_alpha_;   // Parameter of alpha-filter to adaptively tune corner quality
 
     // feature generator
-    cv::Ptr<cv::GFTTDetector> gftt_detector_;
+    cv::Ptr<cvFeatureDetector_t> gftt_detector_;
 
     // keep pyramids from the last iteration
     std::vector<cv::Mat> last_pyramids_;
@@ -35,8 +42,8 @@ namespace visual_frontend {
     // Settings
     cv::TermCriteria kltTerm_;
 
-    // Extract key points and place in a new vector of cv::Point2f
-    void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
+    // Create a feature detector object
+    cv::Ptr<cvFeatureDetector_t> init_gftt();
     
   };
 

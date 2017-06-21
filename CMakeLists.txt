@@ -23,12 +23,10 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
 )
 
-find_package(OpenCV 3 REQUIRED)
-message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
 find_package(rransac 1.0.0 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 3 REQUIRED)
-message(STATUS "OpenCV Version: " ${OpenCV_VERSION})
+message(STATUS "OpenCV Version: ${OpenCV_VERSION} (${OpenCV_DIR})")
 
 option(VISUAL_MTT_CUDA "Enable CUDA support for the R-RANSAC visual measurement frontend" OFF)
 if(VISUAL_MTT_CUDA)
