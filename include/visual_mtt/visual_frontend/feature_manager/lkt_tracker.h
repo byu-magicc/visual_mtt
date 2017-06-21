@@ -4,7 +4,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "visual_frontend/ucv.h"
+#include "visual_frontend/gpu.h"
 #include "feature_tracker.h"
 
 namespace visual_frontend {
@@ -36,7 +36,8 @@ namespace visual_frontend {
     cv::Ptr<cvFeatureDetector_t> gftt_detector_;
 
     // keep pyramids from the last iteration
-    std::vector<cv::Mat> last_pyramids_;
+    std::vector<cv::Mat> last_pyramids_;  // Primarily for non-CUDA
+    cv::Mat last_mono_;                   // Primarily for CUDA
     cv::Size pyramid_size_;
 
     // Settings
@@ -44,6 +45,10 @@ namespace visual_frontend {
 
     // Create a feature detector object
     cv::Ptr<cvFeatureDetector_t> init_gftt();
+
+    // Wrapper methods to calculate LK optical flow and to detect features
+    void calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& next_features, std::vector<unsigned char>& valid);
+    void detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features);
     
   };
 

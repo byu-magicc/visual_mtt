@@ -161,7 +161,10 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/homography_manager/simple_homography.cpp
   
   # Measurement sources
-  src/visual_frontend/source_features.cpp)
+  src/visual_frontend/source_features.cpp
+
+  # Common
+  src/visual_frontend/gpu.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim
   src/camera_sim/camera_sim.cpp)

@@ -28,93 +28,33 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
   cv::Mat mono;
   cv::cvtColor(img, mono, CV_RGB2GRAY);
 
-  // Build optical flow pyramids for current image
-  std::vector<cv::Mat> current_pyramids;
-  buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
+  //
+  // Optical Flow for Feature Correspondences
+  //
 
-  if (!first_image_)
-  {
-    std::vector<cv::Point2f> next_features;
-    std::vector<unsigned char> status;
-    std::vector<float> err;
+  // Uses previous GFTT features to find next_features in current frame
+  std::vector<cv::Point2f> next_features;
+  std::vector<unsigned char> valid;
+  calculate_flow(mono, next_features, valid);
 
-    // match feature points using lk algorithm
-    cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
-                             prev_features_, next_features,
-                             status, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
+  // Only keep features that were matched in both frames
+  for(int ii = 0; ii < valid.size(); ii++)
+    if (valid[ii])
+    {
+      prev_matched.push_back(prev_features_[ii]);
+      next_matched.push_back(next_features[ii]);
+    }
 
-    // store only matched features
-    for(int ii = 0; ii < status.size(); ii++)
-      if (status[ii])
-      {
-        prev_matched.push_back(prev_features_[ii]);
-        next_matched.push_back(next_features[ii]);
-      }
-
-  }
-  else
-  {
-    first_image_ = false;
-  }
-
-  // RUN EVERY FRAME:
+  //
+  // Find a new set of GFTT corners
+  //
 
   // find fresh feature points
-  std::vector<cv::KeyPoint> features;
-#ifdef OPENCV_CUDA
-  cv::cuda::GpuMat gMono(mono);
-  cv::cuda::GpuMat gFeatures;
-  gftt_detector_->detect(gMono, gFeatures);
-
-  // Download
-  std::vector<cv::Point2f> vec(gFeatures.cols);
-  cv::Mat tmp(1, gFeatures.cols, CV_32FC2, &vec[0]);
-  gFeatures.download(tmp);
-
-  // Convert to keypoints to be converted back... this is dumb
-  features.resize(vec.size());
-  for (int i=0; i<features.size(); i++)
-    features[i].pt = vec[i];
-
-#else
-  gftt_detector_->detect(mono, features);
-#endif
-
-
-#ifndef OPENCV_CUDA
-  // perform adaptive corner quality using discrete alpha filtering
-  // first determine the direction based on the number of features found
-  int quality_step_dir = 0;
-  if (features.size() < points_target_)
-    quality_step_dir = -1;
-  else
-    quality_step_dir = 1;
-
-  // apply alpha filter and upper/lower bounds
-  corner_quality_ = corner_quality_*corner_quality_alpha_ + quality_step_dir*(1-corner_quality_alpha_);
-  corner_quality_ = std::max(corner_quality_min_, corner_quality_);
-  corner_quality_ = std::min(corner_quality_max_, corner_quality_);
-
-  // update corner quality
-  gftt_detector_->setQualityLevel(corner_quality_);
-#endif
+  std::vector<cv::Point2f> features;
+  detect_features(mono, features);
 
   // save features for the next iteration.
-  prev_features_.clear();
-
-  // Unpack keypoints and create regular features points
-  for (auto&& key : features)
-    prev_features_.push_back(key.pt);
-
-  // save pyramids for the next iteration.
-  last_pyramids_ = current_pyramids;
-
-  // if few features were found, skip feature pairing on the next iteration
-  if (prev_features_.size() < 10)
-  {
-    ROS_WARN_STREAM("(" << "#" << ") " << "few features found: " << prev_features_.size());
-    first_image_ = true;
-  }
+  prev_features_.swap(features);
 }
 
 // ----------------------------------------------------------------------------
@@ -146,5 +86,87 @@ cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt()
 }
 
 // ---------------------------------------------------------------------------
+
+void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& next_features, std::vector<unsigned char>& valid)
+{
+
+#if OPENCV_CUDA
+  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20);
+#endif
+
+#ifndef OPENCV_CUDA
+  // Build optical flow pyramids for current image
+  std::vector<cv::Mat> current_pyramids;
+  buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
+#endif
+
+
+  if (!first_image_)
+  {
+
+#ifdef OPENCV_CUDA
+  // Upload images to GPU
+  cv::cuda::GpuMat gLastMono(last_mono_);
+  cv::cuda::GpuMat gMono(mono);
+
+  // Upload previous features to GPU
+  cv::cuda::GpuMat gPrevFeatures;
+  gpu::upload(prev_features_, gPrevFeatures);
+
+  // Run LK optical flow on the GPU
+  cv::cuda::GpuMat gNextFeatures, gValid;
+  gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
+
+  // Download from the GPU
+  gpu::download(gNextFeatures, next_features);
+  gpu::download(gValid, valid);
+  
+#else
+  std::vector<float> err;
+  cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
+                           prev_features_, next_features,
+                           valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
+#endif
+
+  }
+  else
+  {
+    first_image_ = false;
+  }
+
+#ifdef OPENCV_CUDA
+  // save mono for the next iteration
+  last_mono_ = mono.clone();
+#else
+  // save pyramids for the next iteration.
+  last_pyramids_ = current_pyramids;
+#endif
+}
+
+// ---------------------------------------------------------------------------
+
+void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features)
+{
+  #ifdef OPENCV_CUDA
+
+    cv::cuda::GpuMat gMono(mono);
+    cv::cuda::GpuMat gFeatures;
+    gftt_detector_->detect(gMono, gFeatures);
+
+    // Download
+    gpu::download(gFeatures, features);
+
+  #else
+
+    std::vector<cv::KeyPoint> keypoints;
+    gftt_detector_->detect(mono, keypoints);
+
+    // Unpack keypoints and create regular features points
+    features.resize(keypoints.size());
+    for (auto&& key : keypoints)
+      features.push_back(key.pt);
+
+  #endif
+}
 
 }
