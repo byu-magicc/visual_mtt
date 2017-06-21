@@ -73,8 +73,10 @@ namespace visual_frontend {
     std::shared_ptr<HomographyCalculator> homography_calculator_;
 
     // camera parameters
-    sensor_msgs::CameraInfo camera_info_;
     ros::Time timestamp_frame_;
+    cv::Mat camera_matrix_;
+    cv::Mat dist_coeff_;
+    bool info_received_ = false;
 
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;

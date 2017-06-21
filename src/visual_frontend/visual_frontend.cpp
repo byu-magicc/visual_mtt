@@ -47,17 +47,34 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     return;
 
   tic_ = ros::Time::now();
-  // calculate the frame delay
-  ros::Duration delay = ros::Time::now() - data->header.stamp;
 
+  // calculate the frame delay
   // average overhead delay when the queue is empty is 2.4ms
   // warn if frame delay is greater than 50ms (ignoring first few frames)
+  // ros::Duration delay = ros::Time::now() - data->header.stamp;
   // if (delay.toSec()>0.05 && frame>30)
   //   ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
   // save the camera parameters and frame timestamp
-  camera_info_ = *cinfo;
   timestamp_frame_ = data->header.stamp;
+
+  // save camera parameters one time
+  if (!info_received_)
+  {
+    // camera_matrix_ (K) is 3x3
+    // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
+    camera_matrix_ = cv::Mat(              3, 3, CV_64FC1);
+    dist_coeff_    = cv::Mat(cinfo->D.size(), 1, CV_64FC1);
+
+    // convert rosmsg vectors to cv::Mat
+    for(int i=0; i<9; i++)
+      camera_matrix_.at<double>(i/3, i%3) = cinfo->K[i];
+
+    for(int i=0; i<cinfo->D.size(); i++)
+      dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+
+    info_received_ = true;
+  }
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
