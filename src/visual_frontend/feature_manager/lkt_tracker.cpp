@@ -61,7 +61,24 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
   // find fresh feature points
   std::vector<cv::KeyPoint> features;
+#ifdef OPENCV_CUDA
+  cv::cuda::GpuMat gMono(mono);
+  cv::cuda::GpuMat gFeatures;
+  gftt_detector_->detect(gMono, gFeatures);
+
+  // Download
+  std::vector<cv::Point2f> vec(gFeatures.cols);
+  cv::Mat tmp(1, gFeatures.cols, CV_32FC2, &vec[0]);
+  gFeatures.download(tmp);
+
+  // Convert to keypoints to be converted back... this is dumb
+  features.resize(vec.size());
+  for (int i=0; i<features.size(); i++)
+    features[i].pt = vec[i];
+
+#else
   gftt_detector_->detect(mono, features);
+#endif
 
 
 #ifndef OPENCV_CUDA
