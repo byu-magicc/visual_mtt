@@ -13,7 +13,7 @@ LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
   double minDistance = 10;
   int blockSize = 3;
   bool useHarrisDetector = false;
-  gftt_detector_ = cv::GFTTDetector::create(points_max_, corner_quality_, minDistance, blockSize, useHarrisDetector);
+  gftt_detector_ = cv::GFTTDetector::create(0, corner_quality_, minDistance, blockSize, useHarrisDetector);
 
   // Termination criteria for the OpenCV LK Optical Flow algorithm
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
@@ -106,9 +106,10 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::set_max_features(int max_points, int max_)
+void LKTTracker::set_max_features(int points_max, int points_target)
 {
-  gftt_detector_->setMaxFeatures(points_max_);
+  points_target_ = points_target;
+  gftt_detector_->setMaxFeatures(points_max);
 }
 
 // ----------------------------------------------------------------------------

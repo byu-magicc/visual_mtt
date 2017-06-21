@@ -12,9 +12,9 @@ namespace visual_frontend {
 
     virtual void set_max_features(int max_points, int max_) = 0;
 
+  protected:
     bool first_image_ = true;
-  private:
-      
+          
   };
 
 }

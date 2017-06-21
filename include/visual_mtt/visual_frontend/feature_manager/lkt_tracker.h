@@ -20,12 +20,11 @@ namespace visual_frontend {
     std::vector<cv::Point2f> prev_features_;
 
     // node parameters
-    int    points_max_;
-    int    points_target_;
-    double corner_quality_;
+    int    points_target_;          // Target number of points for GFFT to find
+    double corner_quality_;         // Corner Quality param of GFFT
     double corner_quality_min_;
     double corner_quality_max_;
-    double corner_quality_alpha_;
+    double corner_quality_alpha_;   // Parameter of alpha-filter to adaptively tune corner quality
 
     // feature generator
     cv::Ptr<cv::GFTTDetector> gftt_detector_;
