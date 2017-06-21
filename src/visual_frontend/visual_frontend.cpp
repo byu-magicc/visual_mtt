@@ -1,6 +1,6 @@
 #include "visual_frontend/visual_frontend.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
 VisualFrontend::VisualFrontend()
 {
@@ -18,8 +18,8 @@ VisualFrontend::VisualFrontend()
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
   sub_imu    = nh_.subscribe(     "imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
-  pub_scan   = nh_.advertise<visual_mtt2::RRANSACScan>("measurements", 1);
-  pub_stats  = nh_.advertise<visual_mtt2::Stats>("stats", 1);
+  pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
+  pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
 
   // key member objects
   feature_manager_       = std::shared_ptr<FeatureManager>(new FeatureManager(nh));
@@ -100,7 +100,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   t_measurements_ = toc_ - tic_;
 
   // publish stats
-  visual_mtt2::Stats stats;
+  visual_mtt::Stats stats;
   stats.stride = frame_stride_;
   stats.times.push_back(t_features_.toSec());
   stats.times.push_back(t_homography_.toSec());
@@ -128,7 +128,7 @@ void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dum
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
+void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
 {
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
@@ -145,7 +145,7 @@ void VisualFrontend::callback_tracks(const visual_mtt2::TracksPtr& data)
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level)
+void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
 {
   // update: frontend, feature_manager_, homography_calculator_, sources_
   set_parameters(config);
@@ -160,7 +160,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt2::visual_frontendConfig& co
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::set_parameters(visual_mtt2::visual_frontendConfig& config)
+void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
@@ -184,7 +184,7 @@ void VisualFrontend::generate_measurements()
   // std::this_thread::sleep_for(std::chrono::milliseconds((int)(1000.0/24)));
 
   // Message for publishing measurements to R-RANSAC Tracker
-  visual_mtt2::RRANSACScan scan;
+  visual_mtt::RRANSACScan scan;
   scan.header_frame.stamp = timestamp_frame_;
   if (!homography_calculator_->homography_.empty())
     std::memcpy(&scan.homography, homography_calculator_->homography_.data, scan.homography.size()*sizeof(float));
@@ -213,7 +213,7 @@ void VisualFrontend::generate_measurements()
     }
 
     // Create a Source msg
-    visual_mtt2::Source src;
+    visual_mtt::Source src;
     src.id = i;
     src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
 
@@ -224,7 +224,7 @@ void VisualFrontend::generate_measurements()
       auto pos = sources_[i]->features_[j];
       auto vel = sources_[i]->features_vel_[j];
 
-      visual_mtt2::Measurement mpos, mvel;
+      visual_mtt::Measurement mpos, mvel;
       mpos.data = {pos.x, pos.y};
       mvel.data = {vel.x, vel.y};
 

@@ -4,9 +4,9 @@
 #include <opencv2/opencv.hpp>
 
 // dynamic reconfig
-#include "visual_mtt2/visual_frontendConfig.h"
+#include "visual_mtt/visual_frontendConfig.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class HomographyCalculator
   {
@@ -14,7 +14,7 @@ namespace visual_mtt {
     HomographyCalculator();
     void calculate_homography(const std::vector<cv::Point2f>& prev_features,
                               const std::vector<cv::Point2f>& next_features);
-    void set_parameters(visual_mtt2::visual_frontendConfig& config);
+    void set_parameters(visual_mtt::visual_frontendConfig& config);
 
     cv::Mat homography_;
     std::vector<uchar> inlier_mask_;

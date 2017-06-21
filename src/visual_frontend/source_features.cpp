@@ -1,6 +1,6 @@
 #include "visual_frontend/source_features.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
 SourceFeatures::SourceFeatures()
 {
@@ -79,7 +79,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 
 // ----------------------------------------------------------------------------
 
-void SourceFeatures::set_parameters(visual_mtt2::visual_frontendConfig& config)
+void SourceFeatures::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;

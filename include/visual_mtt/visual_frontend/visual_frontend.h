@@ -13,12 +13,12 @@
 #include <image_transport/image_transport.h>
 
 // dynamic reconfig
-#include "visual_mtt2/visual_frontendConfig.h"
+#include "visual_mtt/visual_frontendConfig.h"
 
 // messages
-#include "visual_mtt2/Tracks.h"
-#include "visual_mtt2/RRANSACScan.h"
-#include "visual_mtt2/Stats.h"
+#include "visual_mtt/Tracks.h"
+#include "visual_mtt/RRANSACScan.h"
+#include "visual_mtt/Stats.h"
 #include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation of imu callback)
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
@@ -27,7 +27,7 @@
 #include "homography_calculator.h"
 #include "source_features.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class VisualFrontend
   {
@@ -37,11 +37,11 @@ namespace visual_mtt {
     // subscription and dynamic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
     void callback_imu(const std_msgs::Float32 data);    // temporary message type
-    void callback_tracks(const visual_mtt2::TracksPtr& data);
-    void callback_reconfigure(visual_mtt2::visual_frontendConfig& config, uint32_t level);
+    void callback_tracks(const visual_mtt::TracksPtr& data);
+    void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
 
     // data management and execution
-    void set_parameters(visual_mtt2::visual_frontendConfig& config);
+    void set_parameters(visual_mtt::visual_frontendConfig& config);
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
@@ -54,7 +54,7 @@ namespace visual_mtt {
     cv::Mat hd_frame; // uMat
     cv::Mat sd_frame; // uMat
 
-    visual_mtt2::TracksPtr tracks_;
+    visual_mtt::TracksPtr tracks_;
 
   private:
     // ROS
@@ -66,7 +66,7 @@ namespace visual_mtt {
     ros::Publisher  pub_stats;
 
     // dynamic reconfigure server
-    dynamic_reconfigure::Server<visual_mtt2::visual_frontendConfig> server_;
+    dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
 
     // key algorithm members
     std::shared_ptr<FeatureManager>       feature_manager_;

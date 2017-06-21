@@ -4,15 +4,15 @@
 #include <opencv2/opencv.hpp>
 
 // dynamic reconfig
-#include "visual_mtt2/visual_frontendConfig.h"
+#include "visual_mtt/visual_frontendConfig.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class FeatureManager
   {
   public:
     FeatureManager(ros::NodeHandle nh);
-    void set_parameters(visual_mtt2::visual_frontendConfig& config);
+    void set_parameters(visual_mtt::visual_frontendConfig& config);
     void find_correspondences(cv::Mat& frame);
     static void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
 

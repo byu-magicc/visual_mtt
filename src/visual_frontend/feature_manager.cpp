@@ -5,7 +5,7 @@
 // - provide options to use different feature types (ORB, GFTT)
 // - provide options to use different feature matching methods (LK, NN, BF)
 
-namespace visual_mtt {
+namespace visual_frontend {
 
 FeatureManager::FeatureManager(ros::NodeHandle nh)
 {
@@ -39,7 +39,7 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
 // ----------------------------------------------------------------------------
 
-void FeatureManager::set_parameters(visual_mtt2::visual_frontendConfig& config)
+void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   points_max_ = config.points_max;
   points_target_ = config.points_target;

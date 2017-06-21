@@ -13,19 +13,19 @@
 
 #include "rransac/accessors.h"
 
-#include "visual_mtt2/rransacConfig.h"
-#include "visual_mtt2/RRANSACScan.h"
-#include "visual_mtt2/Source.h"
-#include "visual_mtt2/Measurement.h"
-#include "visual_mtt2/Tracks.h"
-#include "visual_mtt2/Track.h"
-#include "visual_mtt2/Stats.h"
+#include "visual_mtt/rransacConfig.h"
+#include "visual_mtt/RRANSACScan.h"
+#include "visual_mtt/Source.h"
+#include "visual_mtt/Measurement.h"
+#include "visual_mtt/Tracks.h"
+#include "visual_mtt/Track.h"
+#include "visual_mtt/Stats.h"
 #include "sensor_msgs/Image.h"
 
 #include <iostream>
 #include <algorithm>
 
-namespace visual_mtt {
+namespace rransac {
 
   class RRANSAC
   {
@@ -61,18 +61,18 @@ namespace visual_mtt {
     bool show_tracks_;
 
     // dynamic reconfigure server
-    dynamic_reconfigure::Server<visual_mtt2::rransacConfig> server_;
+    dynamic_reconfigure::Server<visual_mtt::rransacConfig> server_;
 
     // Dynamic reconfigure callback
-    void callback_reconfigure(visual_mtt2::rransacConfig& config, uint32_t level);
+    void callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level);
 
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.
-    void callback_scan(const visual_mtt2::RRANSACScanPtr& rransac_scan);
+    void callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan);
 
     // ROS subscriber callback. Each callback a new set of stats
     // stats are received and local members are updated.
-    void callback_stats(const visual_mtt2::Stats& data);
+    void callback_stats(const visual_mtt::Stats& data);
 
     // ROS subscriber callback. Each callback a new frame
     // frame is saved for drawing the tracking results.

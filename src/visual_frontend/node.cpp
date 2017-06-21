@@ -6,8 +6,8 @@ int main(int argc, char** argv)
   // start node
   ros::init(argc, argv, "visual_frontend_node");
 
-  // instantiate the visual_mtt::VisualFrontend class
-  visual_mtt::VisualFrontend frontend;
+  // instantiate the visual_frontend::VisualFrontend class
+  visual_frontend::VisualFrontend frontend;
 
   ros::spin();
   return 0;

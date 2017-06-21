@@ -5,16 +5,16 @@
 #include "visual_frontend/source.h"
 
 // dynamic reconfig
-#include "visual_mtt2/visual_frontendConfig.h"
+#include "visual_mtt/visual_frontendConfig.h"
 
-namespace visual_mtt {
+namespace visual_frontend {
 
   class SourceFeatures: public Source
   {
   public:
     SourceFeatures();
     void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel, bool good_transform);
-    void set_parameters(visual_mtt2::visual_frontendConfig& config);
+    void set_parameters(visual_mtt::visual_frontendConfig& config);
 
     bool first_image_ = true;
 

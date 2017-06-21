@@ -18,7 +18,7 @@
 
   <!-- camera parameters (video or rosbag that didn't record camera_info) -->
   <arg name="camera_name" default="camera_sim" />
-  <arg name="camera_path" default="file://$(find visual_mtt2)/param/$(arg camera_name).yaml" />
+  <arg name="camera_path" default="file://$(find visual_mtt)/param/$(arg camera_name).yaml" />
 
   <!-- visual_mtt flags -->
   <arg name="params"      default="default" />
@@ -53,12 +53,12 @@
   <!-- VIDEO -->
 
   <!-- play video and simulate camera -->
-  <node unless="$(eval video_path == '')" pkg="visual_mtt2" type="video_player.py" name="player" output="screen">
+  <node unless="$(eval video_path == '')" pkg="visual_mtt" type="video_player.py" name="player" output="screen">
     <param name="input" value="$(arg video_path)" />
     <param name="fps" value="$(arg fps)" />
     <remap from="output" to="/frame" />
   </node>
-  <node unless="$(eval video_path == '')" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+  <node unless="$(eval video_path == '')" pkg="visual_mtt" type="camera_sim" name="$(arg camera_name)" output="screen">
     <param name="camera_name" value="$(arg camera_name)" />
     <param name="camera_info_path" value="$(arg camera_path)" />
     <remap from="input" to="/frame" />
@@ -97,7 +97,7 @@
   <!-- CASE 2: RAW VIDEO, MISSING camera_info -->
   <!-- simulate camera_info -->
   <node if="$(arg r_no_info)" pkg="rosbag" type="play" name="player" args="-l $(arg bag_path) --clock" launch-prefix="xterm -e" />
-  <node if="$(arg r_no_info)" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+  <node if="$(arg r_no_info)" pkg="visual_mtt" type="camera_sim" name="$(arg camera_name)" output="screen">
     <param name="camera_name" value="$(arg camera_name)" />
     <param name="camera_info_path" value="$(arg camera_path)" />
     <remap from="input" to="$(arg bag_topic)/image_raw" />
@@ -128,7 +128,7 @@
     output="log"
     args="compressed in:=$(arg bag_topic) out:=/frame">
   </node>
-  <node if="$(arg c_no_info)" pkg="visual_mtt2" type="camera_sim" name="$(arg camera_name)" output="screen">
+  <node if="$(arg c_no_info)" pkg="visual_mtt" type="camera_sim" name="$(arg camera_name)" output="screen">
     <param name="camera_name" value="$(arg camera_name)" />
     <param name="camera_info_path" value="$(arg camera_path)" />
     <remap from="input" to="/frame" />
@@ -139,7 +139,7 @@
   <!-- VISUAL_MTT -->
 
   <!-- launch visual_mtt -->
-  <include file="$(find visual_mtt2)/launch/visual_mtt.launch">
+  <include file="$(find visual_mtt)/launch/visual_mtt.launch">
     <arg name="params" value="$(arg params)" />
     <arg name="tuning" value="$(arg tuning)" />
     <arg name="show_tracks" value="$(arg show_tracks)" />
