@@ -210,8 +210,8 @@ void VisualFrontend::generate_measurements()
   {
     sources_[i]->generate_measurements(
       homography_calculator_->homography_,
+      feature_manager_->prev_matched_,
       feature_manager_->next_matched_,
-      homography_calculator_->pixel_diff_,
       homography_calculator_->good_transform_);
 
     // when in tuning mode, display the measurements from each source

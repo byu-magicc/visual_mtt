@@ -56,39 +56,21 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
       good_transform_ = true;
     }
 
-    // Use the homography to transform the points forwards. This will put all of the
-    // previous feature points on top of the next feature points except for points on
-    // moving objects. Those will be off by some pixels, the pixel velocity.
-    std::vector<cv::Point2f> corrected_pts;
-    if (prev_features.size() > 0)
-      cv::perspectiveTransform(prev_features, corrected_pts, homography_);
-
-    // Find the point velocities
-    // TODO these velocities are in pixels per frame: make this pixels per second.
-    pixel_diff_.clear();
-    for (int i = 0; i < corrected_pts.size(); ++i)
-      pixel_diff_.push_back(next_features[i] - corrected_pts[i]);
   }
   else
   {
     // TODO:
     // the number of feature correspondences was too low to create a homography
-    // what to do about:
-    // homography_
-    // pixel_diff_
-    // ?
 
     // for homography_, we could not update, set "good_transform_" to false
-    // for pixel_diff_, we could just clear it
     // then the good_transform_ flag would signal to the measurement methods
     // not to generate new measurements
 
     // the old homography_ would then be sent to R-RANSAC to "propagate"
-    // the histories appropriately. This appraoch would probably only be
+    // the histories appropriately. This approach would probably only be
     // reliable for a single frame since it isn't a true propagation. The
     // (future) homograpy filter be a much better approach.
 
-    pixel_diff_.clear();
     good_transform_ = false;
 
     // TODO: create a warning at this else (meaning too few features to generate a homography)

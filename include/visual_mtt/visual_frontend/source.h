@@ -15,7 +15,7 @@ namespace visual_frontend {
   {
   public:
 
-    virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& features, std::vector<cv::Point2f>& features_vel, bool good_transform) = 0;
+    virtual void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform) = 0;
     virtual void set_parameters(visual_mtt::visual_frontendConfig& config) = 0;
 
     std::vector<cv::Point2f> features_;
