@@ -87,6 +87,10 @@ void FeatureManager::find_correspondences(cv::Mat& img)
       }
     }
 
+    // compensate for lense distortion and project onto normalized image plane
+    cv::undistortPoints(prev_matched_, prev_matched_, camera_matrix_, dist_coeff_);
+    cv::undistortPoints(next_matched_, next_matched_, camera_matrix_, dist_coeff_);
+
   }
   else
   {

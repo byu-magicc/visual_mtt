@@ -45,10 +45,6 @@ namespace visual_frontend {
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
-    // after v1.0, there may be collections of recent frames and associated
-    // timestamps, "add_frame" will sort of become a manager of these histories
-    // (and provide CPU/GPU support of course)
-
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in;
     cv::Mat hd_frame; // uMat

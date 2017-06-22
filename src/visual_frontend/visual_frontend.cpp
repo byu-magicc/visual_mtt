@@ -73,6 +73,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     for(int i=0; i<cinfo->D.size(); i++)
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
+    feature_manager_->camera_matrix_ = camera_matrix_;
+    feature_manager_->dist_coeff_    = dist_coeff_;
+
     info_received_ = true;
   }
 
@@ -89,28 +92,20 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
-  // manage features (could be LK, NN, Brute Force)
+  // find feature pairs (could be LK, NN, Brute Force)
   feature_manager_->find_correspondences(hd_frame); // in future operate on sd
   toc_ = ros::Time::now();
   t_features_ = toc_ - tic_;
 
-  // TODO: consider if IMU is ignored (param from launchfile)
-  // if IMU     ignored, call homography_calculator (feature correspondences)
-  // if IMU not ignored, call the homography_filter filter propagate
+  // calculate the homography
   tic_ = ros::Time::now();
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
-    // there is a reason *matched_ vectors are members of the subclass
-    // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
   toc_ = ros::Time::now();
   t_homography_ = toc_ - tic_;
 
   // call measurement sources execution
-    // (use updated recent images)
-    // (use already-generated feature correpsondences)
-    // (use already-generated homography)
-    // (use updated recent track data)
   tic_ = ros::Time::now();
   generate_measurements();
   toc_ = ros::Time::now();
@@ -123,7 +118,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   stats.times.push_back(t_homography_.toSec());
   stats.times.push_back(t_measurements_.toSec());
   stats.times.push_back(t_recognition_.toSec());
-
   pub_stats.publish(stats);
 }
 
@@ -215,16 +209,29 @@ void VisualFrontend::generate_measurements()
       homography_calculator_->good_transform_);
 
     // when in tuning mode, display the measurements from each source
-    // TODO: make pure virtual 'draw' function in source.h to keep this clean?
+    // TODO: make pure virtual 'draw' function in source.h to keep this clean!
     if (tuning_)
     {
       // display measurements
       cv::Mat draw = hd_frame.clone();
+
+      // treat points in the normalized image plane as 3D points (homogeneous).
+      // project the points onto the sensor (pixel space) for plotting.
+      // use no rotation or translation (world frame = camera frame).
+      std::vector<cv::Point3f> features_h; // homogeneous
+      std::vector<cv::Point2f> features_d; // distorted
+
+      if (sources_[i]->features_.size()>0)
+      {
+        cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
+        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
+      }
+
       // plot measurements
-      for (int j=0; j<sources_[i]->features_.size(); j++)
+      for (int j=0; j<features_d.size(); j++)
       {
         cv::Scalar color = cv::Scalar(255, 0, 255);
-        cv::circle(draw, sources_[i]->features_[j], 2, color, 2, CV_AA);
+        cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
       }
       cv::imshow(sources_[i]->name_, draw);
     }

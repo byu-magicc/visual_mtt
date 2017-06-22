@@ -16,6 +16,9 @@ namespace visual_frontend {
     void find_correspondences(cv::Mat& frame);
     static void keyPointVecToPoint2f(std::vector<cv::KeyPoint>& keys, std::vector<cv::Point2f>& pts);
 
+    cv::Mat camera_matrix_;
+    cv::Mat dist_coeff_;
+
     std::vector<cv::Point2f> prev_matched_;
     std::vector<cv::Point2f> next_matched_;
 

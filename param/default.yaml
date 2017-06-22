@@ -23,7 +23,7 @@ visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
 # source_features
-visual_frontend/minimum_pixel_velocity: 1
+visual_frontend/minimum_pixel_velocity: 0.003
 visual_frontend/maximum_pixel_velocity: 10
 
 ###############################################################################

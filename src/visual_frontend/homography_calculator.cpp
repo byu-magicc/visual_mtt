@@ -30,7 +30,7 @@ void HomographyCalculator::calculate_homography(const std::vector<cv::Point2f>& 
   // we should force a higher threshold so there can be outliers (measurements)
   if (prev_features.size() > 4)
   {
-    // calculate the homography
+    // calculate the Euclidean homography (normalized image plane features)
     homography_ = cv::findHomography(prev_features, next_features,
       CV_RANSAC, reprojection_error_, inlier_mask_);
 
