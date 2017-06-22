@@ -18,7 +18,7 @@ RRANSAC::RRANSAC()
 
   // ROS stuff
   image_transport::ImageTransport it(nh);
-  sub_video = it.subscribe("video", 10, &RRANSAC::callback_video, this);
+  sub_video = it.subscribeCamera("video", 10, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
@@ -114,8 +114,26 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
+void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
+  // save camera parameters one time
+  if (!info_received_)
+  {
+    // camera_matrix_ (K) is 3x3
+    // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
+    camera_matrix_ = cv::Mat(              3, 3, CV_64FC1);
+    dist_coeff_    = cv::Mat(cinfo->D.size(), 1, CV_64FC1);
+
+    // convert rosmsg vectors to cv::Mat
+    for(int i=0; i<9; i++)
+      camera_matrix_.at<double>(i/3, i%3) = cinfo->K[i];
+
+    for(int i=0; i<cinfo->D.size(); i++)
+      dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+
+    info_received_ = true;
+  }
+
   // convert message data into OpenCV type cv::Mat
   frame_ = cv_bridge::toCvCopy(frame, "bgr8")->image;
 
@@ -227,36 +245,53 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
     cv::Scalar color = colors_[tracks[i]->GMN];
 
-    // draw circle with center at position estimate
+    // get normalized image plane point
     cv::Point center;
     center.x = tracks[i]->xhat(0);
     center.y = tracks[i]->xhat(1);
-    cv::circle(draw, center, (int)params_.tauR, color, 2, 8, 0);
+
+    // treat point in the normalized image plane as a 3D point (homogeneous).
+    // project the point onto the sensor (pixel space) for plotting.
+    // use no rotation or translation (world frame = camera frame).
+    std::vector<cv::Point3f> center_h; // homogeneous
+    std::vector<cv::Point2f> center_d; // distorted
+    cv::Point3f test;
+    test.x = tracks[i]->xhat(0);
+    test.y = tracks[i]->xhat(1);
+    test.z = 1;
+    center_h.push_back(test);
+
+    cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
+
+    // draw circle with center at position estimate
+    cv::circle(draw, center_d[0], 50, color, 2, 8, 0);
+    // 50 was (int)params_.tauR
+    // figure out how project tauR to this size? (velocities as well, below)
 
     // draw red dot at the position estimate
-    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
+    // cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
 
     // draw scaled velocity vector
-    cv::Point velocity;
-    double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
-    velocity.x = tracks[i]->xhat(2) * velocity_scale;
-    velocity.y = tracks[i]->xhat(3) * velocity_scale;
-    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+    // cv::Point velocity;
+    // double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
+    // velocity.x = tracks[i]->xhat(2) * velocity_scale;
+    // velocity.y = tracks[i]->xhat(3) * velocity_scale;
+    // cv::line(draw, center, center + velocity, color, 1, CV_AA);
 
     // draw model number and inlier ratio
-    std::stringstream ssGMN;
-    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+    // std::stringstream ssGMN;
+    // ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
+    // cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
 
     // draw covariance (?)
 
     // draw consensus sets
-    for (int j=0; j<tracks[i]->CS.size(); j++)
-    {
-      center.x = tracks[i]->CS[j]->pos(0);
-      center.y = tracks[i]->CS[j]->pos(1);
-      cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
-    }
+    // for (int j=0; j<tracks[i]->CS.size(); j++)
+    // {
+    //   center.x = tracks[i]->CS[j]->pos(0);
+    //   center.y = tracks[i]->CS[j]->pos(1);
+    //   cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
+    // }
   }
 
   // draw top-left box

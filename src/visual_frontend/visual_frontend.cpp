@@ -220,7 +220,6 @@ void VisualFrontend::generate_measurements()
       // use no rotation or translation (world frame = camera frame).
       std::vector<cv::Point3f> features_h; // homogeneous
       std::vector<cv::Point2f> features_d; // distorted
-
       if (sources_[i]->features_.size()>0)
       {
         cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);

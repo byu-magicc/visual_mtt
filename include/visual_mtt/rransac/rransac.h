@@ -40,7 +40,7 @@ namespace rransac {
     ros::NodeHandle nh;
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
-    image_transport::Subscriber sub_video;
+    image_transport::CameraSubscriber sub_video;
     ros::Publisher pub;
 
     // Saved frame and scan headers, received at each callback
@@ -59,6 +59,10 @@ namespace rransac {
     cv::Mat frame_;
     std::vector<cv::Scalar> colors_;
     bool show_tracks_;
+    cv::Mat camera_matrix_;
+    cv::Mat dist_coeff_;
+    bool info_received_ = false;
+
 
     // dynamic reconfigure server
     dynamic_reconfigure::Server<visual_mtt::rransacConfig> server_;
@@ -76,7 +80,7 @@ namespace rransac {
 
     // ROS subscriber callback. Each callback a new frame
     // frame is saved for drawing the tracking results.
-    void callback_video(const sensor_msgs::ImageConstPtr& frame);
+    void callback_video(const sensor_msgs::ImageConstPtr& frame, const sensor_msgs::CameraInfoConstPtr& cinfo);
 
     // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
