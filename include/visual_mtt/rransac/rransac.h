@@ -62,6 +62,7 @@ namespace rransac {
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
     bool info_received_ = false;
+    std::vector<cv::Point2f> corner_;
 
 
     // dynamic reconfigure server

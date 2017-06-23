@@ -56,8 +56,7 @@ rransac/tau_xpos_abs_diff: 0.0714285715
 rransac/tau_ypos_abs_diff: 0.0714285715
 
 # model pruning parameters
-rransac/frame_cols: 2000 # TODO: make % of NIP or remove
-rransac/frame_rows: 2000 # TODO: make % of NIP or remove
+rransac/surveillance_region: 0.95
 rransac/tau_CMD_prune: 10
 
 # track (i.e., good model) parameters

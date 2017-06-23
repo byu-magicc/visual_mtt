@@ -18,14 +18,17 @@ RRANSAC::RRANSAC()
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
 
-  // establish dynamic reconfigure and load defaults
-  auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
-  server_.setCallback(func);
+  // initialize the top left corner of normalized image plane with zeros
+  corner_.push_back(cv::Point2f(0,0));
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+
+  // establish dynamic reconfigure and load defaults
+  auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func);
 }
 
 // ----------------------------------------------------------------------------
@@ -61,8 +64,9 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
 
   // model pruning parameters
-  // params_.frame_cols = config.frame_cols; //  TODO: make this a % of the NIP or take it out of dynamic_reconfigure altogether
-  // params_.frame_rows = config.frame_rows;
+  double percentage = config.surveillance_region;
+  params_.field_max_x = std::abs(corner_[0].x*percentage);
+  params_.field_max_y = std::abs(corner_[0].y*percentage);
   params_.tau_CMD_prune = config.tau_CMD_prune;
 
   // track (i.e., Good Model) parameters
@@ -127,11 +131,14 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
     // update surveillance region based on normalized image plane
-    std::vector<cv::Point2f> corner;
-    corner.push_back(cv::Point2f(0,0));
-    cv::undistortPoints(corner, corner, camera_matrix_, dist_coeff_);
-    params_.field_max_x = std::abs(corner[0].x);
-    params_.field_max_y = std::abs(corner[0].y);
+    // corner_.push_back(cv::Point2f(0,0));
+    cv::undistortPoints(corner_, corner_, camera_matrix_, dist_coeff_);
+
+    double percentage;
+    nh.param<double>("rransac/surveillance_region", percentage, 0);
+
+    params_.field_max_x = std::abs(corner_[0].x*percentage);
+    params_.field_max_y = std::abs(corner_[0].y*percentage);
     tracker_.set_parameters(params_);
 
     info_received_ = true;
