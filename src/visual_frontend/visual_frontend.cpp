@@ -215,16 +215,6 @@ void VisualFrontend::generate_measurements()
       // display measurements
       cv::Mat draw = hd_frame.clone();
 
-      // scale back down to true nip
-      std::vector<cv::Point2f> features_c; // copied
-      features_c = sources_[i]->features_;
-      double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      for (int ii=0; ii<features_c.size(); ii++)
-      {
-        features_c[ii].x = features_c[ii].x/scale;
-        features_c[ii].y = features_c[ii].y/scale;
-      }
-
       // treat points in the normalized image plane as 3D points (homogeneous).
       // project the points onto the sensor (pixel space) for plotting.
       // use no rotation or translation (world frame = camera frame).
@@ -232,7 +222,7 @@ void VisualFrontend::generate_measurements()
       std::vector<cv::Point2f> features_d; // distorted
       if (sources_[i]->features_.size()>0)
       {
-        cv::convertPointsToHomogeneous(features_c, features_h);
+        cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
         cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
       }
 

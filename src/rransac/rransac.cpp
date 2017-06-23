@@ -130,10 +130,8 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
     std::vector<cv::Point2f> corner;
     corner.push_back(cv::Point2f(0,0));
     cv::undistortPoints(corner, corner, camera_matrix_, dist_coeff_);
-    std::cout << corner[0] << std::endl;
-    double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    params_.field_max_x = std::abs(corner[0].x*scale);
-    params_.field_max_y = std::abs(corner[0].y*scale);
+    params_.field_max_x = std::abs(corner[0].x);
+    params_.field_max_y = std::abs(corner[0].y);
     tracker_.set_parameters(params_);
 
     info_received_ = true;
@@ -250,59 +248,56 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
     cv::Scalar color = colors_[tracks[i]->GMN];
 
+    // Projecting Distances (tauR and velocity lines)
+    // since the 2 important dimensions of the transform have roughly equal
+    // eigenvalues, a raw distance in the normalized image plane can be
+    // projected by scaling by that eigenvalue. camera_matrix_ is upper
+    // triangular so the (0,0) element represents this scaling
+
     // get normalized image plane point
     cv::Point center;
     center.x = tracks[i]->xhat(0);
     center.y = tracks[i]->xhat(1);
 
-    // treat point in the normalized image plane as a 3D point (homogeneous).
-    // project the point onto the sensor (pixel space) for plotting.
+    // treat points in the normalized image plane as a 3D points (homogeneous).
+    // project the points onto the sensor (pixel space) for plotting.
     // use no rotation or translation (world frame = camera frame).
     std::vector<cv::Point3f> center_h; // homogeneous
     std::vector<cv::Point2f> center_d; // distorted
-    cv::Point3f test;
-    double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    test.x = tracks[i]->xhat(0)/scale;
-    test.y = tracks[i]->xhat(1)/scale;
-    test.z = 1;
-    center_h.push_back(test);
+
+    // project the center point and the consensus set
+    center_h.push_back(cv::Point3f(tracks[i]->xhat(0), tracks[i]->xhat(1), 1));
+    for (int j=0; j<tracks[i]->CS.size(); j++)
+      center_h.push_back(cv::Point3f(tracks[i]->CS[j]->pos(0), tracks[i]->CS[j]->pos(1), 1));
+
     cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
+    center = center_d[0];
 
     // draw circle with center at position estimate
-    // to scale a distance through a transform with roughly equal eigenvalues,
-    // it is just a scaling TODO: generate eigen-based scaling 1 time.
-    // for now, use the first focal length
-    double dim = (params_.tauR/scale) * camera_matrix_.at<double>(0,0);
-    cv::circle(draw, center_d[0], (int)dim, color, 2, 8, 0);
-
-    // was (int)params_.tauR
-
-
+    double radius = params_.tauR * camera_matrix_.at<double>(0,0);
+    cv::circle(draw, center, (int)radius, color, 2, 8, 0);
 
     // draw red dot at the position estimate
-    // cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
+    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
 
     // draw scaled velocity vector
-    // cv::Point velocity;
-    // double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
-    // velocity.x = tracks[i]->xhat(2) * velocity_scale;
-    // velocity.y = tracks[i]->xhat(3) * velocity_scale;
-    // cv::line(draw, center, center + velocity, color, 1, CV_AA);
+    cv::Point velocity;
+    double velocity_scale = 10; // for visibility
+    velocity.x = tracks[i]->xhat(2) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    cv::line(draw, center, center + velocity, color, 1, CV_AA);
 
     // draw model number and inlier ratio
-    // std::stringstream ssGMN;
-    // ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
-    // cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
-
-    // draw covariance (?)
+    std::stringstream ssGMN;
+    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
 
     // draw consensus sets
-    // for (int j=0; j<tracks[i]->CS.size(); j++)
-    // {
-    //   center.x = tracks[i]->CS[j]->pos(0);
-    //   center.y = tracks[i]->CS[j]->pos(1);
-    //   cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
-    // }
+    for (int j=1; j<center_d.size(); j++)
+    {
+      center = center_d[j];
+      cv::circle(draw, center, 2, color, -1, 8, 0);
+    }
   }
 
   // draw top-left box
