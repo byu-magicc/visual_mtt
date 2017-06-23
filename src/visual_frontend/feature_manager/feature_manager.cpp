@@ -28,6 +28,14 @@ void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
+void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D)
+{
+  camera_matrix_ = K.clone();
+  dist_coeff_ = D.clone();
+}
+
+// ----------------------------------------------------------------------------
+
 void FeatureManager::find_correspondences(cv::Mat& img)
 {
 
@@ -39,6 +47,12 @@ void FeatureManager::find_correspondences(cv::Mat& img)
   // and expose as public data members: `prev_matched_` and `next_matched_`.
   feature_tracker_->find_correspondences(img, prev_matched_, next_matched_);
 
+  // compensate for lens distortion and project onto normalized image plane
+  if (prev_matched_.size() > 0 && next_matched_.size() > 0)
+  {
+    cv::undistortPoints(prev_matched_, prev_matched_, camera_matrix_, dist_coeff_);
+    cv::undistortPoints(next_matched_, next_matched_, camera_matrix_, dist_coeff_);
+  }
 }
 
 // ----------------------------------------------------------------------------

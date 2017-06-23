@@ -69,8 +69,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     for(int i=0; i<cinfo->D.size(); i++)
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
-    feature_manager_->camera_matrix_ = camera_matrix_;
-    feature_manager_->dist_coeff_    = dist_coeff_;
+    feature_manager_.set_camera(camera_matrix_, dist_coeff_);
 
     info_received_ = true;
   }
@@ -88,29 +87,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
-<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
-  // find feature pairs (could be LK, NN, Brute Force)
-  feature_manager_->find_correspondences(hd_frame); // in future operate on sd
-=======
   // manage features (could be LK, NN, Brute Force)
   feature_manager_.find_correspondences(hd_frame); // in future operate on sd
->>>>>>> abstracting the HomographyManager
   toc_ = ros::Time::now();
   t_features_ = toc_ - tic_;
 
   // calculate the homography
   tic_ = ros::Time::now();
-<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
-  homography_calculator_->calculate_homography(
-    feature_manager_->prev_matched_,
-    feature_manager_->next_matched_);
-=======
-  homography_manager_.calculate_homography(
-    feature_manager_.prev_matched_,
-    feature_manager_.next_matched_);
-    // there is a reason *matched_ vectors are members of the subclass
-    // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
->>>>>>> abstracting the HomographyManager
+  homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
   toc_ = ros::Time::now();
   t_homography_ = toc_ - tic_;
 
@@ -213,17 +197,10 @@ void VisualFrontend::generate_measurements()
   for (int i=0; i<sources_.size(); i++)
   {
     sources_[i]->generate_measurements(
-<<<<<<< 8b44b5ef0bc5fbfda8c2bd1eb12d5ceace4c2391
-      homography_calculator_->homography_,
-      feature_manager_->prev_matched_,
-      feature_manager_->next_matched_,
-      homography_calculator_->good_transform_);
-=======
       homography_manager_.homography_,
+      feature_manager_.prev_matched_,
       feature_manager_.next_matched_,
-      homography_manager_.pixel_diff_,
       homography_manager_.good_transform_);
->>>>>>> abstracting the HomographyManager
 
     // when in tuning mode, display the measurements from each source
     // TODO: make pure virtual 'draw' function in source.h to keep this clean!
