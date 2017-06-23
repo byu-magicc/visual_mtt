@@ -87,7 +87,6 @@ void FeatureManager::set_tracker(enum FeatureTrackerType type)
 
   // Store what type of feature tracker we are for later
   feature_tracker_type_ = type;
-
 }
 
 }
