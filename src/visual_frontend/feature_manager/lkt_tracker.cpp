@@ -59,10 +59,9 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::set_max_features(int max_points, int max_)
+void LKTTracker::set_max_features(int points_max)
 {
 #ifndef OPENCV_CUDA
-  points_target_ = points_target;
   gftt_detector_->setMaxFeatures(points_max);
 #endif
 }
