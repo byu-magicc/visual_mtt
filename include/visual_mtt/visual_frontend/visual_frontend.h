@@ -23,8 +23,8 @@
 #include "sensor_msgs/Image.h" // needed for subscription to video message
 
 // key algorithm members
-#include "feature_manager.h"
-#include "homography_calculator.h"
+#include "feature_manager/feature_manager.h"
+#include "homography_manager/homography_manager.h"
 #include "source_features.h"
 
 namespace visual_frontend {
@@ -64,9 +64,9 @@ namespace visual_frontend {
     // dynamic reconfigure server
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
 
-    // key algorithm members
-    std::shared_ptr<FeatureManager>       feature_manager_;
-    std::shared_ptr<HomographyCalculator> homography_calculator_;
+    // algorithm managers
+    FeatureManager    feature_manager_;
+    HomographyManager homography_manager_;
 
     // camera parameters
     ros::Time timestamp_frame_;
