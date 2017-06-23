@@ -23,8 +23,8 @@ visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
 # source_features
-visual_frontend/minimum_pixel_velocity: 1
-visual_frontend/maximum_pixel_velocity: 10
+visual_frontend/minimum_pixel_velocity: 0.00285714275
+visual_frontend/maximum_pixel_velocity: 0.014
 
 ###############################################################################
 #### R-RANSAC Node
@@ -35,33 +35,32 @@ rransac/dt: 1
 # R-RANSAC specific parameters
 rransac/Nw: 10
 rransac/M: 30
-rransac/tauR: 50.0
-rransac/sigmaR_pos: 5.0
-rransac/sigmaR_vel: 1.0
+rransac/tauR: 0.0714285715
+rransac/sigmaR_pos: 0.00714285725
+rransac/sigmaR_vel: 0.0014285715
 rransac/rransac_motion_model: 2
 
 # RANSAC specific parameters
 rransac/ell: 100
-rransac/guided_sampling_threshold: 1000
-rransac/tauR_RANSAC: 50.0
-rransac/gamma: 0.5
-rransac/sigmaR_pos_RANSAC: 5.0
+rransac/guided_sampling_threshold: 1.4275
+rransac/tauR_RANSAC: 0.0714285715
+rransac/gamma: 0.0007142857143
+rransac/sigmaR_pos_RANSAC: 0.00714285725
 rransac/ransac_motion_model: 0
 
 # model merging parameters
 rransac/tau_vel_percent_diff: 0.25
-rransac/tau_vel_abs_diff: 900.0
+rransac/tau_vel_abs_diff: 1.285714286
 rransac/tau_angle_abs_diff: 15.0
-rransac/tau_xpos_abs_diff: 50.0
-rransac/tau_ypos_abs_diff: 50.0
+rransac/tau_xpos_abs_diff: 0.0714285715
+rransac/tau_ypos_abs_diff: 0.0714285715
 
 # model pruning parameters
-rransac/frame_cols: 2000
-rransac/frame_rows: 2000
+rransac/surveillance_region: 0.95
 rransac/tau_CMD_prune: 10
 
 # track (i.e., good model) parameters
 rransac/tau_rho: 0.6
 rransac/tau_CMD: 4
-rransac/tau_Vmax: 30.0
+rransac/tau_Vmax: 0.04285714275
 rransac/tau_T: 4

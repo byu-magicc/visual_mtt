@@ -4,11 +4,6 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
-  // TODO: This is a hack. We need to set the surveilance region width/height here.
-  // this is something to think about in the context of normalized image coordinates
-  params_.frame_cols = 1000;
-  params_.frame_rows = 1000;
-
   // get parameters from param server that are not dynamically reconfigurable
   // TODO: is it worth it to use a private node handle here?
   nh.param<bool>("rransac/show_tracks", show_tracks_, 0);
@@ -18,19 +13,22 @@ RRANSAC::RRANSAC()
 
   // ROS stuff
   image_transport::ImageTransport it(nh);
-  sub_video = it.subscribe("video", 10, &RRANSAC::callback_video, this);
+  sub_video = it.subscribeCamera("video", 10, &RRANSAC::callback_video, this);
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
 
-  // establish dynamic reconfigure and load defaults
-  auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
-  server_.setCallback(func);
+  // initialize the top left corner of normalized image plane with zeros
+  corner_.push_back(cv::Point2f(0,0));
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+
+  // establish dynamic reconfigure and load defaults
+  auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func);
 }
 
 // ----------------------------------------------------------------------------
@@ -66,8 +64,9 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
 
   // model pruning parameters
-  params_.frame_cols = config.frame_cols;
-  params_.frame_rows = config.frame_rows;
+  double percentage = config.surveillance_region;
+  params_.field_max_x = std::abs(corner_[0].x*percentage);
+  params_.field_max_y = std::abs(corner_[0].y*percentage);
   params_.tau_CMD_prune = config.tau_CMD_prune;
 
   // track (i.e., Good Model) parameters
@@ -114,8 +113,37 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
 
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame)
+void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
+  // save camera parameters one time
+  if (!info_received_)
+  {
+    // camera_matrix_ (K) is 3x3
+    // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
+    camera_matrix_ = cv::Mat(              3, 3, CV_64FC1);
+    dist_coeff_    = cv::Mat(cinfo->D.size(), 1, CV_64FC1);
+
+    // convert rosmsg vectors to cv::Mat
+    for(int i=0; i<9; i++)
+      camera_matrix_.at<double>(i/3, i%3) = cinfo->K[i];
+
+    for(int i=0; i<cinfo->D.size(); i++)
+      dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+
+    // update surveillance region based on normalized image plane
+    // corner_.push_back(cv::Point2f(0,0));
+    cv::undistortPoints(corner_, corner_, camera_matrix_, dist_coeff_);
+
+    double percentage;
+    nh.param<double>("rransac/surveillance_region", percentage, 0);
+
+    params_.field_max_x = std::abs(corner_[0].x*percentage);
+    params_.field_max_y = std::abs(corner_[0].y*percentage);
+    tracker_.set_parameters(params_);
+
+    info_received_ = true;
+  }
+
   // convert message data into OpenCV type cv::Mat
   frame_ = cv_bridge::toCvCopy(frame, "bgr8")->image;
 
@@ -227,20 +255,43 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
     cv::Scalar color = colors_[tracks[i]->GMN];
 
-    // draw circle with center at position estimate
+    // Projecting Distances (tauR and velocity lines)
+    // since the 2 important dimensions of the transform have roughly equal
+    // eigenvalues, a raw distance in the normalized image plane can be
+    // projected by scaling by that eigenvalue. camera_matrix_ is upper
+    // triangular so the (0,0) element represents this scaling
+
+    // get normalized image plane point
     cv::Point center;
     center.x = tracks[i]->xhat(0);
     center.y = tracks[i]->xhat(1);
-    cv::circle(draw, center, (int)params_.tauR, color, 2, 8, 0);
+
+    // treat points in the normalized image plane as a 3D points (homogeneous).
+    // project the points onto the sensor (pixel space) for plotting.
+    // use no rotation or translation (world frame = camera frame).
+    std::vector<cv::Point3f> center_h; // homogeneous
+    std::vector<cv::Point2f> center_d; // distorted
+
+    // project the center point and the consensus set
+    center_h.push_back(cv::Point3f(tracks[i]->xhat(0), tracks[i]->xhat(1), 1));
+    for (int j=0; j<tracks[i]->CS.size(); j++)
+      center_h.push_back(cv::Point3f(tracks[i]->CS[j]->pos(0), tracks[i]->CS[j]->pos(1), 1));
+
+    cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
+    center = center_d[0];
+
+    // draw circle with center at position estimate
+    double radius = params_.tauR * camera_matrix_.at<double>(0,0);
+    cv::circle(draw, center, (int)radius, color, 2, 8, 0);
 
     // draw red dot at the position estimate
-    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param
+    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
 
     // draw scaled velocity vector
     cv::Point velocity;
-    double velocity_scale = 10; // TODO: adjust after switch to normalized image coordinates
-    velocity.x = tracks[i]->xhat(2) * velocity_scale;
-    velocity.y = tracks[i]->xhat(3) * velocity_scale;
+    double velocity_scale = 10; // for visibility
+    velocity.x = tracks[i]->xhat(2) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * camera_matrix_.at<double>(0,0) * velocity_scale;
     cv::line(draw, center, center + velocity, color, 1, CV_AA);
 
     // draw model number and inlier ratio
@@ -248,14 +299,11 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
     cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
 
-    // draw covariance (?)
-
     // draw consensus sets
-    for (int j=0; j<tracks[i]->CS.size(); j++)
+    for (int j=1; j<center_d.size(); j++)
     {
-      center.x = tracks[i]->CS[j]->pos(0);
-      center.y = tracks[i]->CS[j]->pos(1);
-      cv::circle(draw, center, 2, color, -1, 8, 0); // TODO: make 2 (radius) a param
+      center = center_d[j];
+      cv::circle(draw, center, 2, color, -1, 8, 0);
     }
   }
 

@@ -45,10 +45,6 @@ namespace visual_frontend {
     void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
-    // after v1.0, there may be collections of recent frames and associated
-    // timestamps, "add_frame" will sort of become a manager of these histories
-    // (and provide CPU/GPU support of course)
-
     cv::Mat hd_frame_in;
     cv::Mat sd_frame_in;
     cv::Mat hd_frame; // uMat
@@ -73,8 +69,10 @@ namespace visual_frontend {
     std::shared_ptr<HomographyCalculator> homography_calculator_;
 
     // camera parameters
-    sensor_msgs::CameraInfo camera_info_;
     ros::Time timestamp_frame_;
+    cv::Mat camera_matrix_;
+    cv::Mat dist_coeff_;
+    bool info_received_ = false;
 
     // measurement sources
     std::vector<std::shared_ptr<Source>> sources_;

@@ -30,11 +30,6 @@ FeatureManager::FeatureManager(ros::NodeHandle nh)
 
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
   // TODO: use rosparam?
-
-  // eventually: make a "feature_detector_" that can be set to use various
-  // feature appraoches (gftt, orb, etc)
-  // maybe: have a "feature_matcher_" that can be set to use various
-  // matching appraoches (lk, etc)
 }
 
 // ----------------------------------------------------------------------------
@@ -86,6 +81,10 @@ void FeatureManager::find_correspondences(cv::Mat& img)
         next_matched_.push_back(next_features[ii]);
       }
     }
+
+    // compensate for lense distortion and project onto normalized image plane
+    cv::undistortPoints(prev_matched_, prev_matched_, camera_matrix_, dist_coeff_);
+    cv::undistortPoints(next_matched_, next_matched_, camera_matrix_, dist_coeff_);
 
   }
   else

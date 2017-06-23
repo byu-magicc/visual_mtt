@@ -47,17 +47,37 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     return;
 
   tic_ = ros::Time::now();
-  // calculate the frame delay
-  ros::Duration delay = ros::Time::now() - data->header.stamp;
 
+  // calculate the frame delay
   // average overhead delay when the queue is empty is 2.4ms
   // warn if frame delay is greater than 50ms (ignoring first few frames)
+  // ros::Duration delay = ros::Time::now() - data->header.stamp;
   // if (delay.toSec()>0.05 && frame>30)
   //   ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
   // save the camera parameters and frame timestamp
-  camera_info_ = *cinfo;
   timestamp_frame_ = data->header.stamp;
+
+  // save camera parameters one time
+  if (!info_received_)
+  {
+    // camera_matrix_ (K) is 3x3
+    // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
+    camera_matrix_ = cv::Mat(              3, 3, CV_64FC1);
+    dist_coeff_    = cv::Mat(cinfo->D.size(), 1, CV_64FC1);
+
+    // convert rosmsg vectors to cv::Mat
+    for(int i=0; i<9; i++)
+      camera_matrix_.at<double>(i/3, i%3) = cinfo->K[i];
+
+    for(int i=0; i<cinfo->D.size(); i++)
+      dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+
+    feature_manager_->camera_matrix_ = camera_matrix_;
+    feature_manager_->dist_coeff_    = dist_coeff_;
+
+    info_received_ = true;
+  }
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -72,28 +92,20 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
-  // manage features (could be LK, NN, Brute Force)
+  // find feature pairs (could be LK, NN, Brute Force)
   feature_manager_->find_correspondences(hd_frame); // in future operate on sd
   toc_ = ros::Time::now();
   t_features_ = toc_ - tic_;
 
-  // TODO: consider if IMU is ignored (param from launchfile)
-  // if IMU     ignored, call homography_calculator (feature correspondences)
-  // if IMU not ignored, call the homography_filter filter propagate
+  // calculate the homography
   tic_ = ros::Time::now();
   homography_calculator_->calculate_homography(
     feature_manager_->prev_matched_,
     feature_manager_->next_matched_);
-    // there is a reason *matched_ vectors are members of the subclass
-    // it's for the future case with multiple FeatureManager/HomographyCalculator instantiations
   toc_ = ros::Time::now();
   t_homography_ = toc_ - tic_;
 
   // call measurement sources execution
-    // (use updated recent images)
-    // (use already-generated feature correpsondences)
-    // (use already-generated homography)
-    // (use updated recent track data)
   tic_ = ros::Time::now();
   generate_measurements();
   toc_ = ros::Time::now();
@@ -106,7 +118,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   stats.times.push_back(t_homography_.toSec());
   stats.times.push_back(t_measurements_.toSec());
   stats.times.push_back(t_recognition_.toSec());
-
   pub_stats.publish(stats);
 }
 
@@ -193,21 +204,33 @@ void VisualFrontend::generate_measurements()
   {
     sources_[i]->generate_measurements(
       homography_calculator_->homography_,
+      feature_manager_->prev_matched_,
       feature_manager_->next_matched_,
-      homography_calculator_->pixel_diff_,
       homography_calculator_->good_transform_);
 
     // when in tuning mode, display the measurements from each source
-    // TODO: make pure virtual 'draw' function in source.h to keep this clean?
+    // TODO: make pure virtual 'draw' function in source.h to keep this clean!
     if (tuning_)
     {
       // display measurements
       cv::Mat draw = hd_frame.clone();
+
+      // treat points in the normalized image plane as 3D points (homogeneous).
+      // project the points onto the sensor (pixel space) for plotting.
+      // use no rotation or translation (world frame = camera frame).
+      std::vector<cv::Point3f> features_h; // homogeneous
+      std::vector<cv::Point2f> features_d; // distorted
+      if (sources_[i]->features_.size()>0)
+      {
+        cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
+        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
+      }
+
       // plot measurements
-      for (int j=0; j<sources_[i]->features_.size(); j++)
+      for (int j=0; j<features_d.size(); j++)
       {
         cv::Scalar color = cv::Scalar(255, 0, 255);
-        cv::circle(draw, sources_[i]->features_[j], 2, color, 2, CV_AA);
+        cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
       }
       cv::imshow(sources_[i]->name_, draw);
     }
