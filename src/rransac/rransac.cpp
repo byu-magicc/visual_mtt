@@ -4,11 +4,6 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
-  // TODO: This is a hack. We need to set the surveilance region width/height here.
-  // this is something to think about in the context of normalized image coordinates
-  params_.frame_cols = 1000;
-  params_.frame_rows = 1000;
-
   // get parameters from param server that are not dynamically reconfigurable
   // TODO: is it worth it to use a private node handle here?
   nh.param<bool>("rransac/show_tracks", show_tracks_, 0);
@@ -66,8 +61,8 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
 
   // model pruning parameters
-  params_.frame_cols = config.frame_cols;
-  params_.frame_rows = config.frame_rows;
+  // params_.frame_cols = config.frame_cols; //  TODO: make this a % of the NIP or take it out of dynamic_reconfigure altogether
+  // params_.frame_rows = config.frame_rows;
   params_.tau_CMD_prune = config.tau_CMD_prune;
 
   // track (i.e., Good Model) parameters
@@ -130,6 +125,16 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
 
     for(int i=0; i<cinfo->D.size(); i++)
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+
+    // update surveillance region based on normalized image plane
+    std::vector<cv::Point2f> corner;
+    corner.push_back(cv::Point2f(0,0));
+    cv::undistortPoints(corner, corner, camera_matrix_, dist_coeff_);
+    std::cout << corner[0] << std::endl;
+    double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    params_.field_max_x = std::abs(corner[0].x*scale);
+    params_.field_max_y = std::abs(corner[0].y*scale);
+    tracker_.set_parameters(params_);
 
     info_received_ = true;
   }
@@ -256,17 +261,23 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     std::vector<cv::Point3f> center_h; // homogeneous
     std::vector<cv::Point2f> center_d; // distorted
     cv::Point3f test;
-    test.x = tracks[i]->xhat(0);
-    test.y = tracks[i]->xhat(1);
+    double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    test.x = tracks[i]->xhat(0)/scale;
+    test.y = tracks[i]->xhat(1)/scale;
     test.z = 1;
     center_h.push_back(test);
-
     cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
 
     // draw circle with center at position estimate
-    cv::circle(draw, center_d[0], 50, color, 2, 8, 0);
-    // 50 was (int)params_.tauR
-    // figure out how project tauR to this size? (velocities as well, below)
+    // to scale a distance through a transform with roughly equal eigenvalues,
+    // it is just a scaling TODO: generate eigen-based scaling 1 time.
+    // for now, use the first focal length
+    double dim = (params_.tauR/scale) * camera_matrix_.at<double>(0,0);
+    cv::circle(draw, center_d[0], (int)dim, color, 2, 8, 0);
+
+    // was (int)params_.tauR
+
+
 
     // draw red dot at the position estimate
     // cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0); // TODO: make 2 (radius) a param

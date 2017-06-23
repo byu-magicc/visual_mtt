@@ -91,6 +91,16 @@ void FeatureManager::find_correspondences(cv::Mat& img)
     cv::undistortPoints(prev_matched_, prev_matched_, camera_matrix_, dist_coeff_);
     cv::undistortPoints(next_matched_, next_matched_, camera_matrix_, dist_coeff_);
 
+    // scale up all values to prevent underflow
+    double scale = 1; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    for (int ii=0; ii<prev_matched_.size(); ii++)
+    {
+      prev_matched_[ii].x = prev_matched_[ii].x*scale;
+      prev_matched_[ii].y = prev_matched_[ii].y*scale;
+      next_matched_[ii].x = next_matched_[ii].x*scale;
+      next_matched_[ii].y = next_matched_[ii].y*scale;
+    }
+
   }
   else
   {
