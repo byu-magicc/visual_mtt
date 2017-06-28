@@ -24,14 +24,15 @@ cv::Mat SimpleHomography::get_homography(const std::vector<cv::Point2f>& prev_fe
   }
 
   // calculate the homography
-  homography = cv::findHomography(prev_features, next_features, CV_RANSAC, reprojection_error_, inlier_mask_);
+  const double reprojection_error = 0.001; // the optimization aims to minimize below this value
+  homography = cv::findHomography(prev_features, next_features, CV_RANSAC, reprojection_error, inlier_mask_);
 
   // baptize the homography
   homography.convertTo(homography, CV_32F);
 
   // use inlier count to determine if the homography is good
   int inlier_count = 0;
-  for(int i = 0; i < inlier_mask_.size(); ++i)
+  for(int i=0; i<inlier_mask_.size(); i++)
     inlier_count += inlier_mask_[i] ? 1 : 0;
 
   // TODO: should this (20) be a % of the pairs rather than a set value?

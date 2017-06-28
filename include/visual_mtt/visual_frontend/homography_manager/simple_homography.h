@@ -19,7 +19,6 @@ namespace visual_frontend {
   private:
     std::vector<uchar> inlier_mask_;
     std::vector<cv::Point2f> pixel_diff_;
-    double reprojection_error_ = 3;
     bool good_transform_;
     
   };
