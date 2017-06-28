@@ -102,6 +102,12 @@ void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
     ci->K[5] = (double)frame_.rows/2; // cy
   }
 
+  // Make sure there is an actual timestamp
+  if (msg->header.stamp.sec == 0) {
+    msg->header.stamp = ros::Time::now();
+    ci->header.stamp = msg->header.stamp;
+  }
+
   // publish frame and camera info together (can only publish <msg>Ptr types)
   pub_.publish(msg, ci);
 }
