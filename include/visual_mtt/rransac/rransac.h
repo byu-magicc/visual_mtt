@@ -41,6 +41,7 @@ namespace rransac {
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
     image_transport::CameraSubscriber sub_video;
+    image_transport::Publisher pub_output_video;
     ros::Publisher pub;
 
     // Saved frame and scan headers, received at each callback
@@ -59,6 +60,7 @@ namespace rransac {
     cv::Mat frame_;
     std::vector<cv::Scalar> colors_;
     bool show_tracks_;
+    bool pub_output_img_;
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
     bool info_received_ = false;

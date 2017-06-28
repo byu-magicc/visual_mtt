@@ -5,8 +5,9 @@ namespace rransac {
 RRANSAC::RRANSAC()
 {
   // get parameters from param server that are not dynamically reconfigurable
-  // TODO: is it worth it to use a private node handle here?
-  nh.param<bool>("rransac/show_tracks", show_tracks_, 0);
+  ros::NodeHandle nh_private("~");
+  nh_private.param<bool>("show_tracks", show_tracks_, false);
+  nh_private.param<bool>("pub_output_img", pub_output_img_, false);
 
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
@@ -17,6 +18,9 @@ RRANSAC::RRANSAC()
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
+  if (pub_output_img_)
+    pub_output_video = it.advertise("output_video", 1);
+
 
   // initialize the top left corner of normalized image plane with zeros
   corner_.push_back(cv::Point2f(0,0));
@@ -107,7 +111,7 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
   publish_tracks(tracks);
 
   // generate visualization
-  if (show_tracks_)
+  if (show_tracks_ || pub_output_img_)
     draw_tracks(tracks);
 }
 
@@ -337,8 +341,20 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  cv::imshow("Tracks", draw);
-  cv::waitKey(1);
+  if (pub_output_img_)
+  {
+    cv_bridge::CvImage image_msg;
+    image_msg.encoding = sensor_msgs::image_encodings::BGR8;
+    image_msg.image = draw;
+    image_msg.header = header_frame_;
+    pub_output_video.publish(image_msg.toImageMsg());
+  }
+
+  if (show_tracks_)
+  {
+    cv::imshow("Tracks", draw);
+    cv::waitKey(1);
+  }
 }
 
 }
