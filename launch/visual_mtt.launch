@@ -2,17 +2,19 @@
 
 <launch>
 
-  <arg name="params"      default="default" />
-  <arg name="tuning"      default="false" />
-  <arg name="show_tracks" default="true" />
-  <arg name="imgtopic"    default="/image_raw" />
+  <arg name="params"          default="default" />
+  <arg name="tuning"          default="false" />
+  <arg name="show_tracks"     default="true" />
+  <arg name="pub_output_img"  default="false" />
+  <arg name="imgtopic"        default="/image_raw" />
 
-  <!-- params:        name of .yaml contained the desired parameter values  -->
-  <!-- tuning:        enables dynamic reconfigure and displays measurements -->
-  <!-- show_tracks:   enables display of tracking results                   -->
-  <!-- imgtopic:      name of the topic that contains the video             -->
+  <!-- params:          name of .yaml contained the desired parameter values  -->
+  <!-- tuning:          enables dynamic reconfigure and displays measurements -->
+  <!-- show_tracks:     enables display of tracking results                   -->
+  <!-- pub_output_img:  enables publishing of the tracking result image       -->
+  <!-- imgtopic:        name of the topic that contains the video             -->
 
-  <!-- #################################################################### -->
+  <!-- ###################################################################### -->
 
   <!-- load the specified parameters -->
   <rosparam command="load" file="$(find visual_mtt)/param/$(arg params).yaml" />
@@ -25,7 +27,8 @@
 
   <!-- start R-RANSAC -->
   <node pkg="visual_mtt" type="rransac" name="rransac" output="screen">
-    <param name="show_tracks" type="bool" value="$(arg show_tracks)" />
+    <param name="show_tracks"     type="bool" value="$(arg show_tracks)" />
+    <param name="pub_output_img"  type="bool" value="$(arg pub_output_img)" />
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 
