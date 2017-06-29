@@ -15,6 +15,7 @@
   <arg name="info_topic"  default="" />
   <arg name="compressed"  default="false" />
   <arg name="has_info"    default="true" />
+  <arg name="hide_bag"    default="false" />
 
   <!-- camera parameters (video or rosbag that didn't record camera_info) -->
   <arg name="camera_name"     default="camera_sim" />
@@ -35,6 +36,7 @@
   <!-- info_topic:      camera_info topic           (rosbag only)             -->
   <!-- compressed:      compressed recording?       (rosbag only)             -->
   <!-- has_info:        camera_info topic recorded? (rosbag only)             -->
+  <!-- hide_bag:        hide xterm for bag playback (rosbag only)             -->
 
   <!-- camera_name:     camera name                 (for known camera_info)   -->
   <!-- camera_info_url: path to camera .yaml        (for known camera_info)   -->
@@ -87,8 +89,9 @@
   <!-- make all nodes use sim time -->
   <param unless="$(eval bag_path == '')" name="use_sim_time" type="bool" value="true" />
 
-  <!-- launch-prefix settings for xterm -->
-  <arg name="prefix" value="xterm -hold -geometry 100x20 -e" />
+  <!-- launch-prefix settings for xterm, with ability to be hidden -->
+  <arg if="$(arg hide_bag)"     name="prefix" value="" />
+  <arg unless="$(arg hide_bag)" name="prefix" value="xterm -hold -geometry 100x20 -e" />
 
 
   <!-- CASE 1: RAW VIDEO, HAS camera_info -->
