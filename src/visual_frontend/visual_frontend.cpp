@@ -102,7 +102,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   tic = ros::Time::now();
 
-  // call measurement sources execution
+  // have each measurement source generate measurements
   generate_measurements();
   auto t_measurements = ros::Time::now() - tic;
 
@@ -188,9 +188,6 @@ void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second ar
 
 void VisualFrontend::generate_measurements()
 {
-  // optional delay for testing queue timing and warnings!
-  // std::this_thread::sleep_for(std::chrono::milliseconds((int)(1000.0/24)));
-
   // Message for publishing measurements to R-RANSAC Tracker
   visual_mtt::RRANSACScan scan;
   scan.header_frame.stamp = timestamp_frame_;

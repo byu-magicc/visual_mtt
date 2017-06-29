@@ -6,4 +6,8 @@
 std_msgs/Header header_frame
 std_msgs/Header header_update
 
+# A vector of R-RANSAC Track messages
 Track[] tracks
+
+# Utilization statistics from this iteration
+Utilization util

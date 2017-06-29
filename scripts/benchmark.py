@@ -15,39 +15,8 @@ import numpy as np
 
 from std_msgs.msg import Header
 from sensor_msgs.msg import CompressedImage, Image
-from visual_mtt.msg import Stats
+from visual_mtt.msg import Tracks
 
-def static_vars(**kwargs):
-    def decorate(func):
-        for k in kwargs:
-            setattr(func, k, kwargs[k])
-        return func
-    return decorate
-
-@static_vars(utilization=0)
-def get_utilization(idx, data, stride, fps):
-    """Get Utilization
-    """
-
-    # Reset utilization when starting a new run
-    if idx == 0:
-        get_utilization.utilization = 0
-
-    # How much time do I have available for computation?
-    t_available = (1.0/fps)*stride
-
-    # How much computation was performed?
-    t_computation = 0
-    for val in data.values():
-        t_computation += val
-
-    # Find the LPF alpha -- converge quickly during the first 30
-    alpha = 0.95 if idx < 30 else 1.0/( 1.5/t_available + 1)
-
-    # Compute utilization
-    get_utilization.utilization = alpha*(t_computation/t_available) + (1-alpha)*get_utilization.utilization
-
-    return get_utilization.utilization
 
 class ROSLauncher(object):
     """ROSLauncher
@@ -164,6 +133,10 @@ class Scenario(object):
             the rosbag or given as a parameter when the scenario was
             set up by the user.
         """
+
+        # If you let it run unbounded, you slow down the ROS network!
+        # rate = rospy.Rate(20)
+
         start = time.time()
         while not rospy.is_shutdown():
 
@@ -171,12 +144,20 @@ class Scenario(object):
             elapsed = time.time() - start
 
             # Print out our progress
-            sys.stdout.write('\tProgress:\t%0.2f/%0.2f s \t [%0.1f%%]\r' % (elapsed, self.duration, elapsed/self.duration*100) )
+            sys.stdout.write('\tProgress:    %0.2f/%0.2f s \t [%0.1f%%]\r' % (elapsed, self.duration, elapsed/self.duration*100) )
             sys.stdout.flush()
 
             if elapsed > self.duration:
                 print
                 break
+
+
+            # Note that I'm using Python time instead of rospy time because
+            # I was getting a 'Time Going Backward' error -- because this
+            # Python script goes in and out of ROS land, this seems like
+            # the best way to handle that
+            time.sleep(0.10) # 10 Hz
+            # rate.sleep()
 
 
     def run(self, frame_stride):
@@ -200,6 +181,8 @@ class Scenario(object):
         # Wait until we should stop the scenario
         self._wait_for_end()
 
+        # time.sleep(20)
+
         # Kill the launch/node
         self.launch.stop()
 
@@ -219,7 +202,7 @@ class BenchmarkRunner(object):
         Create an object that runs the benchmark.
 
     """
-    ITERS = 3
+    ITERS = 2
     def __init__(self, scenario, frame_strides):
         super(BenchmarkRunner, self).__init__()
 
@@ -236,15 +219,19 @@ class BenchmarkRunner(object):
         self.runs = [] # { stride: 1, fps: 30, iter1: [], iter2: [], ... }
 
         # Hook up ROS subscribers
-        rospy.Subscriber('/stats', Stats, self._handle_stats)
+        rospy.Subscriber('/tracks', Tracks, self._handle_tracks)
 
 
-    def _handle_stats(self, msg):
-        # Put the data in a dictionary
+    def _handle_tracks(self, msg):
+        # Extract utilization information
         data = {
-            't_feature_manager': msg.t_feature_manager,
-            't_homography_manager': msg.t_homography_manager,
-            't_measurement_generation': msg.t_measurement_generation,
+            'u_feature_manager':        msg.util.feature_manager,
+            'u_homography_manager':     msg.util.homography_manager,
+            'u_measurement_generation': msg.util.measurement_generation,
+            'u_rransac':                msg.util.rransac,
+            'u_total':                  msg.util.total,
+            'track_count':              len(msg.tracks),
+            'measurement_count':        msg.util.number_of_rransac_measurements,
         }
 
         # Add the data to the iteration in the run
@@ -292,21 +279,6 @@ class BenchmarkRunner(object):
                 # Blocking call to run
                 self.scenario.run(fs)
 
-        #
-        # Process the data to compute utilization
-        #
-
-        for run in self.runs:
-            fps = run['fps']
-            stride = run['stride']
-            for i in xrange(run['iters']):
-                util = []
-                for idx, data in enumerate(run['iter%s'%i]):
-                    # Calculate the utilization
-                    util.append( get_utilization(idx, data, stride, fps) )
-
-                run['iter%iutil'%i] = util
-
         return self.runs
 
 
@@ -325,12 +297,12 @@ class BenchmarkAnalyzer(object):
             the same scenario with the same stride.
         """
 
-        util = np.zeros(len(run['iter0util']))
+        util = np.zeros(len(run['iter0']))
 
         iters = run['iters']
         for i in xrange(iters):
 
-            newutil = np.array(run['iter%iutil'%i])
+            newutil = np.array([data['u_total'] for data in run['iter%i'%i]])
 
             # How long is this utilization array?
             N = len(newutil)
@@ -434,7 +406,7 @@ def run_benchmarks(args):
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
         'flags': 'has_info:=false pub_output_img:=true',
         'compressed': True,
-        'duration': 5,
+        'duration': 20,
         'silent': True,
         'fps': 30
     }
@@ -458,16 +430,16 @@ def run_benchmarks(args):
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
         'flags': 'has_info:=false pub_output_img:=true',
         'compressed': True,
-        'duration': 60,
+        'duration': 5,
         'silent': True,
         'fps': 30
     }
     s = Scenario(name, desc, **opts)
 
     # Benchmark the scenario and add the results
-    benchmark = BenchmarkRunner(s, frame_strides)
-    results = benchmark.run()
-    analyzer.add(s, results)
+    # benchmark = BenchmarkRunner(s, frame_strides)
+    # results = benchmark.run()
+    # analyzer.add(s, results)
 
     # =========================================================================
 
