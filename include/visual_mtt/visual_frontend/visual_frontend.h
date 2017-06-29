@@ -85,10 +85,6 @@ namespace visual_frontend {
 
     // downsize scale
     double downsize_scale_;
-
-    // internal timers
-    ros::Time tic_, toc_;
-    ros::Duration t_features_, t_homography_, t_measurements_, t_recognition_;
   };
 
 }

@@ -28,9 +28,6 @@ VisualFrontend::VisualFrontend()
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
-
-  // temporary 0, until recognition is implemented
-  t_recognition_ = ros::Duration(0);
 }
 
 // ----------------------------------------------------------------------------
@@ -41,15 +38,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   static int frame = 0;
   if (frame++ % frame_stride_ != 0)
     return;
-
-  tic_ = ros::Time::now();
-
-  // calculate the frame delay
-  // average overhead delay when the queue is empty is 2.4ms
-  // warn if frame delay is greater than 50ms (ignoring first few frames)
-  // ros::Duration delay = ros::Time::now() - data->header.stamp;
-  // if (delay.toSec()>0.05 && frame>30)
-  //   ROS_ERROR_STREAM("(" << frame << ") " << "visual frontend cannot run real-time: delay = " << delay.toSec() << " s");
 
   // save the camera parameters and frame timestamp
   timestamp_frame_ = data->header.stamp;
@@ -74,6 +62,11 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     info_received_ = true;
   }
 
+  //
+  // Initial image processing
+  //
+  auto tic = ros::Time::now();
+
   // convert message data into OpenCV type cv::Mat
   hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
 
@@ -87,30 +80,41 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   add_frame(hd_frame_in, hd_frame);
   add_frame(sd_frame_in, sd_frame);
 
+  //
+  // Feature Manager: LKT Tracker, ORB-BN, etc
+  //
+
   // manage features (could be LK, NN, Brute Force)
   feature_manager_.find_correspondences(hd_frame); // in future operate on sd
-  toc_ = ros::Time::now();
-  t_features_ = toc_ - tic_;
+  auto t_features = ros::Time::now() - tic;
+
+  //
+  // Homography Manager
+  //
+  tic = ros::Time::now();
 
   // calculate the homography
-  tic_ = ros::Time::now();
   homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
-  toc_ = ros::Time::now();
-  t_homography_ = toc_ - tic_;
+  auto t_homography = ros::Time::now() - tic;
+
+  //
+  // Measurement Generation from multiple sources
+  //
+  tic = ros::Time::now();
 
   // call measurement sources execution
-  tic_ = ros::Time::now();
   generate_measurements();
-  toc_ = ros::Time::now();
-  t_measurements_ = toc_ - tic_;
+  auto t_measurements = ros::Time::now() - tic;
 
+  //
   // publish stats
+  //
+
   visual_mtt::Stats stats;
   stats.stride = frame_stride_;
-  stats.times.push_back(t_features_.toSec());
-  stats.times.push_back(t_homography_.toSec());
-  stats.times.push_back(t_measurements_.toSec());
-  stats.times.push_back(t_recognition_.toSec());
+  stats.t_feature_manager = t_features.toSec();
+  stats.t_homography_manager = t_homography.toSec();
+  stats.t_measurement_generation = t_measurements.toSec();
   pub_stats.publish(stats);
 }
 

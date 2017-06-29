@@ -185,10 +185,9 @@ void RRANSAC::callback_stats(const visual_mtt::Stats& data)
   frame_stride_ = data.stride;
   double t_available = (1/fps_)*frame_stride_;
   double t_computation = 0;
-  for (int i; i<data.times.size(); i++)
-  {
-    t_computation += data.times[i];
-  }
+  t_computation += data.t_feature_manager;
+  t_computation += data.t_homography_manager;
+  t_computation += data.t_measurement_generation;
 
   // Low-pass filter utilization
   double alpha;
