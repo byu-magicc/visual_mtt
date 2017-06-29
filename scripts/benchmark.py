@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
-import time, pickle
+import sys
+import time, datetime, pickle
 import os, subprocess, signal
 
 import rospy, rosbag
 import dynamic_reconfigure.client
 
-from colorama import init; init()
-from termcolor import colored
+from colorama import init; init(autoreset=True)
+from colorama import Fore, Style
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,7 +72,7 @@ class ROSLauncher(object):
         """
         if not rospy.is_shutdown():
             cmd = 'roslaunch visual_mtt play_from_recording.launch {} > /dev/null 2>&1'.format(self.flags)
-            print("Running command: {}".format(cmd))
+            # print("Running command: {}".format(cmd))
             self.process = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
 
         else:
@@ -111,7 +112,9 @@ class Scenario(object):
         super(Scenario, self).__init__()
         self.name = name
         self.desc = desc
+        self.kwargs = kwargs
 
+        self.bag_path = ''
         self.bag_topic = ''
         self.bag_topic_type = Image
 
@@ -122,6 +125,7 @@ class Scenario(object):
         self.flags = ''
 
         if 'bag_path' in kwargs:
+            self.bag_path = kwargs['bag_path']
             self.flags += ' bag_path:={}'.format(kwargs['bag_path'])
             bag = rosbag.Bag(kwargs['bag_path'])
             self.duration = round(bag.get_end_time() - bag.get_start_time(), 2)
@@ -162,7 +166,16 @@ class Scenario(object):
         """
         start = time.time()
         while not rospy.is_shutdown():
-            if (time.time() - start) > self.duration:
+
+            # Calculate the elapsed time
+            elapsed = time.time() - start
+
+            # Print out our progress
+            sys.stdout.write('\tProgress:\t%0.2f/%0.2f s \t [%0.1f%%]\r' % (elapsed, self.duration, elapsed/self.duration*100) )
+            sys.stdout.flush()
+
+            if elapsed > self.duration:
+                print
                 break
 
 
@@ -189,6 +202,14 @@ class Scenario(object):
 
         # Kill the launch/node
         self.launch.stop()
+
+
+    def serialize(self):
+        return {
+            'name': self.name,
+            'desc': self.desc,
+            'opts': self.kwargs
+        }
         
 
 
@@ -198,7 +219,7 @@ class BenchmarkRunner(object):
         Create an object that runs the benchmark.
 
     """
-    ITERS = 3
+    ITERS = 2
     def __init__(self, scenario, frame_strides):
         super(BenchmarkRunner, self).__init__()
 
@@ -217,35 +238,6 @@ class BenchmarkRunner(object):
         # Hook up ROS subscribers
         rospy.Subscriber('/stats', Stats, self._handle_stats)
 
-        if self.fps == 0:
-            rospy.Subscriber(scenario.bag_topic, scenario.bag_topic_type, self._handle_frame)
-
-
-
-    def _handle_frame(self, msg):
-        """Handle Frame
-
-            The sole purpose of this subscriber is to
-            measure the frame rate of the camera.
-
-            We ues an alpha-filter (LPF) to do this.
-
-            Best case is that the user passes in the fps
-            so that we don't have to do this estimation.
-        """
-        if self.first_seq == 0:
-            self.first_seq = msg.header.seq
-
-        alpha = 0.95 if (msg.header.seq-self.first_seq) < 30 else 0 # 0.003, only take the first 30 as measurments 
-
-        # enforce realistic time differences (for rosbag looping)
-        elapsed = time.time() - self.last_frame_time;
-        if not (elapsed <= 0 or elapsed > 1):
-            self.fps = alpha*(1.0/elapsed) + (1-alpha)*self.fps
-
-        # Update the header
-        self.last_frame_time = time.time()
-
 
     def _handle_stats(self, msg):
         # Put the data in a dictionary
@@ -260,16 +252,31 @@ class BenchmarkRunner(object):
         run['iter%i'%self.current_iter].append(data)
 
 
-    def run(self, filename=None):
+    def run(self):
 
-        print("Scenario")
-        print("\033[1;33m%s: \033[2;33m%s\033[0m"%(self.scenario.name, self.scenario.desc))
+        # Calculate total seconds
+        t_secs = self.scenario.duration * BenchmarkRunner.ITERS * len(self.frame_strides)
+
+        print
+        print
+        print(Fore.BLUE + Style.DIM + '='*80)
+        print(Fore.YELLOW + Style.BRIGHT + 'Benchmark Scenario: ' + Style.DIM + self.scenario.name)
+        print(Fore.BLUE + Style.DIM + '='*80)
+        print('Description:\t{}'.format(self.scenario.desc))
+        print('Bag Path:\t{}'.format(self.scenario.bag_path))
+        print('Iterations:\t{}'.format(BenchmarkRunner.ITERS))
+        print('Frame Strides:\t{}'.format(self.frame_strides))
+        print('Duration:\t{} seconds each run, {} seconds total'.format(self.scenario.duration, t_secs))
+        print(Fore.BLUE + Style.DIM + '-'*80)
+
         
         #
         # Run the scenario and gather data
         #
 
         for fs in self.frame_strides:
+
+            print(Style.BRIGHT + 'Frame Stride: ' + Style.DIM + str(fs))
 
             self.runs.append({
                     'stride': fs,
@@ -286,7 +293,7 @@ class BenchmarkRunner(object):
                 self.scenario.run(fs)
 
         #
-        # Process the data to compue utilization
+        # Process the data to compute utilization
         #
 
         for run in self.runs:
@@ -299,21 +306,6 @@ class BenchmarkRunner(object):
                     util.append( get_utilization(idx, data, stride, fps) )
 
                 run['iter%iutil'%i] = util
-
-
-        #
-        # Save the data to file
-        #
-
-        # If no filename supplied
-        if filename is None:
-            filename = self.scenario.name
-
-        # Make sure it's a good filename
-        filename = filename.lower().replace(' ', '_')
-
-        with open(filename + '.pickle', 'wb') as f:
-            pickle.dump(self.runs, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         return self.runs
 
@@ -338,14 +330,16 @@ class BenchmarkAnalyzer(object):
         iters = run['iters']
         for i in xrange(iters):
 
+            newutil = np.array(run['iter%iutil'%i])
+
             # How long is this utilization array?
-            N = len(run['iter%iutil'%i])
+            N = len(newutil)
 
             # Shrink util array if needed
             if len(util) > N:
                 util = util[0:N]
 
-            util += np.array(run['iter%iutil'%i])
+            util += newutil[0:len(util)]
 
         # Average
         util = util/float(iters)
@@ -375,11 +369,28 @@ class BenchmarkAnalyzer(object):
                 plt.show()
 
 
-        
+    def save(self, filename=None):
+        # If no filename supplied
+        if filename is None:
+            today = datetime.datetime.now().strftime("%d%B%Y %H:%M:%S")
+            filename = 'benchmarks_{}'.format(today)
+
+        # Make sure it's a good filename
+        filename = filename.lower().replace(' ', '_')
+
+        dump = []
+        for data in self.data:
+            d = {
+                'scenario': data['scenario'].serialize(),
+                'results': data['results']
+            }
+            dump.append(d)
+
+        with open(filename + '.pickle', 'wb') as f:
+            pickle.dump(dump, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-if __name__ == '__main__':
-
+def run_benchmarks():
     rospy.init_node('benchmark', anonymous=False)
 
     # Create a benchmark data analyzer
@@ -398,12 +409,12 @@ if __name__ == '__main__':
     name = 'Kiwanis Frisbee'
     desc = 'moving platform, low altitude'
     opts = {
-        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.bag',
+        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.split.bag',
         'bag_topic': '/image_flipped',
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
         'flags': 'has_info:=false',
         'compressed': True,
-        'duration': 100,
+        'duration': 5,
         'silent': True,
         'fps': 30
     }
@@ -434,5 +445,35 @@ if __name__ == '__main__':
 
     # =========================================================================
 
-    # Analyze the results
-    analyzer.analyze()
+    # Save and return the data analyzer
+    analyzer.save()
+    return analyzer
+        
+
+
+if __name__ == '__main__':
+
+    analyzer = run_benchmarks()
+
+    # # Define the scenario
+    # name = 'Kiwanis Frisbee'
+    # desc = 'moving platform, low altitude'
+    # opts = {
+    #     'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.bag',
+    #     'bag_topic': '/image_flipped',
+    #     'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
+    #     'flags': 'has_info:=false',
+    #     'compressed': True,
+    #     'duration': 100,
+    #     'silent': True,
+    #     'fps': 30
+    # }
+    # s1 = Scenario(name, desc, **opts)
+
+    # with open('kiwanis_frisbee_long.pickle', 'rb') as f:
+    #     results = pickle.load(f)
+
+    # analyzer = BenchmarkAnalyzer()
+    # analyzer.add(s1, results)
+
+    # analyzer.analyze()
