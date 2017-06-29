@@ -294,8 +294,23 @@ class BenchmarkAnalyzer(object):
         self.data = [] # { scenario: s, results: [] }
         
 
-    def _avg_utilizations(self, run):
-        """Average Utilizations
+    def _smooth(self, data, alpha=0.1):
+        """Smooth
+        """
+
+        # Start with initial value
+        x = data[0]
+
+        # LPF data
+        smoothed = []
+        for d in data:
+            x = alpha*d + (1-alpha)*x
+            smoothed.append(x)
+
+        return smoothed
+
+    def _avg_run(self, run):
+        """Average Utilizations (run)
 
             Average the utillization across the iterations of
             the same scenario with the same stride.
@@ -307,7 +322,9 @@ class BenchmarkAnalyzer(object):
         """
 
         # Decide which utilizations we want to average/return
-        ukeys = ['u_total', 'u_feature_manager', 'u_homography_manager', 'u_measurement_generation', 'u_rransac']
+        ukeys = ['u_total', 'u_feature_manager', 'u_homography_manager',
+                        'u_measurement_generation', 'u_rransac',
+                        'track_count', 'measurement_count']
         utils = {u:[] for u in ukeys}
 
         for key in ukeys:
@@ -389,26 +406,51 @@ class BenchmarkAnalyzer(object):
         """
 
         for data in self.data:
-            for run in data['results']:
-                utils = self._avg_utilizations(run)
+
+            # Create subplots
+            f, axarr = plt.subplots(len(data['results']), sharex=False)
+
+            for i, run in enumerate(data['results']):
+                utils = self._avg_run(run)
 
                 u_total = utils['u_total']
                 u_fm = utils['u_feature_manager']
                 u_hm = utils['u_homography_manager']
                 u_mg = utils['u_measurement_generation']
                 u_rt = utils['u_rransac']
+                tc = self._smooth(utils['track_count'], alpha=0.3)
+                mc = self._smooth(utils['measurement_count'])
                 
-                plt.plot(u_total, label='Total')
-                plt.plot(u_fm, label='Feature Manager')
-                plt.plot(u_hm, label='Homography Manager')
-                plt.plot(u_mg, label='Measurement Generation')
-                plt.plot(u_rt, label='R-RANSAC Tracker')
-                plt.title(data['scenario'].name + ' w/ stride ' + str(run['stride']))
-                plt.legend(loc='best')
-                plt.xlabel('R-RANSAC Iteration'); plt.ylabel('Utilization')
-                plt.axis([0, np.size(u_total), 0, max(1.5, np.max(u_total))])
-                plt.show()
 
+                axarr[i].plot(u_total, label='Total')
+                # axarr[i].plot(u_fm, label='Feature Manager')
+                # axarr[i].plot(u_hm, label='Homography Manager')
+                # axarr[i].plot(u_mg, label='Measurement Generation')
+                # axarr[i].plot(u_rt, label='R-RANSAC Tracker')
+
+                # Second y-axis plots
+                ax2 = axarr[i].twinx()
+                ax2.plot(tc, 'k:', label='Track Count')
+                ax2.plot(mc, 'g:', label='Measurement Count')
+                ax2.set_ylabel('Count')
+
+                axarr[i].set_ylabel('Stride {}\nUtilization'.format(run['stride']))
+                axarr[i].axis([0, np.size(u_total), 0, max(1.0, np.max(u_total))])
+
+                if i == 0:
+                    axarr[i].set_title(data['scenario'].name)
+
+                    # added these three lines
+                    lns = axarr[i].lines + ax2.lines
+                    labs = [l.get_label() for l in lns]
+                    axarr[i].legend(lns, labs, loc='best', prop={'size': 8})
+
+                if i == len(axarr)-1:
+                    axarr[i].set_xlabel('Iteration')
+
+
+        plt.tight_layout()
+        plt.show()
 ###############################################################################
 ###############################################################################
 
