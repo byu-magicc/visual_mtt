@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys
+import sys, argparse
 import time, datetime, pickle
 import os, subprocess, signal
 
@@ -219,7 +219,7 @@ class BenchmarkRunner(object):
         Create an object that runs the benchmark.
 
     """
-    ITERS = 2
+    ITERS = 3
     def __init__(self, scenario, frame_strides):
         super(BenchmarkRunner, self).__init__()
 
@@ -325,7 +325,7 @@ class BenchmarkAnalyzer(object):
             the same scenario with the same stride.
         """
 
-        util = np.array(run['iter0util'])
+        util = np.zeros(len(run['iter0util']))
 
         iters = run['iters']
         for i in xrange(iters):
@@ -363,17 +363,22 @@ class BenchmarkAnalyzer(object):
                 util = self._smooth_utilization(run)
                 
                 plt.plot(util)
-                plt.title(data['scenario'].name)
+                plt.title(data['scenario'].name + ' w/ stride ' + str(run['stride']))
                 plt.xlabel('R-RANSAC Iteration')
                 plt.ylabel('Utilization')
+                plt.axis([0, np.size(util), 0, max(1.5, np.max(util))])
                 plt.show()
 
 
     def save(self, filename=None):
         # If no filename supplied
         if filename is None:
-            today = datetime.datetime.now().strftime("%d%B%Y %H:%M:%S")
-            filename = 'benchmarks_{}'.format(today)
+            today = datetime.datetime.now().strftime("%d%B%Y_%H%M%S")
+            filename = 'benchmarks_{}.pickle'.format(today)
+
+        # Add extension if necessary
+        if '.' not in filename:
+            filename += '.pickle'
 
         # Make sure it's a good filename
         filename = filename.lower().replace(' ', '_')
@@ -386,11 +391,26 @@ class BenchmarkAnalyzer(object):
             }
             dump.append(d)
 
-        with open(filename + '.pickle', 'wb') as f:
+        with open(filename, 'wb') as f:
             pickle.dump(dump, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+    def load(self, filename):
+        print(Fore.GREEN + "Opening {}".format(filename))
 
-def run_benchmarks():
+        with open(filename, 'rb') as f:
+            dump = pickle.load(f)
+
+        for data in dump:
+            sopts = data['scenario']
+            name = sopts['name']
+            desc = sopts['desc']
+            del sopts['name']
+            del sopts['desc']
+            s = Scenario(name, desc, **sopts)
+            self.add(s, data['results'])
+
+
+def run_benchmarks(args):
     rospy.init_node('benchmark', anonymous=False)
 
     # Create a benchmark data analyzer
@@ -412,68 +432,62 @@ def run_benchmarks():
         'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.split.bag',
         'bag_topic': '/image_flipped',
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
-        'flags': 'has_info:=false',
+        'flags': 'has_info:=false pub_output_img:=true',
         'compressed': True,
         'duration': 5,
         'silent': True,
         'fps': 30
     }
-    s1 = Scenario(name, desc, **opts)
+    s = Scenario(name, desc, **opts)
 
     # Benchmark the scenario and add the results
-    benchmark = BenchmarkRunner(s1, frame_strides)
+    benchmark = BenchmarkRunner(s, frame_strides)
     results = benchmark.run()
-    analyzer.add(s1, results)
-
-    import ipdb; ipdb.set_trace()
+    analyzer.add(s, results)
 
     #
     # Benchmark Scenario 2
     # 
 
     # Define the scenario
-    name = 'Kiwanis Frisbee'
+    name = 'Kiwanis Variety'
     desc = 'moving platform, low altitude'
-    bag = '/home/plusk01/Documents/bags/kiwanis/kiwanis_short.bag'
-    topic = '/image_flipped'
-    cam_info = '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml'
-    flags = 'compressed:=true has_info:=false'
-    s2 = Scenario(name, desc, bag_path=bag, bag_topic=topic, cam_info=cam_info, flags=flags)
+    opts = {
+        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_variety.bag',
+        'bag_topic': '/image_flipped',
+        'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
+        'flags': 'has_info:=false pub_output_img:=true',
+        'compressed': True,
+        'duration': 60,
+        'silent': True,
+        'fps': 30
+    }
+    s = Scenario(name, desc, **opts)
 
-    # benchmark = BenchmarkRunner(s2, frame_strides)
-    # benchmark.run()
+    # Benchmark the scenario and add the results
+    benchmark = BenchmarkRunner(s, frame_strides)
+    results = benchmark.run()
+    analyzer.add(s, results)
 
     # =========================================================================
 
     # Save and return the data analyzer
-    analyzer.save()
+    analyzer.save(args['output'])
     return analyzer
         
 
 
 if __name__ == '__main__':
 
-    analyzer = run_benchmarks()
+    parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
+    parser.add_argument('-a', '--analyze', help='Pickled benchmark results to analyze', required=False)
+    parser.add_argument('-o', '--output', help='Filename of the benchmark results', required=False)
+    args = vars(parser.parse_args())
 
-    # # Define the scenario
-    # name = 'Kiwanis Frisbee'
-    # desc = 'moving platform, low altitude'
-    # opts = {
-    #     'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.bag',
-    #     'bag_topic': '/image_flipped',
-    #     'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
-    #     'flags': 'has_info:=false',
-    #     'compressed': True,
-    #     'duration': 100,
-    #     'silent': True,
-    #     'fps': 30
-    # }
-    # s1 = Scenario(name, desc, **opts)
 
-    # with open('kiwanis_frisbee_long.pickle', 'rb') as f:
-    #     results = pickle.load(f)
-
-    # analyzer = BenchmarkAnalyzer()
-    # analyzer.add(s1, results)
-
-    # analyzer.analyze()
+    if args['analyze'] is not None:
+        analyzer = BenchmarkAnalyzer()
+        analyzer.load(args['analyze'])
+        analyzer.analyze()
+    else:
+        analyzer = run_benchmarks(args)

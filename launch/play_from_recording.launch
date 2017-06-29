@@ -151,6 +151,7 @@
     <arg name="params" value="$(arg params)" />
     <arg name="tuning" value="$(arg tuning)" />
     <arg name="show_tracks" value="$(arg show_tracks)" />
+    <arg name="pub_output_img" value="$(arg pub_output_img)" />
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
   </include>
 
