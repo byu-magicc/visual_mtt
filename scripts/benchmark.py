@@ -55,7 +55,8 @@ class ROSLauncher(object):
         # Wait a second to let roslaunch cleanly exit
         time.sleep(1.5)
 
-
+###############################################################################
+###############################################################################
 
 class Scenario(object):
     """Scenario
@@ -194,7 +195,8 @@ class Scenario(object):
             'opts': self.kwargs
         }
         
-
+###############################################################################
+###############################################################################
 
 class BenchmarkRunner(object):
     """BenchmarkRunner
@@ -281,6 +283,8 @@ class BenchmarkRunner(object):
 
         return self.runs
 
+###############################################################################
+###############################################################################
 
 class BenchmarkAnalyzer(object):
     """BenchmarkAnalyzer"""
@@ -290,36 +294,46 @@ class BenchmarkAnalyzer(object):
         self.data = [] # { scenario: s, results: [] }
         
 
-    def _smooth_utilization(self, run):
-        """Smooth Utilization
+    def _avg_utilizations(self, run):
+        """Average Utilizations
 
             Average the utillization across the iterations of
             the same scenario with the same stride.
+            (i.e., average iter0, iter1, etc)
+
+            Since there could potentially be a different number
+            of datapoints in the same run, this just truncates
+            to the smallest length array.
         """
 
-        util = np.zeros(len(run['iter0']))
+        # Decide which utilizations we want to average/return
+        ukeys = ['u_total', 'u_feature_manager', 'u_homography_manager', 'u_measurement_generation', 'u_rransac']
+        utils = {u:[] for u in ukeys}
 
-        iters = run['iters']
-        for i in xrange(iters):
+        for key in ukeys:
+            util = np.zeros(len(run['iter0']))
 
-            newutil = np.array([data['u_total'] for data in run['iter%i'%i]])
+            iters = run['iters']
+            for i in xrange(iters):
 
-            # How long is this utilization array?
-            N = len(newutil)
+                newutil = np.array([data[key] for data in run['iter%i'%i]])
 
-            # Shrink util array if needed
-            if len(util) > N:
-                util = util[0:N]
+                # How long is this utilization array?
+                N = len(newutil)
 
-            util += newutil[0:len(util)]
+                # Shrink util array if needed
+                if len(util) > N:
+                    util = util[0:N]
 
-        # Average
-        util = util/float(iters)
+                util += newutil[0:len(util)]
 
-        # Burn the first 30 data points
-        return util[30:]
+            # Average
+            util = util/float(iters)
 
+            # Burn the first 30 data points
+            utils[key] = util[30:]
 
+        return utils
 
 
     def add(self, scenario, results):
@@ -327,19 +341,6 @@ class BenchmarkAnalyzer(object):
 
         """
         self.data.append({ 'scenario': scenario, 'results': results })
-
-
-    def analyze(self):
-        for data in self.data:
-            for run in data['results']:
-                util = self._smooth_utilization(run)
-                
-                plt.plot(util)
-                plt.title(data['scenario'].name + ' w/ stride ' + str(run['stride']))
-                plt.xlabel('R-RANSAC Iteration')
-                plt.ylabel('Utilization')
-                plt.axis([0, np.size(util), 0, max(1.5, np.max(util))])
-                plt.show()
 
 
     def save(self, filename=None):
@@ -366,6 +367,7 @@ class BenchmarkAnalyzer(object):
         with open(filename, 'wb') as f:
             pickle.dump(dump, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+
     def load(self, filename):
         print(Fore.GREEN + "Opening {}".format(filename))
 
@@ -381,6 +383,34 @@ class BenchmarkAnalyzer(object):
             s = Scenario(name, desc, **sopts)
             self.add(s, data['results'])
 
+
+    def analyze(self):
+        """Analyze
+        """
+
+        for data in self.data:
+            for run in data['results']:
+                utils = self._avg_utilizations(run)
+
+                u_total = utils['u_total']
+                u_fm = utils['u_feature_manager']
+                u_hm = utils['u_homography_manager']
+                u_mg = utils['u_measurement_generation']
+                u_rt = utils['u_rransac']
+                
+                plt.plot(u_total, label='Total')
+                plt.plot(u_fm, label='Feature Manager')
+                plt.plot(u_hm, label='Homography Manager')
+                plt.plot(u_mg, label='Measurement Generation')
+                plt.plot(u_rt, label='R-RANSAC Tracker')
+                plt.title(data['scenario'].name + ' w/ stride ' + str(run['stride']))
+                plt.legend(loc='best')
+                plt.xlabel('R-RANSAC Iteration'); plt.ylabel('Utilization')
+                plt.axis([0, np.size(u_total), 0, max(1.5, np.max(u_total))])
+                plt.show()
+
+###############################################################################
+###############################################################################
 
 def run_benchmarks(args):
     rospy.init_node('benchmark', anonymous=False)
@@ -454,6 +484,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
     parser.add_argument('-a', '--analyze', help='Pickled benchmark results to analyze', required=False)
     parser.add_argument('-o', '--output', help='Filename of the benchmark results', required=False)
+    parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
     args = vars(parser.parse_args())
 
 
