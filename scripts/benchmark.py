@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, argparse
+import sys, argparse, socket
 import time, datetime, pickle
 import os, subprocess, signal
 
@@ -291,12 +291,15 @@ class BenchmarkAnalyzer(object):
     def __init__(self):
         super(BenchmarkAnalyzer, self).__init__()
 
-        self.data = [] # { scenario: s, results: [] }
+        self.benchmarks = [] # { name: '', scenarios: { scenario: s, results: [] } }
         
 
     def _smooth(self, data, alpha=0.1):
         """Smooth
         """
+
+        if len(data) == 0:
+            return data
 
         # Start with initial value
         x = data[0]
@@ -347,70 +350,22 @@ class BenchmarkAnalyzer(object):
             # Average
             util = util/float(iters)
 
-            # Burn the first 30 data points
-            utils[key] = util[30:]
+            # Burn the first and last 30 data points
+            utils[key] = util[30:-30]
 
         return utils
 
 
-    def add(self, scenario, results):
-        """Add
-
-        """
-        self.data.append({ 'scenario': scenario, 'results': results })
-
-
-    def save(self, filename=None):
-        # If no filename supplied
-        if filename is None:
-            today = datetime.datetime.now().strftime("%d%B%Y_%H%M%S")
-            filename = 'benchmarks_{}.pickle'.format(today)
-
-        # Add extension if necessary
-        if '.' not in filename:
-            filename += '.pickle'
-
-        # Make sure it's a good filename
-        filename = filename.lower().replace(' ', '_')
-
-        dump = []
-        for data in self.data:
-            d = {
-                'scenario': data['scenario'].serialize(),
-                'results': data['results']
-            }
-            dump.append(d)
-
-        with open(filename, 'wb') as f:
-            pickle.dump(dump, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-
-    def load(self, filename):
-        print(Fore.GREEN + "Opening {}".format(filename))
-
-        with open(filename, 'rb') as f:
-            dump = pickle.load(f)
-
-        for data in dump:
-            sopts = data['scenario']
-            name = sopts['name']
-            desc = sopts['desc']
-            del sopts['name']
-            del sopts['desc']
-            s = Scenario(name, desc, **sopts)
-            self.add(s, data['results'])
-
-
-    def analyze(self):
-        """Analyze
+    def _timeline_plots(self, benchmark):
+        """Timeline Plots
         """
 
-        for data in self.data:
+        for scenario in benchmark['scenarios']:
 
             # Create subplots
-            f, axarr = plt.subplots(len(data['results']), sharex=False)
+            f, axarr = plt.subplots(len(scenario['results']), sharex=False)
 
-            for i, run in enumerate(data['results']):
+            for i, run in enumerate(scenario['results']):
                 utils = self._avg_run(run)
 
                 u_total = utils['u_total']
@@ -420,7 +375,7 @@ class BenchmarkAnalyzer(object):
                 u_rt = utils['u_rransac']
                 tc = self._smooth(utils['track_count'], alpha=0.3)
                 mc = self._smooth(utils['measurement_count'])
-                
+
 
                 axarr[i].plot(u_total, label='Total')
                 # axarr[i].plot(u_fm, label='Feature Manager')
@@ -435,10 +390,12 @@ class BenchmarkAnalyzer(object):
                 ax2.set_ylabel('Count')
 
                 axarr[i].set_ylabel('Stride {}\nUtilization'.format(run['stride']))
-                axarr[i].axis([0, np.size(u_total), 0, max(1.0, np.max(u_total))])
+                if np.size(u_total) is not 0:
+                    axarr[i].axis([0, np.size(u_total), 0, max(1.0, np.max(u_total))])
 
                 if i == 0:
-                    axarr[i].set_title(data['scenario'].name)
+                    pre = benchmark['name'] + ': ' if len(benchmark['name']) > 0 else ''
+                    axarr[i].set_title(pre + scenario['scenario'].name)
 
                     # added these three lines
                     lns = axarr[i].lines + ax2.lines
@@ -450,7 +407,84 @@ class BenchmarkAnalyzer(object):
 
 
         plt.tight_layout()
+
+
+    def add(self, scenario, results):
+        """Add
+
+            Assumes only one benchmark
+        """
+        if len(self.benchmarks) == 0:
+            self.benchmarks.append({ 'name': '', 'scenarios': []})
+        self.benchmarks[-1]['scenarios'].append({ 'scenario': scenario, 'results': results })
+
+
+    def save(self, filename=None, has_cuda=False):
+        # If no filename supplied
+        if filename is None:
+            hostname = socket.gethostname()
+            if has_cuda:
+                hostname += '_cuda'
+            filename = 'bm_{}.pickle'.format(hostname)
+
+        # Make sure it's a good filename
+        keepcharacters = ('_')
+        filename = "".join(c for c in filename if c.isalnum() or c in keepcharacters).rstrip()
+
+        # Add extension if necessary
+        if '.' not in filename:
+            filename += '.pickle'
+
+        scenarios = []
+        for scenario in self.benchmarks[-1]['scenarios']:
+            d = {
+                'scenario': scenario['scenario'].serialize(),
+                'results': scenario['results']
+            }
+            scenarios.append(d)
+
+        with open(filename, 'wb') as f:
+            # Dump a benchmark (a pickle file == a benchmark)
+            pickle.dump(scenarios, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+    def load(self, filenames):
+
+        # each filename corresponds to a benchmark
+        for filename in filenames:
+            print(Fore.GREEN + "Loading benchmark data from {}".format(filename))
+
+            with open(filename, 'rb') as f:
+                dump = pickle.load(f)
+
+            scenarios = []
+            for data in dump:
+                sopts = data['scenario']
+                name = sopts['name']
+                desc = sopts['desc']
+                del sopts['name']
+                del sopts['desc']
+                s = Scenario(name, desc, **sopts)
+
+                scenario = { 'scenario': s, 'results': data['results'] }
+                scenarios.append(scenario)
+
+            self.benchmarks.append({
+                    'name': filename.split('.pickle')[0],
+                    'scenarios': scenarios
+                })
+
+
+    def analyze(self, args):
+        """Analyze
+        """
+
+        for benchmark in self.benchmarks:
+            if args['timeline']:
+                self._timeline_plots(benchmark)
+
         plt.show()
+
 ###############################################################################
 ###############################################################################
 
@@ -509,14 +543,14 @@ def run_benchmarks(args):
     s = Scenario(name, desc, **opts)
 
     # Benchmark the scenario and add the results
-    # benchmark = BenchmarkRunner(s, frame_strides)
-    # results = benchmark.run()
-    # analyzer.add(s, results)
+    benchmark = BenchmarkRunner(s, frame_strides)
+    results = benchmark.run()
+    analyzer.add(s, results)
 
     # =========================================================================
 
     # Save and return the data analyzer
-    analyzer.save(args['output'])
+    analyzer.save(args['output'], args['cuda'])
     return analyzer
         
 
@@ -524,15 +558,15 @@ def run_benchmarks(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
-    parser.add_argument('-a', '--analyze', help='Pickled benchmark results to analyze', required=False)
+    parser.add_argument('benchmark_files', help='Pickled benchmark results file to analyze', nargs='*')
     parser.add_argument('-o', '--output', help='Filename of the benchmark results', required=False)
     parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
+    parser.add_argument('--timeline', help='Plot statistics over time', action='store_true')
     args = vars(parser.parse_args())
 
-
-    if args['analyze'] is not None:
+    if len(args['benchmark_files']) > 0:
         analyzer = BenchmarkAnalyzer()
-        analyzer.load(args['analyze'])
-        analyzer.analyze()
+        analyzer.load(args['benchmark_files'])
+        analyzer.analyze(args)
     else:
         analyzer = run_benchmarks(args)
