@@ -17,6 +17,21 @@ from std_msgs.msg import Header
 from sensor_msgs.msg import CompressedImage, Image
 from visual_mtt.msg import Tracks
 
+"""
+
+    Data structure:
+        - Each pickle file is called a benchmark.
+        - A benchmark is made up of scenarios.
+        - Each scenario is ran with varying frame strides.
+        - each scenario/frame_stride combination is ran for
+            BenchmarkRunner.ITERS iterations to average good data
+            This combination is called a run
+        - Each run ('iter0', 'iter1', etc) is a list of dicts in
+            the following form:
+
+
+"""
+
 
 class ROSLauncher(object):
     """ROSLauncher
@@ -355,6 +370,36 @@ class BenchmarkAnalyzer(object):
 
         return utils
 
+    def _avg_utils(self, utils_list):
+        """Average Utils
+
+        """
+
+        result_util = {}
+
+        for key in utils_list[0].keys():
+
+            batch_util = np.zeros(len(utils_list[0][key]))
+
+            for util in utils_list:
+
+                # How long is the current util array?
+                N = len(util[key])
+
+                # Shrink batch_util array if needed
+                if len(batch_util) > N:
+                    batch_util = batch_util[0:N]
+
+                batch_util += util[key][0:len(batch_util)]
+
+            # Average
+            batch_util = batch_util/float(len(utils_list))
+
+            # Add to the final result
+            result_util[key] = batch_util
+
+        return result_util
+
 
     def _timeline_plots(self, benchmark):
         """Timeline Plots
@@ -406,7 +451,36 @@ class BenchmarkAnalyzer(object):
                     axarr[i].set_xlabel('Iteration')
 
 
-        plt.tight_layout()
+    def _combine_scenarios(self, benchmark):
+        """Combine Scenarios
+
+            ASSUMPTION: All scenarios were ran with the same stride parameters.
+        """
+
+        # How many strides are there? Note the assumption that the first scenario is
+        # representative (in number or strides) of all scenarios
+        strides = [result['stride'] for result in benchmark['scenarios'][0]['results']]
+
+
+        # Store the results in a dictionary by stride
+        utils_by_stride = {}
+
+        for i, stride in enumerate(strides):
+
+            utils_with_same_stride = []
+
+            # For each scenario, average the runs with the same frame stride
+            # And keep in a list to average all those.
+            for scenario in benchmark['scenarios']:
+
+                run = scenario['results'][i]
+                utils = self._avg_run(run)
+                utils_with_same_stride.append(utils)
+
+            # Average all the utils with the same stride from different scenarios
+            utils_by_stride[stride] = self._avg_utils(utils_with_same_stride)
+
+        return utils_by_stride
 
 
     def add(self, scenario, results):
@@ -425,7 +499,7 @@ class BenchmarkAnalyzer(object):
             hostname = socket.gethostname()
             if has_cuda:
                 hostname += '_cuda'
-            filename = 'bm_{}.pickle'.format(hostname)
+            filename = 'bm_{}'.format(hostname)
 
         # Make sure it's a good filename
         keepcharacters = ('_')
@@ -479,10 +553,55 @@ class BenchmarkAnalyzer(object):
         """Analyze
         """
 
+        strides = []
+
+        bdata = []
         for benchmark in self.benchmarks:
             if args['timeline']:
                 self._timeline_plots(benchmark)
 
+            utils_by_stride = self._combine_scenarios(benchmark)
+            for stride in utils_by_stride.keys():
+
+                # Save stride for later
+                if stride not in strides:
+                    strides.append(stride)
+
+                util = utils_by_stride[stride]
+                for key in util.keys():
+                    util[key] = np.mean(util[key])
+            bdata.append({'bm': benchmark, 'utils_by_stride': utils_by_stride, 'cuda': False})
+
+
+        for stride in strides:
+            # Create a plot for each stride
+            f, axarr = plt.subplots(1, sharex=False)
+
+            ind = np.arange(len(self.benchmarks))
+            width = 0.15
+
+            keys = ['u_feature_manager', 'u_homography_manager', 'u_measurement_generation', 'u_rransac']
+            colors = ('#d62728', 'royalblue', 'mediumseagreen', 'darkviolet')
+            labels = ('Feature Manager', 'Homography Manager', 'Meas Generation', 'R-RANSAC')
+            for i,key in enumerate(keys):
+                # Get non-CUDA utilizations by stride
+                data = [b['utils_by_stride'][stride][key] if not b['cuda'] else 0 for b in bdata]
+                axarr.bar(ind, data, width, color=colors[i], label=labels[i])
+
+                # Get CUDA uttilizations by stride
+                data = [b['utils_by_stride'][stride][key] if b['cuda'] else 0 for b in bdata]
+                axarr.bar(ind + width, data, width, color=colors[i])
+
+            # add some text for labels, title and axes ticks
+            axarr.set_ylabel('Avg. Util.')
+            axarr.set_title('Utilization Summary for Stride = {}'.format(stride))
+            axarr.set_xticks(ind + width / 2.0)
+            axarr.set_xticklabels([b['name'] for b in self.benchmarks])
+            axarr.set_ylim([0, 1])
+            axarr.legend(loc='best', prop={'size': 10})
+
+
+        plt.tight_layout()
         plt.show()
 
 ###############################################################################
@@ -494,7 +613,7 @@ def run_benchmarks(args):
     # Create a benchmark data analyzer
     analyzer = BenchmarkAnalyzer()
 
-    # Set up common parameters for scenarios
+    # Set up common parameters for scenarios -- must be the same for all
     frame_strides = [1, 2, 3]
 
     # =========================================================================
@@ -559,7 +678,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
     parser.add_argument('benchmark_files', help='Pickled benchmark results file to analyze', nargs='*')
-    parser.add_argument('-o', '--output', help='Filename of the benchmark results', required=False)
+    parser.add_argument('-o', '--output', help='Name of the benchmark results', required=False)
     parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
     parser.add_argument('--timeline', help='Plot statistics over time', action='store_true')
     args = vars(parser.parse_args())
