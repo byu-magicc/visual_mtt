@@ -303,7 +303,7 @@ class ScenarioRunner(object):
         self.launch.run()
 
         # Register a subscriber for this scenario run
-        rospy.Subscriber('/tracks', Tracks, fn_handle)
+        sub = rospy.Subscriber('/tracks', Tracks, fn_handle)
 
         # Dynamic Reconfigure client
         client = dynamic_reconfigure.client.Client('visual_frontend')
@@ -314,6 +314,9 @@ class ScenarioRunner(object):
 
         # Wait until we should stop the scenario
         self._wait_for_end()
+
+        # Make sure to unsubscribe from the topic
+        sub.unregister()
         
         # Kill the launch
         self.launch.stop()
@@ -508,79 +511,6 @@ class BenchmarkAnalyzer(object):
 
         return smoothed
 
-    def _avg_run(self, run):
-        """Average Utilizations (run)
-
-            Average the utillization across the iterations of
-            the same scenario with the same stride.
-            (i.e., average iter0, iter1, etc)
-
-            Since there could potentially be a different number
-            of datapoints in the same run, this just truncates
-            to the smallest length array.
-        """
-
-        # Decide which utilizations we want to average/return
-        ukeys = ['u_total', 'u_feature_manager', 'u_homography_manager',
-                        'u_measurement_generation', 'u_rransac',
-                        'track_count', 'measurement_count']
-        utils = {u:[] for u in ukeys}
-
-        for key in ukeys:
-            util = np.zeros(len(run['iter0']))
-
-            iters = run['iters']
-            for i in xrange(iters):
-
-                newutil = np.array([data[key] for data in run['iter%i'%i]])
-
-                # How long is this utilization array?
-                N = len(newutil)
-
-                # Shrink util array if needed
-                if len(util) > N:
-                    util = util[0:N]
-
-                util += newutil[0:len(util)]
-
-            # Average
-            util = util/float(iters)
-
-            # Burn the first and last 30 data points
-            utils[key] = util[30:-30]
-
-        return utils
-
-    def _avg_utils(self, utils_list):
-        """Average Utils
-
-        """
-
-        result_util = {}
-
-        for key in utils_list[0].keys():
-
-            batch_util = np.zeros(len(utils_list[0][key]))
-
-            for util in utils_list:
-
-                # How long is the current util array?
-                N = len(util[key])
-
-                # Shrink batch_util array if needed
-                if len(batch_util) > N:
-                    batch_util = batch_util[0:N]
-
-                batch_util += util[key][0:len(batch_util)]
-
-            # Average
-            batch_util = batch_util/float(len(utils_list))
-
-            # Add to the final result
-            result_util[key] = batch_util
-
-        return result_util
-
 
     def _timeline_plots(self, benchmark, all=False):
         """Timeline Plots
@@ -590,7 +520,10 @@ class BenchmarkAnalyzer(object):
             for scenario in benchmark['scenarios'][key]:
 
                 # Create subplots: 1 for each stride
-                f, axarr = plt.subplots(len(benchmark['frame_strides']), sharex=False)
+                numsubplots = len(benchmark['frame_strides'])
+                f, axarr = plt.subplots(numsubplots, sharex=False)
+                if numsubplots == 1:
+                    axarr = [axarr]
 
                 for i, stats in enumerate(scenario['statistics']):
 
@@ -681,7 +614,7 @@ class BenchmarkAnalyzer(object):
 
                     # Average the new stats from a different scenario into the summary stats
                     for key in existing_stats.keys():
-                        existing_stats[key]  = np.mean(existing_stats[key] + np.mean(stats[key]))
+                        existing_stats[key]  = (existing_stats[key] + np.mean(stats[key])) / 2.0
 
                 else:
                     summary_stat = {}
@@ -737,11 +670,10 @@ class BenchmarkAnalyzer(object):
             # add some text for labels, title and axes ticks
             axarr.set_ylabel('Avg. Util.')
             axarr.set_title('Utilization Summary for Stride = {}'.format(stride))
-            axarr.set_xticks(ind + width / 2.0)
+            axarr.set_xticks(ind + width)
             axarr.set_xticklabels([b['name'] for b in self.benchmarks])
             axarr.set_ylim([0, max(1, max_utilization)])
             axarr.legend(loc='best', prop={'size': 10})
-
 
         plt.tight_layout()
         plt.show()
