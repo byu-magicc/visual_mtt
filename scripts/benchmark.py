@@ -25,9 +25,78 @@ from visual_mtt.msg import Tracks
         - Each scenario is ran with varying frame strides.
         - each scenario/frame_stride combination is ran for
             BenchmarkRunner.ITERS iterations to average good data
-            This combination is called a run
-        - Each run ('iter0', 'iter1', etc) is a list of dicts in
-            the following form:
+
+
+    *************************************************************
+    *** When running a benchmark and the pickle that is saved ***
+    *************************************************************
+
+    benchmark = {
+        'name': 'tx2',
+        'cuda': False,
+        'frame_strides': [1,2,3],
+        'iterations': BenchmarkRunner.ITERS,
+        'scenarios': [
+            {
+                'name': 'Kiwanis Frisbee',
+                'desc': 'desc',
+                # ... other options from sopts
+                'statistics': [ # by stride
+                    {
+                        'stride': 1,
+                        'u_total': np.array([]),
+                        'u_feature_manager': np.array([]),
+                        'u_homography_manager': np.array([]),
+                        'u_measurement_generation': np.array([]),
+                        'u_rransac': np.array([]),
+                        'u_total': np.array([]),
+                        'track_count': np.array([]),
+                        'measurement_count': np.array([]),
+                        'time_available': np.array([]),
+                    },
+                    { stride: 2, ... }, { stride: 3, ... }
+                ],
+            },
+            { 'name': 'Kiwanis Variety', ... }
+
+        ]
+    }
+
+    *************************************************************
+    *** When analyzing benchmarks and loading from the pickle ***
+    *************************************************************
+
+    benchmark = {
+        'name': 'tx2',
+        'frame_strides': [1,2,3],
+        'iterations': BenchmarkRunner.ITERS,
+        'scenarios': {
+            'cuda': [
+                {
+                    'name': 'Kiwanis Frisbee',
+                    'desc': 'desc',
+                    # ... other options from sopts
+                    'statistics': [ # by stride
+                        {
+                            'stride': 1,
+                            'u_total': np.array([]),
+                            'u_feature_manager': np.array([]),
+                            'u_homography_manager': np.array([]),
+                            'u_measurement_generation': np.array([]),
+                            'u_rransac': np.array([]),
+                            'u_total': np.array([]),
+                            'track_count': np.array([]),
+                            'measurement_count': np.array([]),
+                            'time_available': np.array([]),
+                        },
+                        { stride: 2, ... }, { stride: 3, ... }
+                    ],
+                },
+                { 'name': 'Kiwanis Variety', ... }
+            ],
+            'noncuda': [ ... ]
+        }
+    }
 
 
 """
@@ -70,11 +139,53 @@ class ROSLauncher(object):
         # Wait a second to let roslaunch cleanly exit
         time.sleep(1.5)
 
+
 ###############################################################################
 ###############################################################################
 
-class Scenario(object):
-    """Scenario
+
+class BenchmarkFile(object):
+    """BenchmarkFile"""
+
+    @staticmethod
+    def save(benchmark):
+        """Save
+        """
+
+        name = benchmark['name']
+        if benchmark['cuda']:
+            name += '_cuda'
+
+        # Use the benchmark name to create a filename
+        filename = 'bm_{}.pickle'.format(name)
+        with open(filename, 'wb') as f:
+            # Dump a benchmark (a pickle file == a benchmark)
+            pickle.dump(benchmark, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+    @staticmethod
+    def load(filenames):
+        """Load
+        """
+
+        benchmarks = []
+
+        # each filename corresponds to a benchmark
+        for filename in filenames:
+            print(Fore.GREEN + "Loading benchmark data from {}".format(filename))
+
+            with open(filename, 'rb') as f:
+                benchmark = pickle.load(f)
+
+            benchmarks.append(benchmark)
+
+        return benchmarks
+
+###############################################################################
+###############################################################################
+
+class ScenarioRunner(object):
+    """ScenarioRunner
 
         A Benchmark runs multiple Scenarios. The goal of each scenario is to
         stress test the visual_mtt algorithm under different conditions. For
@@ -93,10 +204,10 @@ class Scenario(object):
             - frame stride
             - max number of features
     """
-    def __init__(self, name, desc, **kwargs):
-        super(Scenario, self).__init__()
-        self.name = name
-        self.desc = desc
+    def __init__(self, **kwargs):
+        super(ScenarioRunner, self).__init__()
+        self.name = kwargs['name']
+        self.desc = kwargs['desc']
         self.kwargs = kwargs
 
         self.bag_path = ''
@@ -159,8 +270,12 @@ class Scenario(object):
             # Calculate the elapsed time
             elapsed = time.time() - start
 
+            # Calculate percentage and make sure that it is less than 100%
+            percent = elapsed/self.duration*100
+            percent = percent if percent < 100 else 100
+
             # Print out our progress
-            sys.stdout.write('\tProgress:    %0.2f/%0.2f s \t [%0.1f%%]\r' % (elapsed, self.duration, elapsed/self.duration*100) )
+            sys.stdout.write('\tProgress:    %0.2f/%0.2f s \t [%0.1f%%]\r' % (elapsed, self.duration, percent) )
             sys.stdout.flush()
 
             if elapsed > self.duration:
@@ -176,7 +291,7 @@ class Scenario(object):
             # rate.sleep()
 
 
-    def run(self, frame_stride):
+    def run(self, frame_stride, fn_handle):
         """Run
 
             Launch the visual_mtt launch file. Then, use Dynamic Reconfigure
@@ -187,6 +302,9 @@ class Scenario(object):
         self.launch = ROSLauncher(self.flags)
         self.launch.run()
 
+        # Register a subscriber for this scenario run
+        rospy.Subscriber('/tracks', Tracks, fn_handle)
+
         # Dynamic Reconfigure client
         client = dynamic_reconfigure.client.Client('visual_frontend')
 
@@ -196,19 +314,10 @@ class Scenario(object):
 
         # Wait until we should stop the scenario
         self._wait_for_end()
-
-        # time.sleep(20)
-
-        # Kill the launch/node
+        
+        # Kill the launch
         self.launch.stop()
-
-
-    def serialize(self):
-        return {
-            'name': self.name,
-            'desc': self.desc,
-            'opts': self.kwargs
-        }
+    
         
 ###############################################################################
 ###############################################################################
@@ -218,85 +327,157 @@ class BenchmarkRunner(object):
         
         Create an object that runs the benchmark.
 
+        A Benchmark represents a set of scenarios. A benchmark has a name
+        and knows whether or not CUDA was enabled.
+
     """
     ITERS = 2
-    def __init__(self, scenario, frame_strides):
+    def __init__(self, name, has_cuda, scenarios, frame_strides=[3]):
         super(BenchmarkRunner, self).__init__()
 
-        self.scenario = scenario
-        self.frame_strides = frame_strides
-        self.current_iter = 0
+        # If no benchmark name is supplied use hostname
+        if name is None:
+            name = socket.gethostname()
 
-        # the last frame/video message received
-        self.fps = scenario.fps
-        self.last_frame_time = 0
-        self.first_seq = 0
+        # Make sure it's a good benchmark name
+        name = "".join(c for c in name if c.isalnum() or c in ('_')).rstrip()
 
-        # Store each stats message each run
-        self.runs = [] # { stride: 1, fps: 30, iter1: [], iter2: [], ... }
+        # Keeps track of which timestep of the rosbag we are on.
+        # i.e., how many Tracks messages have been received for
+        # this iteration?
+        self._t = 0
 
-        # Hook up ROS subscribers
-        rospy.Subscriber('/tracks', Tracks, self._handle_tracks)
+        # Add statistics structure to each scenario dictionary
+        for scenario in scenarios:
+            scenario['statistics'] = []
 
-
-    def _handle_tracks(self, msg):
-        # Extract utilization information
-        data = {
-            'u_feature_manager':        msg.util.feature_manager,
-            'u_homography_manager':     msg.util.homography_manager,
-            'u_measurement_generation': msg.util.measurement_generation,
-            'u_rransac':                msg.util.rransac,
-            'u_total':                  msg.util.total,
-            'track_count':              len(msg.tracks),
-            'measurement_count':        msg.util.number_of_rransac_measurements,
+        # Initialize the benchmark data structure
+        self.benchmark = {
+            'name': name,
+            'cuda': has_cuda,
+            'frame_strides': frame_strides,
+            'iterations': BenchmarkRunner.ITERS,
+            'scenarios': scenarios
         }
 
-        # Add the data to the iteration in the run
-        run = self.runs[-1]
-        run['iter%i'%self.current_iter].append(data)
+        # Start the ROS Node
+        rospy.init_node('benchmark_runner', anonymous=False)
 
 
-    def run(self):
+    def _handle_tracks(self, scenario, iteration, msg):
 
-        # Calculate total seconds
-        t_secs = self.scenario.duration * BenchmarkRunner.ITERS * len(self.frame_strides)
+        # Grab the statistics by frame_stride for convenience
+        # Note that the current frame_stride will be the latest dict in the list
+        stats = scenario['statistics'][-1]
 
-        print
-        print
-        print(Fore.BLUE + Style.DIM + '='*80)
-        print(Fore.YELLOW + Style.BRIGHT + 'Benchmark Scenario: ' + Style.DIM + self.scenario.name)
-        print(Fore.BLUE + Style.DIM + '='*80)
-        print('Description:\t{}'.format(self.scenario.desc))
-        print('Bag Path:\t{}'.format(self.scenario.bag_path))
-        print('Iterations:\t{}'.format(BenchmarkRunner.ITERS))
-        print('Frame Strides:\t{}'.format(self.frame_strides))
-        print('Duration:\t{} seconds each run, {} seconds total'.format(self.scenario.duration, t_secs))
-        print(Fore.BLUE + Style.DIM + '-'*80)
+        # On the first iteration, just append each incoming datapoint
+        if iteration == 0:
+            stats['u_total']                     = np.append(stats['u_total'],                    [msg.util.total])
+            stats['u_feature_manager']           = np.append(stats['u_feature_manager'],          [msg.util.feature_manager])
+            stats['u_homography_manager']        = np.append(stats['u_homography_manager'],       [msg.util.homography_manager])
+            stats['u_measurement_generation']    = np.append(stats['u_measurement_generation'],   [msg.util.measurement_generation])
+            stats['u_rransac']                   = np.append(stats['u_rransac'],                  [msg.util.rransac])
+            stats['track_count']                 = np.append(stats['track_count'],                [len(msg.tracks)])
+            stats['measurement_count']           = np.append(stats['measurement_count'],          [msg.util.number_of_rransac_measurements])
+            stats['time_available']              = np.append(stats['time_available'],             [msg.util.time_available])
 
-        
-        #
-        # Run the scenario and gather data
-        #
+        # On iterations after the first add, the datapoint to what is already there
+        else:
 
-        for fs in self.frame_strides:
+            # If this iteration has more datapoints than an earlier iteration (which should be rare)
+            # then just ignore these new measurements
+            if len(stats['u_total']) > self._t:
+                stats['u_total'][self._t]                    += msg.util.total
+                stats['u_feature_manager'][self._t]          += msg.util.feature_manager
+                stats['u_homography_manager'][self._t]       += msg.util.homography_manager
+                stats['u_measurement_generation'][self._t]   += msg.util.measurement_generation
+                stats['u_rransac'][self._t]                  += msg.util.rransac
+                stats['track_count'][self._t]                += len(msg.tracks)
+                stats['measurement_count'][self._t]          += msg.util.number_of_rransac_measurements
+                stats['time_available'][self._t]             += msg.util.time_available
 
+
+        # Update which timestep of the data we are on
+        self._t += 1
+
+
+    def _run_scenario(self, scenario, frame_strides):
+        """Run Scenario
+
+            Runs a scenario from the benchmark with the varying frame strides.
+        """
+
+        for fs_idx, fs in enumerate(frame_strides):
             print(Style.BRIGHT + 'Frame Stride: ' + Style.DIM + str(fs))
 
-            self.runs.append({
-                    'stride': fs,
-                    'fps': self.fps,
-                    'iters': BenchmarkRunner.ITERS
-                })
+            # Add a new frame stride statistic dict if needed
+            if len(scenario['statistics']) == fs_idx:
+                scenario['statistics'].append({
+                        'stride': fs,
+                        'u_total': np.array([]),
+                        'u_feature_manager': np.array([]),
+                        'u_homography_manager': np.array([]),
+                        'u_measurement_generation': np.array([]),
+                        'u_rransac': np.array([]),
+                        'u_total': np.array([]),
+                        'track_count': np.array([]),
+                        'measurement_count': np.array([]),
+                        'time_available': np.array([]),
+                    })
+
+            # Create the ScenarioRunner object to run the scenario dict
+            sobj = ScenarioRunner(**scenario)
 
             # Average utilization results over ITERS iterations
             for i in xrange(BenchmarkRunner.ITERS):
-                self.runs[-1]['iter%i'%i] = []
-                self.current_iter = i
+
+                # Reset the incoming tracks message counter
+                self._t = 0
 
                 # Blocking call to run
-                self.scenario.run(fs)
+                sobj.run(fs, fn_handle=lambda msg: self._handle_tracks(scenario, i, msg))
 
-        return self.runs
+
+            # Now average if neccessary
+            if BenchmarkRunner.ITERS > 1:
+
+                # Grab the timeline statistics by frame_stride
+                stats = scenario['statistics'][fs_idx]
+
+                keys = list(set(stats.keys()) - set(['stride']))
+                for key in keys:
+                    stats[key] = stats[key] / float(BenchmarkRunner.ITERS)
+
+
+    def run(self):
+        """Run
+            Runs the benchmark -- which is made up of scenarios.
+        """
+
+        frame_strides = self.benchmark['frame_strides']
+
+        for scenario in self.benchmark['scenarios']:
+
+            # Calculate total seconds
+            t_secs = scenario['duration'] * BenchmarkRunner.ITERS * len(frame_strides)
+
+            print
+            print
+            print(Fore.BLUE + Style.DIM + '='*80)
+            print(Fore.YELLOW + Style.BRIGHT + 'Benchmark Scenario: ' + Style.DIM + scenario['name'])
+            print(Fore.BLUE + Style.DIM + '='*80)
+            print('Description:\t{}'.format(scenario['desc']))
+            print('Bag Path:\t{}'.format(scenario['bag_path']))
+            print('Iterations:\t{}'.format(BenchmarkRunner.ITERS))
+            print('Frame Strides:\t{}'.format(frame_strides))
+            print('Duration:\t{} seconds each run, {} seconds total'.format(scenario['duration'], t_secs))
+            print(Fore.BLUE + Style.DIM + '-'*80)
+
+            self._run_scenario(scenario, frame_strides)
+
+
+    def save(self):
+        BenchmarkFile.save(self.benchmark)
 
 ###############################################################################
 ###############################################################################
@@ -306,7 +487,7 @@ class BenchmarkAnalyzer(object):
     def __init__(self):
         super(BenchmarkAnalyzer, self).__init__()
 
-        self.benchmarks = [] # { name: '', scenarios: { scenario: s, results: [] } }
+        self.benchmarks = []
         
 
     def _smooth(self, data, alpha=0.1):
@@ -401,179 +582,135 @@ class BenchmarkAnalyzer(object):
         return result_util
 
 
-    def _timeline_plots(self, benchmark):
+    def _timeline_plots(self, benchmark, all=False):
         """Timeline Plots
         """
 
-        for scenario in benchmark['scenarios']:
+        for key in benchmark['scenarios'].keys():
+            for scenario in benchmark['scenarios'][key]:
 
-            # Create subplots
-            f, axarr = plt.subplots(len(scenario['results']), sharex=False)
+                # Create subplots: 1 for each stride
+                f, axarr = plt.subplots(len(benchmark['frame_strides']), sharex=False)
 
-            for i, run in enumerate(scenario['results']):
-                utils = self._avg_run(run)
+                for i, stats in enumerate(scenario['statistics']):
 
-                u_total = utils['u_total']
-                u_fm = utils['u_feature_manager']
-                u_hm = utils['u_homography_manager']
-                u_mg = utils['u_measurement_generation']
-                u_rt = utils['u_rransac']
-                tc = self._smooth(utils['track_count'], alpha=0.3)
-                mc = self._smooth(utils['measurement_count'])
-
-
-                axarr[i].plot(u_total, label='Total')
-                # axarr[i].plot(u_fm, label='Feature Manager')
-                # axarr[i].plot(u_hm, label='Homography Manager')
-                # axarr[i].plot(u_mg, label='Measurement Generation')
-                # axarr[i].plot(u_rt, label='R-RANSAC Tracker')
-
-                # Second y-axis plots
-                ax2 = axarr[i].twinx()
-                ax2.plot(tc, 'k:', label='Track Count')
-                ax2.plot(mc, 'g:', label='Measurement Count')
-                ax2.set_ylabel('Count')
-
-                axarr[i].set_ylabel('Stride {}\nUtilization'.format(run['stride']))
-                if np.size(u_total) is not 0:
-                    axarr[i].axis([0, np.size(u_total), 0, max(1.0, np.max(u_total))])
-
-                if i == 0:
-                    pre = benchmark['name'] + ': ' if len(benchmark['name']) > 0 else ''
-                    axarr[i].set_title(pre + scenario['scenario'].name)
-
-                    # added these three lines
-                    lns = axarr[i].lines + ax2.lines
-                    labs = [l.get_label() for l in lns]
-                    axarr[i].legend(lns, labs, loc='best', prop={'size': 8})
-
-                if i == len(axarr)-1:
-                    axarr[i].set_xlabel('Iteration')
+                    n = 30 # burn the first n samples
+                    u_total = stats['u_total'][n:]
+                    u_fm = stats['u_feature_manager'][n:]
+                    u_hm = stats['u_homography_manager'][n:]
+                    u_mg = stats['u_measurement_generation'][n:]
+                    u_rt = stats['u_rransac'][n:]
+                    tc = self._smooth(stats['track_count'][n:], alpha=0.3)
+                    mc = self._smooth(stats['measurement_count'][n:])
 
 
-    def _combine_scenarios(self, benchmark):
-        """Combine Scenarios
+                    axarr[i].plot(u_total, label='Total')
 
-            ASSUMPTION: All scenarios were ran with the same stride parameters.
-        """
+                    if all:
+                        axarr[i].plot(u_fm, label='Feature Manager')
+                        axarr[i].plot(u_hm, label='Homography Manager')
+                        axarr[i].plot(u_mg, label='Measurement Generation')
+                        axarr[i].plot(u_rt, label='R-RANSAC Tracker')
 
-        # How many strides are there? Note the assumption that the first scenario is
-        # representative (in number or strides) of all scenarios
-        strides = [result['stride'] for result in benchmark['scenarios'][0]['results']]
+                    # Second y-axis plots
+                    ax2 = axarr[i].twinx()
+                    ax2.plot(tc, 'k:', label='Track Count')
+                    ax2.plot(mc, 'g:', label='Measurement Count')
+                    ax2.set_ylabel('Count')
 
+                    axarr[i].set_ylabel('Stride {}\nUtilization'.format(stats['stride']))
+                    if np.size(u_total) is not 0:
+                        axarr[i].axis([0, np.size(u_total), 0, max(1.0, np.max(u_total))])
 
-        # Store the results in a dictionary by stride
-        utils_by_stride = {}
+                    if i == 0:
+                        pre = benchmark['name'] + (' (cuda)' if key == 'cuda' else '') + ': '
+                        axarr[i].set_title(pre + scenario['name'])
 
-        for i, stride in enumerate(strides):
+                        # added these three lines
+                        lns = axarr[i].lines + ax2.lines
+                        labs = [l.get_label() for l in lns]
+                        axarr[i].legend(lns, labs, loc='best', prop={'size': 8})
 
-            utils_with_same_stride = []
-
-            # For each scenario, average the runs with the same frame stride
-            # And keep in a list to average all those.
-            for scenario in benchmark['scenarios']:
-
-                run = scenario['results'][i]
-                utils = self._avg_run(run)
-                utils_with_same_stride.append(utils)
-
-            # Average all the utils with the same stride from different scenarios
-            utils_by_stride[stride] = self._avg_utils(utils_with_same_stride)
-
-        return utils_by_stride
-
-
-    def add(self, scenario, results):
-        """Add
-
-            Assumes only one benchmark
-        """
-        if len(self.benchmarks) == 0:
-            self.benchmarks.append({ 'name': '', 'scenarios': []})
-        self.benchmarks[-1]['scenarios'].append({ 'scenario': scenario, 'results': results })
+                    if i == len(axarr)-1:
+                        axarr[i].set_xlabel('Iteration')
 
 
-    def save(self, filename=None, has_cuda=False):
-        # If no filename supplied
-        if filename is None:
-            hostname = socket.gethostname()
-            if has_cuda:
-                hostname += '_cuda'
-            filename = 'bm_{}'.format(hostname)
+    def _average_stats_by_stride(self, benchmark, cuda=False):
+        """Average Statistics by Stride
 
-        # Make sure it's a good filename
-        keepcharacters = ('_')
-        filename = "".join(c for c in filename if c.isalnum() or c in keepcharacters).rstrip()
+            Take the corresponding frame_stride statistic dict in each scenario
+            and average them across scenarios.
 
-        # Add extension if necessary
-        if '.' not in filename:
-            filename += '.pickle'
-
-        scenarios = []
-        for scenario in self.benchmarks[-1]['scenarios']:
-            d = {
-                'scenario': scenario['scenario'].serialize(),
-                'results': scenario['results']
+            summary_stats = {
+                '1':
+                    {
+                        'stride': 1,
+                        'u_total': 0,
+                        'u_feature_manager': 0,
+                        'u_homography_manager': 0,
+                        'u_measurement_generation': 0,
+                        'u_rransac': 0,
+                        'u_total': 0,
+                        'track_count': 0,
+                        'measurement_count': 0,
+                        'time_available': 0,
+                    },
+                '2':
+                    { 'stride': 2 }, ...
             }
-            scenarios.append(d)
+        """
 
-        with open(filename, 'wb') as f:
-            # Dump a benchmark (a pickle file == a benchmark)
-            pickle.dump(scenarios, f, protocol=pickle.HIGHEST_PROTOCOL)
+        # How many strides are there?
+        strides = benchmark['frame_strides']
 
 
-    def load(self, filenames):
+        # Store the summary stat dict in a list
+        summary_stats = {}
 
-        # each filename corresponds to a benchmark
-        for filename in filenames:
-            print(Fore.GREEN + "Loading benchmark data from {}".format(filename))
+        key = 'cuda' if cuda else 'noncuda'
+        if key not in benchmark['scenarios']:
+            return []
 
-            with open(filename, 'rb') as f:
-                dump = pickle.load(f)
+        for scenario in benchmark['scenarios'][key]:
+            for stats in scenario['statistics']:
 
-            scenarios = []
-            for data in dump:
-                sopts = data['scenario']
-                name = sopts['name']
-                desc = sopts['desc']
-                del sopts['name']
-                del sopts['desc']
-                s = Scenario(name, desc, **sopts)
+                # Does a stats dict already exist in the summary stats?
+                if stats['stride'] in summary_stats:
 
-                scenario = { 'scenario': s, 'results': data['results'] }
-                scenarios.append(scenario)
+                    existing_stats = summary_stats[stats['stride']]
 
-            self.benchmarks.append({
-                    'name': filename.split('.pickle')[0],
-                    'scenarios': scenarios
-                })
+                    # Average the new stats from a different scenario into the summary stats
+                    for key in existing_stats.keys():
+                        existing_stats[key]  = np.mean(existing_stats[key] + np.mean(stats[key]))
+
+                else:
+                    summary_stat = {}
+                    for key in stats.keys():
+                        summary_stat[key] = np.mean(stats[key])
+
+                    summary_stats[summary_stat['stride']] = summary_stat
+
+        return summary_stats
+
 
 
     def analyze(self, args):
         """Analyze
         """
 
-        strides = []
+        stats_by_stride = []
 
         bdata = []
         for benchmark in self.benchmarks:
             if args['timeline']:
-                self._timeline_plots(benchmark)
+                self._timeline_plots(benchmark, args['all'])
 
-            utils_by_stride = self._combine_scenarios(benchmark)
-            for stride in utils_by_stride.keys():
-
-                # Save stride for later
-                if stride not in strides:
-                    strides.append(stride)
-
-                util = utils_by_stride[stride]
-                for key in util.keys():
-                    util[key] = np.mean(util[key])
-            bdata.append({'bm': benchmark, 'utils_by_stride': utils_by_stride, 'cuda': False})
+            cuda_stats    = self._average_stats_by_stride(benchmark, cuda=True)
+            noncuda_stats = self._average_stats_by_stride(benchmark, cuda=False)
+            bdata.append({'benchmark': benchmark, 'cuda_summary_stats': cuda_stats, 'noncuda_summary_stats': noncuda_stats})
 
 
-        for stride in strides:
+        for stride in benchmark['frame_strides']:
             # Create a plot for each stride
             f, axarr = plt.subplots(1, sharex=False)
 
@@ -584,48 +721,77 @@ class BenchmarkAnalyzer(object):
             colors = ('#d62728', 'royalblue', 'mediumseagreen', 'darkviolet')
             labels = ('Feature Manager', 'Homography Manager', 'Meas Generation', 'R-RANSAC')
             for i,key in enumerate(keys):
+
                 # Get non-CUDA utilizations by stride
-                data = [b['utils_by_stride'][stride][key] if not b['cuda'] else 0 for b in bdata]
+                data = [b['noncuda_summary_stats'][stride][key] if stride in b['noncuda_summary_stats'] else 0 for b in bdata]
                 axarr.bar(ind, data, width, color=colors[i], label=labels[i])
 
                 # Get CUDA uttilizations by stride
-                data = [b['utils_by_stride'][stride][key] if b['cuda'] else 0 for b in bdata]
+                data = [b['cuda_summary_stats'][stride][key] if stride in b['cuda_summary_stats'] else 0 for b in bdata]
                 axarr.bar(ind + width, data, width, color=colors[i])
+
+            max_noncuda = [b['noncuda_summary_stats'][stride]['u_total'] if stride in b['noncuda_summary_stats'] else 0 for b in bdata]
+            max_cuda    = [b['cuda_summary_stats'][stride]['u_total'] if stride in b['cuda_summary_stats'] else 0 for b in bdata]
+            max_utilization = max(max_noncuda + max_cuda)
 
             # add some text for labels, title and axes ticks
             axarr.set_ylabel('Avg. Util.')
             axarr.set_title('Utilization Summary for Stride = {}'.format(stride))
             axarr.set_xticks(ind + width / 2.0)
             axarr.set_xticklabels([b['name'] for b in self.benchmarks])
-            axarr.set_ylim([0, 1])
+            axarr.set_ylim([0, max(1, max_utilization)])
             axarr.legend(loc='best', prop={'size': 10})
 
 
         plt.tight_layout()
         plt.show()
 
+
+    def load(self, filenames):
+        benchmarks = BenchmarkFile.load(filenames)
+
+        # Combine benchmarks with the same name
+        for benchmark in benchmarks:
+            key = 'cuda' if benchmark['cuda'] else 'noncuda'
+
+            # If a benchmark with the same name exists in the master list of benchmarks, grab a pointer to it
+            existing_benchmark = next((b for b in self.benchmarks if b['name'] == benchmark['name']), None)
+            if existing_benchmark:
+
+                # Make sure these benchmarks are CUDA complements of each other
+                if benchmark['cuda'] is not existing_benchmark['cuda']:
+
+                    existing_benchmark['scenarios'][key] = benchmark['scenarios']
+
+            # This is a new benchmark
+            else:
+
+                # Remove the old scenarios key...
+                scenarios = benchmark['scenarios']
+                del benchmark['scenarios']
+
+                # ...and add it back under the correct cuda/noncuda designation
+                benchmark['scenarios'] = { key: scenarios }
+
+                self.benchmarks.append(benchmark)
+
 ###############################################################################
 ###############################################################################
 
 def run_benchmarks(args):
-    rospy.init_node('benchmark', anonymous=False)
-
-    # Create a benchmark data analyzer
-    analyzer = BenchmarkAnalyzer()
-
-    # Set up common parameters for scenarios -- must be the same for all
-    frame_strides = [1, 2, 3]
 
     # =========================================================================
+
+    scenarios = []
 
     #
     # Benchmark Scenario 1
     # 
 
     # Define the scenario
-    name = 'Kiwanis Frisbee'
-    desc = 'moving platform, low altitude'
-    opts = {
+    scenario = {
+        'name': 'Kiwanis Frisbee',
+        'desc': 'moving platform, low altitude',
         'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.split.bag',
         'bag_topic': '/image_flipped',
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
@@ -635,42 +801,34 @@ def run_benchmarks(args):
         'silent': True,
         'fps': 30
     }
-    s = Scenario(name, desc, **opts)
-
-    # Benchmark the scenario and add the results
-    benchmark = BenchmarkRunner(s, frame_strides)
-    results = benchmark.run()
-    analyzer.add(s, results)
+    scenarios.append(scenario)
 
     #
     # Benchmark Scenario 2
     # 
 
     # Define the scenario
-    name = 'Kiwanis Variety'
-    desc = 'moving platform, low altitude'
-    opts = {
-        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_variety.bag',
+    scenario = {
+        'name': 'Kiwanis Variety',
+        'desc': 'moving platform, low altitude',
+        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_variety.split.bag',
         'bag_topic': '/image_flipped',
         'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
         'flags': 'has_info:=false pub_output_img:=true',
         'compressed': True,
-        'duration': 5,
+        'duration': 20,
         'silent': True,
         'fps': 30
     }
-    s = Scenario(name, desc, **opts)
-
-    # Benchmark the scenario and add the results
-    benchmark = BenchmarkRunner(s, frame_strides)
-    results = benchmark.run()
-    analyzer.add(s, results)
+    scenarios.append(scenario)
 
     # =========================================================================
 
-    # Save and return the data analyzer
-    analyzer.save(args['output'], args['cuda'])
-    return analyzer
+
+    # Benchmark the scenario and add the results
+    benchmark = BenchmarkRunner(args['name'], args['cuda'], scenarios, frame_strides=[1, 2, 3])
+    benchmark.run()
+    benchmark.save()
         
 
 
@@ -678,14 +836,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
     parser.add_argument('benchmark_files', help='Pickled benchmark results file to analyze', nargs='*')
-    parser.add_argument('-o', '--output', help='Name of the benchmark results', required=False)
+    parser.add_argument('-n', '--name', help='Name of the benchmark results', required=False)
     parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
     parser.add_argument('--timeline', help='Plot statistics over time', action='store_true')
+    parser.add_argument('--all', help='Show all statistics over time', action='store_true')
     args = vars(parser.parse_args())
 
-    if len(args['benchmark_files']) > 0:
+    if len(args['benchmark_files']) == 0:
+        run_benchmarks(args)
+
+    else:
         analyzer = BenchmarkAnalyzer()
         analyzer.load(args['benchmark_files'])
         analyzer.analyze(args)
-    else:
-        analyzer = run_benchmarks(args)

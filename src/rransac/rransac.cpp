@@ -209,6 +209,7 @@ void RRANSAC::callback_stats(const visual_mtt::Stats& data)
     alpha = 1/(time_constant_/t_available + 1);
   }
 
+  util_.time_available          = t_available;
   util_.feature_manager         = alpha*(data.t_feature_manager/t_available) + (1-alpha)*util_.feature_manager;
   util_.homography_manager      = alpha*(data.t_homography_manager/t_available) + (1-alpha)*util_.homography_manager;
   util_.measurement_generation  = alpha*(data.t_measurement_generation/t_available) + (1-alpha)*util_.measurement_generation;

@@ -15,5 +15,8 @@ float64 rransac
 # total utilization
 float64 total
 
+# time available: (1/fps)*stride
+float64 time_available
+
 # Number of measurements sent to R-RANSAC this scan
 int32 number_of_rransac_measurements
