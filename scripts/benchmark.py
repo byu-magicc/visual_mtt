@@ -3,6 +3,7 @@
 import sys, argparse, socket
 import time, datetime, pickle
 import os, subprocess, signal
+import json
 
 import rospy, rosbag
 import dynamic_reconfigure.client
@@ -97,6 +98,25 @@ from visual_mtt.msg import Tracks
             'noncuda': [ ... ]
         }
     }
+
+    *************************************************************
+    ***    When reading scenarios to run from a JSON file     ***
+    *************************************************************
+    
+    scenarios = [
+        {
+            "name": "Kiwanis Frisbee", 
+            "desc": "moving platform, low altitude", 
+            "bag_path": "bms_kiwanis_frisbee.bag",    <-- relative to json file
+            "cam_info": "creepercam.yaml",            <-- relative to json file
+            "bag_topic": "/image_flipped", 
+            "compressed": true, 
+            "fps": 30, 
+            "duration": 20, 
+            "silent": true, 
+            "flags": "has_info:=false pub_output_img:=true"
+        }
+    ]
 
 
 """
@@ -712,50 +732,20 @@ class BenchmarkAnalyzer(object):
 
 def run_benchmarks(args):
 
-    # =========================================================================
+    file = os.path.expanduser(args['file'])
+
+    # Grab the root of the file since the bags and camera info files are
+    # defined in the scenarios JSON w.r.t the current JSON file
+    root = os.path.dirname(os.path.abspath(file))
 
     scenarios = []
+    with open(file) as json_data:
+        scenarios = json.load(json_data)
 
-    #
-    # Benchmark Scenario 1
-    # 
-
-    # Define the scenario
-    scenario = {
-        'name': 'Kiwanis Frisbee',
-        'desc': 'moving platform, low altitude',
-        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_frisbee.split.bag',
-        'bag_topic': '/image_flipped',
-        'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
-        'flags': 'has_info:=false pub_output_img:=true',
-        'compressed': True,
-        'duration': 20,
-        'silent': True,
-        'fps': 30
-    }
-    scenarios.append(scenario)
-
-    #
-    # Benchmark Scenario 2
-    # 
-
-    # Define the scenario
-    scenario = {
-        'name': 'Kiwanis Variety',
-        'desc': 'moving platform, low altitude',
-        'bag_path': '/home/plusk01/Documents/bags/kiwanis/kiwanis_variety.split.bag',
-        'bag_topic': '/image_flipped',
-        'cam_info': '/home/plusk01/Documents/bags/kiwanis/creepercam.yaml',
-        'flags': 'has_info:=false pub_output_img:=true',
-        'compressed': True,
-        'duration': 20,
-        'silent': True,
-        'fps': 30
-    }
-    scenarios.append(scenario)
-
-    # =========================================================================
-
+    # Prepend the paths with the root
+    for scenario in scenarios:
+        scenario['bag_path'] = os.path.join(root, scenario['bag_path'])
+        scenario['cam_info'] = os.path.join(root, scenario['cam_info'])
 
     # Benchmark the scenario and add the results
     benchmark = BenchmarkRunner(args['name'], args['cuda'], scenarios, frame_strides=[1, 2, 3])
@@ -768,16 +758,22 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Benchmark visual_mtt algorithm using rosbag data')
     parser.add_argument('benchmark_files', help='Pickled benchmark results file to analyze', nargs='*')
+    parser.add_argument('-f', '--file', help='Path to the scenario JSON file', required=False)
     parser.add_argument('-n', '--name', help='Name of the benchmark results', required=False)
     parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
     parser.add_argument('--timeline', help='Plot statistics over time', action='store_true')
     parser.add_argument('--all', help='Show all statistics over time', action='store_true')
     args = vars(parser.parse_args())
 
-    if len(args['benchmark_files']) == 0:
+    if len(args['benchmark_files']) == 0 and args['file'] is not None:
         run_benchmarks(args)
 
-    else:
+    elif len(args['benchmark_files']) > 0:
         analyzer = BenchmarkAnalyzer()
         analyzer.load(args['benchmark_files'])
         analyzer.analyze(args)
+
+    else:
+        print(Fore.RED + Style.BRIGHT + 'I did not understand you... :(')
+        print
+        parser.print_help()
