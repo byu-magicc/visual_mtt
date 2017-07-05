@@ -57,6 +57,10 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     for(int i=0; i<cinfo->D.size(); i++)
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
+    // scale the entire matrix except the 3,3 element
+    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_.at<double>(2,2) = 1;
+
     feature_manager_.set_camera(camera_matrix_, dist_coeff_);
 
     info_received_ = true;
@@ -68,17 +72,16 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   auto tic = ros::Time::now();
 
   // convert message data into OpenCV type cv::Mat
-  hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
+  hd_frame = cv_bridge::toCvCopy(data, "bgr8")->image;
 
-  // downsize image to standard definition
-  cv::Size def;
-  def.width = hd_frame_in.cols*downsize_scale_;
-  def.height = hd_frame_in.rows*downsize_scale_;
-  cv::resize(hd_frame_in, sd_frame_in, def, 0, 0, cv::INTER_LINEAR);
+  // downsize image
+  cv::Size resolution; // TODO: make member that is updated with dynamic reconfigure callback
+  resolution.width = hd_frame.cols*downsize_scale_;
+  resolution.height = hd_frame.rows*downsize_scale_;
+  cv::resize(hd_frame, sd_frame, resolution, 0, 0, cv::INTER_LINEAR);
 
-  // add frames to recent history
-  add_frame(hd_frame_in, hd_frame);
-  add_frame(sd_frame_in, sd_frame);
+  // temporary display of lower definition video
+  cv::imshow("sd_frame", sd_frame);
 
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
@@ -173,15 +176,29 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
   // TODO: scale camera calibration for sd_image
-}
 
-// ----------------------------------------------------------------------------
+  // generate a secondary camera info based on the resizing???
 
-void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
-{
-  // why does this need its own method?
-  // see https://github.com/jdmillard/opencv-cuda
-  memberMat = newMat;
+  // if camera information is saved, update the scaled camera parameters
+  if (info_received_)
+  {
+    // initialize to zero
+    // camera_matrix_scaled_ = cv::Mat(3, 3, CV_64FC1, cv::Scalar(0));
+
+    // scale the entire matrix except the 3,3 element
+    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_.at<double>(2,2) = 1;
+    std::cout << "scaled camera info has been updated" << std::endl;
+    std::cout << camera_matrix_scaled_ << std::endl;
+
+  }
+  else
+  {
+    std::cout << "no scaled camera update because camera info is not yet known" << std::endl;
+
+  }
+
+
 }
 
 // ----------------------------------------------------------------------------
