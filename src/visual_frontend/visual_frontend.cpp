@@ -1,4 +1,4 @@
-#include "visual_frontend/visual_frontend.h" 
+#include "visual_frontend/visual_frontend.h"
 
 namespace visual_frontend {
 
@@ -89,7 +89,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(sd_frame_); // in future operate on sd
+  feature_manager_.find_correspondences(sd_frame_);
   auto t_features = ros::Time::now() - tic;
 
   //
