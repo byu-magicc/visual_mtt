@@ -29,6 +29,11 @@ visual_frontend/difference_image_enabled: false
 visual_frontend/filler1: 0.00285714275
 visual_frontend/filler2: 0.014
 
+# dnn_activations
+visual_frontend/dnn_activations_enabled: false
+visual_frontend/filler3: 0.00285714275
+visual_frontend/filler4: 0.014
+
 ###############################################################################
 #### R-RANSAC Node
 

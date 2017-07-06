@@ -107,6 +107,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   tic = ros::Time::now();
 
   // have each measurement source generate measurements
+  source_manager_.generate_measurements();
+
   generate_measurements();
   auto t_measurements = ros::Time::now() - tic;
 
@@ -163,6 +165,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
   set_parameters(config);
   feature_manager_.set_parameters(config);
   homography_manager_.set_parameters(config);
+  source_manager_.set_parameters(config);
 
   for (int i=0; i<sources_.size(); i++)
     sources_[i]->set_parameters(config);
