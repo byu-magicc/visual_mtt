@@ -2,6 +2,29 @@
 
 namespace visual_frontend {
 
+int opencv_error_handler(int status, const char* func_name,
+                         const char* err_msg, const char* file_name, int line,
+                         void* userdata)
+{
+  // std::string err_msg_suppressed = "prevPyr[level * lvlStep1].size() == nextPyr[level * lvlStep2].size()";
+  //
+  // // display the OpenCV error message unless
+  // std::cout << "OpenCV Error: " << "(" << err_msg << ")";
+  // std::cout << " in " << func_name;
+  // std::cout << ", file " << file_name;
+  // std::cout << ", line " << line << std::endl;
+  //
+  // if (std::string(err_msg) == "prevPyr[level * lvlStep1].size() == nextPyr[level * lvlStep2].size()")
+  // {
+  //   std::cout << "true -----------------------" << std::endl;
+  // }
+
+
+  return 0; // return value is not used
+}
+
+// ----------------------------------------------------------------------------
+
 LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
                        double corner_quality_max, double corner_quality_alpha,
                        int pyramid_size)
@@ -99,39 +122,50 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
   buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
 #endif
 
+  // suppress the pyramid size conflict error message
+  cv::redirectError(opencv_error_handler);
 
   if (!first_image_)
   {
-
+    try
+    {
 #ifdef OPENCV_CUDA
-  // Upload images to GPU
-  cv::cuda::GpuMat gLastMono(last_mono_);
-  cv::cuda::GpuMat gMono(mono);
+      // Upload images to GPU
+      cv::cuda::GpuMat gLastMono(last_mono_);
+      cv::cuda::GpuMat gMono(mono);
 
-  // Upload previous features to GPU
-  cv::cuda::GpuMat gPrevFeatures;
-  gpu::upload(prev_features_, gPrevFeatures);
+      // Upload previous features to GPU
+      cv::cuda::GpuMat gPrevFeatures;
+      gpu::upload(prev_features_, gPrevFeatures);
 
-  // Run LK optical flow on the GPU
-  cv::cuda::GpuMat gNextFeatures, gValid;
-  gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
+      // Run LK optical flow on the GPU
+      cv::cuda::GpuMat gNextFeatures, gValid;
+      gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
 
-  // Download from the GPU
-  gpu::download(gNextFeatures, next_features);
-  gpu::download(gValid, valid);
-  
+      // Download from the GPU
+      gpu::download(gNextFeatures, next_features);
+      gpu::download(gValid, valid);
+
 #else
-  std::vector<float> err;
-  cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
-                           prev_features_, next_features,
-                           valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
+      std::vector<float> err;
+      cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
+                               prev_features_, next_features,
+                               valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 #endif
-
+    }
+    catch (...)
+    {
+      valid.clear();
+      ROS_WARN("lkt tracker: pyramid mismatch, skipping this iteration");
+    }
   }
   else
   {
     first_image_ = false;
   }
+
+  // reset opencv error messages to standard
+  cv::redirectError(nullptr);
 
 #ifdef OPENCV_CUDA
   // save mono for the next iteration

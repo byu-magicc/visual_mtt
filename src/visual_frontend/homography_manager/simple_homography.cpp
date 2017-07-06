@@ -19,6 +19,7 @@ cv::Mat SimpleHomography::get_homography(const std::vector<cv::Point2f>& prev_fe
   if (prev_features.size() < 4)
   {
     good_transform_ = false;
+    homography = cv::Mat::eye(3, 3, CV_32F);
     return homography;
   }
 
@@ -45,13 +46,6 @@ cv::Mat SimpleHomography::get_homography(const std::vector<cv::Point2f>& prev_fe
   {
     good_transform_ = true;
   }
-
-  // Use the homography to transform the points forwards. This will put all of the
-  // previous feature points on top of the next feature points except for points on
-  // moving objects. Those will be off by some pixels, the pixel velocity.
-  std::vector<cv::Point2f> corrected_pts;
-  if (prev_features.size() > 0)
-    cv::perspectiveTransform(prev_features, corrected_pts, homography);
 
   return homography;
 }

@@ -61,7 +61,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
-    feature_manager_.set_camera(camera_matrix_, dist_coeff_);
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     info_received_ = true;
   }
@@ -74,7 +74,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // convert message data into OpenCV type cv::Mat
   hd_frame = cv_bridge::toCvCopy(data, "bgr8")->image;
 
-  // downsize image
+  // resize image
   cv::Size resolution; // TODO: make member that is updated with dynamic reconfigure callback
   resolution.width = hd_frame.cols*downsize_scale_;
   resolution.height = hd_frame.rows*downsize_scale_;
@@ -88,7 +88,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(hd_frame); // in future operate on sd
+  feature_manager_.find_correspondences(sd_frame); // in future operate on sd
   auto t_features = ros::Time::now() - tic;
 
   //
@@ -175,30 +175,17 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
-  // TODO: scale camera calibration for sd_image
-
-  // generate a secondary camera info based on the resizing???
 
   // if camera information is saved, update the scaled camera parameters
   if (info_received_)
   {
-    // initialize to zero
-    // camera_matrix_scaled_ = cv::Mat(3, 3, CV_64FC1, cv::Scalar(0));
-
     // scale the entire matrix except the 3,3 element
     camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
-    std::cout << "scaled camera info has been updated" << std::endl;
-    std::cout << camera_matrix_scaled_ << std::endl;
 
+    // provide algorithm members with updated camera parameters
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
   }
-  else
-  {
-    std::cout << "no scaled camera update because camera info is not yet known" << std::endl;
-
-  }
-
-
 }
 
 // ----------------------------------------------------------------------------
@@ -226,25 +213,30 @@ void VisualFrontend::generate_measurements()
     {
       // display measurements
       cv::Mat draw = hd_frame.clone();
+      cv::Mat draw2 = sd_frame.clone();
 
       // treat points in the normalized image plane as 3D points (homogeneous).
       // project the points onto the sensor (pixel space) for plotting.
       // use no rotation or translation (world frame = camera frame).
       std::vector<cv::Point3f> features_h; // homogeneous
       std::vector<cv::Point2f> features_d; // distorted
+      std::vector<cv::Point2f> features_d2; // distorted
       if (sources_[i]->features_.size()>0)
       {
         cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
         cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
+        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
       }
 
       // plot measurements
       for (int j=0; j<features_d.size(); j++)
       {
-        cv::Scalar color = cv::Scalar(255, 0, 255);
+        cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
         cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
+        cv::circle(draw2, features_d2[j], 2, color, 2, CV_AA);
       }
       cv::imshow(sources_[i]->name_, draw);
+      cv::imshow("temporary", draw2);
     }
 
     // Create a Source msg
