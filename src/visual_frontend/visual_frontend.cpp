@@ -42,6 +42,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // save the camera parameters and frame timestamp
   timestamp_frame_ = data->header.stamp;
 
+  // convert message data into OpenCV type cv::Mat
+  hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
+
   // save camera parameters one time
   if (!info_received_)
   {
@@ -61,7 +64,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
+    // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+
+    // set the high and low definition resolutions
+    hd_res_.width = hd_frame_.cols;
+    hd_res_.height = hd_frame_.rows;
+    sd_res_.width = hd_frame_.cols*downsize_scale_;
+    sd_res_.height = hd_frame_.rows*downsize_scale_;
 
     info_received_ = true;
   }
@@ -71,24 +81,15 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   auto tic = ros::Time::now();
 
-  // convert message data into OpenCV type cv::Mat
-  hd_frame = cv_bridge::toCvCopy(data, "bgr8")->image;
-
-  // resize image
-  cv::Size resolution; // TODO: make member that is updated with dynamic reconfigure callback
-  resolution.width = hd_frame.cols*downsize_scale_;
-  resolution.height = hd_frame.rows*downsize_scale_;
-  cv::resize(hd_frame, sd_frame, resolution, 0, 0, cv::INTER_LINEAR);
-
-  // temporary display of lower definition video
-  cv::imshow("sd_frame", sd_frame);
+  // resize frame
+  cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_LINEAR);
 
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(sd_frame); // in future operate on sd
+  feature_manager_.find_correspondences(sd_frame_); // in future operate on sd
   auto t_features = ros::Time::now() - tic;
 
   //
@@ -185,6 +186,10 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+
+    // update the low definition resolution
+    sd_res_.width = hd_res_.width*downsize_scale_;
+    sd_res_.height = hd_res_.height*downsize_scale_;
   }
 }
 
@@ -212,8 +217,8 @@ void VisualFrontend::generate_measurements()
     if (tuning_)
     {
       // display measurements
-      cv::Mat draw = hd_frame.clone();
-      cv::Mat draw2 = sd_frame.clone();
+      cv::Mat draw = hd_frame_.clone();
+      cv::Mat draw2 = sd_frame_.clone();
 
       // treat points in the normalized image plane as 3D points (homogeneous).
       // project the points onto the sensor (pixel space) for plotting.

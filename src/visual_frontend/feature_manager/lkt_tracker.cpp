@@ -2,29 +2,6 @@
 
 namespace visual_frontend {
 
-int opencv_error_handler(int status, const char* func_name,
-                         const char* err_msg, const char* file_name, int line,
-                         void* userdata)
-{
-  // std::string err_msg_suppressed = "prevPyr[level * lvlStep1].size() == nextPyr[level * lvlStep2].size()";
-  //
-  // // display the OpenCV error message unless
-  // std::cout << "OpenCV Error: " << "(" << err_msg << ")";
-  // std::cout << " in " << func_name;
-  // std::cout << ", file " << file_name;
-  // std::cout << ", line " << line << std::endl;
-  //
-  // if (std::string(err_msg) == "prevPyr[level * lvlStep1].size() == nextPyr[level * lvlStep2].size()")
-  // {
-  //   std::cout << "true -----------------------" << std::endl;
-  // }
-
-
-  return 0; // return value is not used
-}
-
-// ----------------------------------------------------------------------------
-
 LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
                        double corner_quality_max, double corner_quality_alpha,
                        int pyramid_size)
@@ -122,9 +99,6 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
   buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
 #endif
 
-  // suppress the pyramid size conflict error message
-  cv::redirectError(opencv_error_handler);
-
   if (!first_image_)
   {
     try
@@ -163,9 +137,6 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
   {
     first_image_ = false;
   }
-
-  // reset opencv error messages to standard
-  cv::redirectError(nullptr);
 
 #ifdef OPENCV_CUDA
   // save mono for the next iteration

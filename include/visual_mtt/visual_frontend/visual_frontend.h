@@ -44,10 +44,11 @@ namespace visual_frontend {
     void set_parameters(visual_mtt::visual_frontendConfig& config);
     void generate_measurements();
 
-    // cv::Mat frame_in;
-    // cv::Mat sd_frame_in;
-    cv::Mat hd_frame;
-    cv::Mat sd_frame;
+    // frames
+    cv::Mat hd_frame_;
+    cv::Mat sd_frame_;
+    cv::Size hd_res_;
+    cv::Size sd_res_;
 
     visual_mtt::TracksPtr tracks_;
 
