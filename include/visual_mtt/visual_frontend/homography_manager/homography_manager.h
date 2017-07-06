@@ -12,7 +12,7 @@
 
 namespace visual_frontend {
 
-  enum HomographyMethodType { SIMPLE_HOMOGRAPHY, HOMOGRAPY_FILTER };
+  enum HomographyMethodType { SIMPLE_HOMOGRAPHY, HOMOGRAPHY_FILTER };
 
   class HomographyManager
   {

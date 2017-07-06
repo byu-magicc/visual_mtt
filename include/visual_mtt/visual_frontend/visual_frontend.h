@@ -25,6 +25,8 @@
 // key algorithm members
 #include "feature_manager/feature_manager.h"
 #include "homography_manager/homography_manager.h"
+#include "source_manager/source_manager.h"
+
 #include "source_manager/feature_outliers.h"
 
 namespace visual_frontend {
@@ -67,6 +69,7 @@ namespace visual_frontend {
     // algorithm managers
     FeatureManager    feature_manager_;
     HomographyManager homography_manager_;
+    SourceManager     source_manager_;
 
     // camera parameters
     ros::Time timestamp_frame_;
