@@ -25,7 +25,7 @@
 // key algorithm members
 #include "feature_manager/feature_manager.h"
 #include "homography_manager/homography_manager.h"
-#include "source_features.h"
+#include "source_manager/feature_outliers.h"
 
 namespace visual_frontend {
 
@@ -75,7 +75,7 @@ namespace visual_frontend {
     bool info_received_ = false;
 
     // measurement sources
-    std::vector<std::shared_ptr<Source>> sources_;
+    std::vector<std::shared_ptr<MeasurementSource>> sources_;
 
     // tuning mode
     bool tuning_;

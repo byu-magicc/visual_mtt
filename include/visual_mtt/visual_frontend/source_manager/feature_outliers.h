@@ -2,21 +2,21 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
-#include "visual_frontend/source.h"
+#include "visual_frontend/source_manager/measurement_source.h"
 
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
 namespace visual_frontend {
 
-  class SourceFeatures: public Source
+  class FeatureOutliers: public MeasurementSource
   {
   public:
-    SourceFeatures();
+    FeatureOutliers();
     void generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform);
     void set_parameters(visual_mtt::visual_frontendConfig& config);
 
-    bool first_image_ = true; // see TODO notes in source_features.cpp
+    bool first_image_ = true; // see TODO notes in feature_outliers.cpp
 
   private:
     double velocity_floor_;

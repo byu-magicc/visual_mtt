@@ -1,8 +1,8 @@
-#include "visual_frontend/source_features.h"
+#include "visual_frontend/source_manager/feature_outliers.h"
 
 namespace visual_frontend {
 
-SourceFeatures::SourceFeatures()
+FeatureOutliers::FeatureOutliers()
 {
 
   name_ = "Homography Outliers";
@@ -11,7 +11,7 @@ SourceFeatures::SourceFeatures()
 
 // ----------------------------------------------------------------------------
 
-void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
+void FeatureOutliers::generate_measurements(cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
 {
   if (!first_image_)
   {
@@ -54,7 +54,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
 
 // ----------------------------------------------------------------------------
 
-void SourceFeatures::set_parameters(visual_mtt::visual_frontendConfig& config)
+void FeatureOutliers::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;

@@ -7,11 +7,11 @@
 #include "visual_mtt/visual_frontendConfig.h"
 
 // this defines the base class for all measurement source classes
-// a vector of Source objects can be used (polymorphism)
+// a vector of MeasurementSource objects can be used (polymorphism)
 
 namespace visual_frontend {
 
-  class Source
+  class MeasurementSource
   {
   public:
 

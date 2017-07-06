@@ -23,7 +23,7 @@ VisualFrontend::VisualFrontend()
 
   // populate vector of desired measurement sources
   //sources_.push_back(std::shared_ptr<SourceBackground>(new SourceBackground()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
+  sources_.push_back(std::shared_ptr<FeatureOutliers>(new FeatureOutliers()));
 
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
@@ -213,7 +213,7 @@ void VisualFrontend::generate_measurements()
       homography_manager_.good_transform_);
 
     // when in tuning mode, display the measurements from each source
-    // TODO: make pure virtual 'draw' function in source.h to keep this clean!
+    // TODO: make pure virtual 'draw' function in measurement_source.h to keep this clean!
     if (tuning_)
     {
       // display measurements
