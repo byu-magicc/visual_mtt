@@ -32,16 +32,43 @@ void SourceManager::set_parameters(visual_mtt::visual_frontendConfig& config)
     set_sources();
   }
 
-  // call the param update for each source
+  // update parameters for each source
   for (int i=0; i<measurement_sources_.size(); i++)
     measurement_sources_[i]->set_parameters(config);
 }
 
 // ----------------------------------------------------------------------------
 
-void SourceManager::generate_measurements()
+void SourceManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 {
-  std::cout << "pretending to generate measurements for all sources" << std::endl;
+  // set the camera parameters for each source
+  for (int i=0; i<measurement_sources_.size(); i++)
+    measurement_sources_[i]->set_camera(K, D);
+}
+
+// ----------------------------------------------------------------------------
+
+void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
+{
+
+  std::cout << "generating measurements for all sources" << std::endl;
+
+  for (int i=0; i<measurement_sources_.size(); i++)
+  {
+    measurement_sources_[i]->generate_measurements(
+      hd_frame,
+      sd_frame,
+      homography,
+      prev_features,
+      next_features,
+      good_transform);
+
+    if (tuning_)
+      measurement_sources_[i]->draw_measurements();
+  }
+
+
+
 }
 
 // ----------------------------------------------------------------------------

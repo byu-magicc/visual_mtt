@@ -12,6 +12,7 @@ VisualFrontend::VisualFrontend()
 
   if (tuning_)
     ROS_WARN("tuning mode enabled");
+  source_manager_.tuning_ = tuning_;
 
   // ROS communication
   image_transport::ImageTransport it(nh_);
@@ -66,6 +67,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     // set the high and low definition resolutions
     hd_res_.width = hd_frame_.cols;
@@ -106,8 +108,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   tic = ros::Time::now();
 
-  // have each measurement source generate measurements
-  source_manager_.generate_measurements();
+  // call measurement sources execution
+  source_manager_.generate_measurements(
+    hd_frame_,
+    sd_frame_,
+    homography_manager_.homography_,
+    feature_manager_.prev_matched_,
+    feature_manager_.next_matched_,
+    homography_manager_.good_transform_);
 
   generate_measurements();
   auto t_measurements = ros::Time::now() - tic;
@@ -189,6 +197,7 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     // update the low definition resolution
     sd_res_.width = hd_res_.width*downsize_scale_;
@@ -210,42 +219,44 @@ void VisualFrontend::generate_measurements()
   for (int i=0; i<sources_.size(); i++)
   {
     sources_[i]->generate_measurements(
+      hd_frame_,
+      sd_frame_,
       homography_manager_.homography_,
       feature_manager_.prev_matched_,
       feature_manager_.next_matched_,
       homography_manager_.good_transform_);
 
     // when in tuning mode, display the measurements from each source
-    // TODO: make pure virtual 'draw' function in measurement_source.h to keep this clean!
-    if (tuning_)
-    {
-      // display measurements
-      cv::Mat draw = hd_frame_.clone();
-      cv::Mat draw2 = sd_frame_.clone();
-
-      // treat points in the normalized image plane as 3D points (homogeneous).
-      // project the points onto the sensor (pixel space) for plotting.
-      // use no rotation or translation (world frame = camera frame).
-      std::vector<cv::Point3f> features_h; // homogeneous
-      std::vector<cv::Point2f> features_d; // distorted
-      std::vector<cv::Point2f> features_d2; // distorted
-      if (sources_[i]->features_.size()>0)
-      {
-        cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
-        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
-        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
-      }
-
-      // plot measurements
-      for (int j=0; j<features_d.size(); j++)
-      {
-        cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
-        cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
-        cv::circle(draw2, features_d2[j], 2, color, 2, CV_AA);
-      }
-      cv::imshow(sources_[i]->name_, draw);
-      cv::imshow("temporary", draw2);
-    }
+    // sources_[i]->draw_measurements();
+    // if (tuning_)
+    // {
+    //   // display measurements
+    //   cv::Mat draw = hd_frame_.clone();
+    //   cv::Mat draw2 = sd_frame_.clone();
+    //
+    //   // treat points in the normalized image plane as 3D points (homogeneous).
+    //   // project the points onto the sensor (pixel space) for plotting.
+    //   // use no rotation or translation (world frame = camera frame).
+    //   std::vector<cv::Point3f> features_h; // homogeneous
+    //   std::vector<cv::Point2f> features_d; // distorted
+    //   std::vector<cv::Point2f> features_d2; // distorted
+    //   if (sources_[i]->features_.size()>0)
+    //   {
+    //     cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
+    //     cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
+    //     cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
+    //   }
+    //
+    //   // plot measurements
+    //   for (int j=0; j<features_d.size(); j++)
+    //   {
+    //     cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
+    //     cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
+    //     cv::circle(draw2, features_d2[j], 2, color, 2, CV_AA);
+    //   }
+    //   cv::imshow(sources_[i]->name_, draw);
+    //   cv::imshow("temporary", draw2);
+    // }
 
     // Create a Source msg
     visual_mtt::Source src;
@@ -271,13 +282,13 @@ void VisualFrontend::generate_measurements()
     scan.sources.push_back(src);
   }
 
-  if (tuning_)
-  {
-    // get the input from the keyboard
-    char keyboard = cv::waitKey(1);
-    if(keyboard == 'q')
-      ros::shutdown();
-  }
+  // if (tuning_)
+  // {
+  //   // get the input from the keyboard
+  //   char keyboard = cv::waitKey(1);
+  //   if(keyboard == 'q')
+  //     ros::shutdown();
+  // }
 
   // timestamp after scan is completed
   scan.header_scan.stamp = ros::Time::now();
