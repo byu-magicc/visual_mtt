@@ -41,6 +41,10 @@ void SourceManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 void SourceManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 {
+  // update local camera parameters
+  camera_matrix_ = K.clone();
+  dist_coeff_ = D.clone();
+
   // set the camera parameters for each source
   for (int i=0; i<measurement_sources_.size(); i++)
     measurement_sources_[i]->set_camera(K, D);
@@ -121,9 +125,13 @@ void SourceManager::set_sources()
     // n_sources_++;
   }
 
-  // check for no sources error
+  // check for "no sources" error
   if (n_sources_==0)
     ROS_ERROR("source manager: no measurement sources are enabled");
+
+  // set the camera parameters for each source
+  for (int i=0; i<measurement_sources_.size(); i++)
+    measurement_sources_[i]->set_camera(camera_matrix_, dist_coeff_);
 }
 
 }

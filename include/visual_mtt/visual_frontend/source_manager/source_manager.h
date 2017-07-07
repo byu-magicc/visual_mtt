@@ -42,6 +42,10 @@ namespace visual_frontend {
     bool feature_motion_    = true;
     bool difference_image_  = false;
     bool dnn_activations_   = false;
+
+    // camera parameters
+    cv::Mat camera_matrix_;
+    cv::Mat dist_coeff_;
   };
 
 }
