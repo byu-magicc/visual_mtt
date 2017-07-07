@@ -587,6 +587,8 @@ class BenchmarkAnalyzer(object):
                     if i == len(axarr)-1:
                         axarr[i].set_xlabel('Iteration')
 
+                plt.tight_layout()
+
 
     def _average_stats_by_stride(self, benchmark, cuda=False):
         """Average Statistics by Stride
@@ -668,7 +670,7 @@ class BenchmarkAnalyzer(object):
             f, axarr = plt.subplots(1, sharex=False)
 
             ind = np.arange(len(self.benchmarks))
-            width = 0.15
+            width = 0.25
 
             keys = ['u_feature_manager', 'u_homography_manager', 'u_measurement_generation', 'u_rransac']
             colors = ('#d62728', 'royalblue', 'mediumseagreen', 'darkviolet')
@@ -687,15 +689,18 @@ class BenchmarkAnalyzer(object):
             max_cuda    = [b['cuda_summary_stats'][stride]['u_total'] if stride in b['cuda_summary_stats'] else 0 for b in bdata]
             max_utilization = max(max_noncuda + max_cuda)
 
+            # Draw 100% utilization line
+            axarr.plot([0., np.max(ind)+1], [1.0, 1.0], "k--")
+
             # add some text for labels, title and axes ticks
             axarr.set_ylabel('Avg. Util.')
             axarr.set_title('Utilization Summary for Stride = {}'.format(stride))
             axarr.set_xticks(ind + width)
-            axarr.set_xticklabels([b['name'] for b in self.benchmarks])
+            axarr.set_xticklabels([b['name'] for b in self.benchmarks], fontsize=10)
             axarr.set_ylim([0, max(1, max_utilization)])
             axarr.legend(loc='best', prop={'size': 10})
 
-        plt.tight_layout()
+            plt.tight_layout()
         plt.show()
 
 

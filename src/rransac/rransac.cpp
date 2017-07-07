@@ -184,7 +184,7 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
 
   // enforce realistic time differences (for rosbag looping)
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
-  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+  if (!(elapsed.toSec()<=0 || elapsed.toSec()>1))
     fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
 }
 
