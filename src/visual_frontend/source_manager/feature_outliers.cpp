@@ -74,37 +74,28 @@ void FeatureOutliers::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 void FeatureOutliers::draw_measurements()
 {
-  std::cout << "drawing" << std::endl;
-
-
-  // display measurements
-  // cv::Mat draw = hd_frame_.clone();
-  cv::Mat draw2 = sd_frame_.clone();
+  cv::Mat draw = sd_frame_.clone();
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
   // use no rotation or translation (world frame = camera frame).
   std::vector<cv::Point3f> features_h; // homogeneous
   std::vector<cv::Point2f> features_d; // distorted
-  // std::vector<cv::Point2f> features_d2; // distorted
   if (features_.size()>0)
   {
     cv::convertPointsToHomogeneous(features_, features_h);
     cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
-    // cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
   }
 
   // plot measurements
   for (int j=0; j<features_d.size(); j++)
   {
     cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
-    // cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
-    cv::circle(draw2, features_d[j], 2, color, 2, CV_AA);
+    cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
   }
-  cv::imshow(name_, draw2);
-  // cv::imshow("temporary", draw2);
+  cv::imshow(name_, draw);
 
-  // get the input from the keyboard
+  // get the input from the keyboard, force display
   char keyboard = cv::waitKey(1);
   if(keyboard == 'q')
     ros::shutdown();

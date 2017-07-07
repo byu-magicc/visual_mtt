@@ -6,6 +6,9 @@
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
+// messages
+#include "visual_mtt/RRANSACScan.h"
+
 // available measurement generation methods
 #include "measurement_source.h"
 #include "feature_outliers.h"
@@ -23,7 +26,10 @@ namespace visual_frontend {
     // vector of sources
     std::vector<std::unique_ptr<MeasurementSource>> measurement_sources_;
 
-    // number of sources activated
+    // scan of measurements
+    visual_mtt::RRANSACScan scan_;
+
+    // number of sources activated TODO: perhaps not needed for anything
     int n_sources_;
 
     // whether or not to draw measurements

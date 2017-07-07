@@ -42,9 +42,8 @@ namespace visual_frontend {
     void callback_tracks(const visual_mtt::TracksPtr& data);
     void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
 
-    // data management and execution
+    // data management
     void set_parameters(visual_mtt::visual_frontendConfig& config);
-    void generate_measurements();
 
     // frames
     cv::Mat hd_frame_;
@@ -77,13 +76,7 @@ namespace visual_frontend {
     cv::Mat dist_coeff_;
     bool info_received_ = false;
 
-    // measurement sources
-    std::vector<std::shared_ptr<MeasurementSource>> sources_;
-
-    // tuning mode
-    bool tuning_;
-
-    // Only plot process every `frame_stride_` frames
+    // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 
     // downsize scale
