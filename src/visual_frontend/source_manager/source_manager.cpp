@@ -18,15 +18,12 @@ void SourceManager::set_parameters(visual_mtt::visual_frontendConfig& config)
     changed = true;
   if (config.difference_image_enabled != difference_image_)
     changed = true;
-  if (config.dnn_activations_enabled != dnn_activations_)
-    changed = true;
 
   if (changed)
   {
     // update the enabled/disabled status for each source
     feature_motion_   = config.feature_outliers_enabled;
     difference_image_ = config.difference_image_enabled;
-    dnn_activations_  = config.dnn_activations_enabled;
 
     // repopulate the vector of sources
     set_sources();
@@ -117,11 +114,6 @@ void SourceManager::set_sources()
   if (difference_image_)
   {
     ROS_WARN("source manager: difference image not implemented");
-    // n_sources_++;
-  }
-  if (dnn_activations_)
-  {
-    ROS_WARN("source manager: dnn activations not implemented");
     // n_sources_++;
   }
 

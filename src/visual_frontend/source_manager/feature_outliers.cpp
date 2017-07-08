@@ -4,9 +4,14 @@ namespace visual_frontend {
 
 FeatureOutliers::FeatureOutliers()
 {
-
   name_ = "Homography Outliers";
+}
 
+// ----------------------------------------------------------------------------
+
+FeatureOutliers::~FeatureOutliers()
+{
+  cv::destroyWindow(name_);
 }
 
 // ----------------------------------------------------------------------------

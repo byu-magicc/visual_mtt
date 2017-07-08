@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-// #include <opencv2/opencv.hpp>
 
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
@@ -41,7 +40,6 @@ namespace visual_frontend {
     // default sources (to be overwritten by .yaml)
     bool feature_motion_    = true;
     bool difference_image_  = false;
-    bool dnn_activations_   = false;
 
     // camera parameters
     cv::Mat camera_matrix_;
