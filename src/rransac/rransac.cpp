@@ -89,6 +89,8 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
 
 void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
 {
+  auto tic = ros::Time::now();
+
   // Access the homography from the ROS message, convert to Projective2d, and give to R-RANSAC
   Eigen::Matrix3f H = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(rransac_scan->homography.data());
   Eigen::Projective2d T(H.cast<double>());
@@ -96,15 +98,24 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
 
 
   // Add each source's measurements along with its ID to the R-RANSAC Tracker
+  util_.number_of_rransac_measurements = 0;
   for (auto src = rransac_scan->sources.begin(); src != rransac_scan->sources.end(); src++)
+  {
     if (src->dimensionality == 2)
       tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
     else if (src->dimensionality == 3)
       tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
 
+    // Keep track of how many measurements there are for utilization
+    util_.number_of_rransac_measurements += src->positions.size();
+  }
+
 
   // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
   std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
+
+  // Update how long it took librransac to run, used for utilization
+  t_rransac_ = (ros::Time::now() - tic).toSec();
 
 
   // publish the tracks onto ROS network
@@ -173,7 +184,7 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
 
   // enforce realistic time differences (for rosbag looping)
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
-  if (!(elapsed.toSec()<0 || elapsed.toSec()>1))
+  if (!(elapsed.toSec()<=0 || elapsed.toSec()>1))
     fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
 }
 
@@ -184,11 +195,6 @@ void RRANSAC::callback_stats(const visual_mtt::Stats& data)
   // Save stride
   frame_stride_ = data.stride;
   double t_available = (1/fps_)*frame_stride_;
-  double t_computation = 0;
-  for (int i; i<data.times.size(); i++)
-  {
-    t_computation += data.times[i];
-  }
 
   // Low-pass filter utilization
   double alpha;
@@ -203,7 +209,14 @@ void RRANSAC::callback_stats(const visual_mtt::Stats& data)
     alpha = 1/(time_constant_/t_available + 1);
   }
 
-  utilization_ = alpha*(t_computation/t_available) + (1-alpha)*utilization_;
+  util_.time_available          = t_available;
+  util_.feature_manager         = alpha*(data.t_feature_manager/t_available) + (1-alpha)*util_.feature_manager;
+  util_.homography_manager      = alpha*(data.t_homography_manager/t_available) + (1-alpha)*util_.homography_manager;
+  util_.measurement_generation  = alpha*(data.t_measurement_generation/t_available) + (1-alpha)*util_.measurement_generation;
+  util_.rransac                 = alpha*(t_rransac_/t_available) + (1-alpha)*util_.rransac;
+
+  double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
+  util_.total = alpha*total + (1-alpha)*util_.total;
 }
 
 // ----------------------------------------------------------------------------
@@ -241,6 +254,9 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // Include the original frame header and add the current time to the tracks
   msg.header_frame = header_frame_;
   msg.header_update.stamp = ros::Time::now();
+
+  // Attach utilization statistics to the message
+  msg.util = util_;
 
   // ROS publish
   pub.publish(msg);
@@ -330,13 +346,9 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
   // utilization rectangle background color
-  cv::Scalar background;
-  if (utilization_ > 0.9)
-    background = cv::Scalar(0, 0, 255);
-  else
-    background = cv::Scalar(255, 255, 255);
+  cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
 
-  sprintf(text, "Utilization: %d%%", (int)(utilization_*100));
+  sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
   corner = cv::Point(5,65);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));

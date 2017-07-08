@@ -40,9 +40,9 @@ namespace rransac {
     ros::NodeHandle nh;
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
+    ros::Publisher pub;
     image_transport::CameraSubscriber sub_video;
     image_transport::Publisher pub_output_video;
-    ros::Publisher pub;
 
     // Saved frame and scan headers, received at each callback
     std_msgs::Header header_frame_last_;
@@ -50,11 +50,12 @@ namespace rransac {
     int frame_seq_;
 
     // Low-pass filter for fps and utilization
-    double fps_           = 30;
-    int    frame_stride_  = 1;
-    double utilization_   = 0.75;
-    double alpha_         = 0.003; // fps filter: large time constant ~10s
-    double time_constant_ = 1.5;   // utilization filter: chose time constant
+    visual_mtt::Utilization util_;   // store utilization values
+    double t_rransac_       = 0;
+    double fps_             = 30;
+    int    frame_stride_    = 1;
+    double alpha_           = 0.003; // fps filter: large time constant ~10s
+    double time_constant_   = 1.0;   // utilization filter: chose time constant
 
     // For visualization
     cv::Mat frame_;
