@@ -160,9 +160,10 @@ add_executable(${PROJECT_NAME}_visual_frontend
   # Homography management
   src/visual_frontend/homography_manager/homography_manager.cpp
   src/visual_frontend/homography_manager/simple_homography.cpp
-  
+
   # Measurement sources
-  src/visual_frontend/source_features.cpp
+  src/visual_frontend/source_manager/source_manager.cpp
+  src/visual_frontend/source_manager/feature_outliers.cpp
 
   # Common
   src/visual_frontend/gpu.cpp)

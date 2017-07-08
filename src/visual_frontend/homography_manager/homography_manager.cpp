@@ -41,9 +41,9 @@ void HomographyManager::set_method(enum HomographyMethodType type)
     // Create a new homography method
     homography_method_ = std::make_shared<SimpleHomography>();
   }
-  else if (type == HOMOGRAPY_FILTER)
+  else if (type == HOMOGRAPHY_FILTER)
   {
-    ROS_WARN("HOMOGRAPY_FILTER not implemented");
+    ROS_WARN("HOMOGRAPHY_FILTER not implemented");
   }
 
   // Store what type of homography method we are for later

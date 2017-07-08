@@ -8,9 +8,9 @@ VisualFrontend::VisualFrontend()
   ros::NodeHandle nh("~");
 
   // get parameters from param server that are not dynamically reconfigurable
-  nh.param<bool>("tuning", tuning_, 0);
+  nh.param<bool>("tuning", source_manager_.tuning_, 0);
 
-  if (tuning_)
+  if (source_manager_.tuning_)
     ROS_WARN("tuning mode enabled");
 
   // ROS communication
@@ -20,10 +20,6 @@ VisualFrontend::VisualFrontend()
   sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
   pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
-
-  // populate vector of desired measurement sources
-  //sources_.push_back(std::shared_ptr<SourceBackground>(new SourceBackground()));
-  sources_.push_back(std::shared_ptr<SourceFeatures>(new SourceFeatures()));
 
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
@@ -66,6 +62,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     // set the high and low definition resolutions
     hd_res_.width = hd_frame_.cols;
@@ -89,7 +86,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(sd_frame_); // in future operate on sd
+  feature_manager_.find_correspondences(sd_frame_);
   auto t_features = ros::Time::now() - tic;
 
   //
@@ -106,8 +103,27 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   tic = ros::Time::now();
 
-  // have each measurement source generate measurements
-  generate_measurements();
+  // call measurement sources execution
+  source_manager_.generate_measurements(
+    hd_frame_,
+    sd_frame_,
+    homography_manager_.homography_,
+    feature_manager_.prev_matched_,
+    feature_manager_.next_matched_,
+    homography_manager_.good_transform_);
+
+  // manage scan timestamps
+  source_manager_.scan_.header_frame.stamp = timestamp_frame_;
+  source_manager_.scan_.header_scan.stamp  = ros::Time::now();
+
+  // copy the homography to the scan TODO: don't let the homography manager ever allow an empty matrix, then remove 'if'
+  if (!homography_manager_.homography_.empty())
+    std::memcpy(&source_manager_.scan_.homography, homography_manager_.homography_.data, source_manager_.scan_.homography.size()*sizeof(float));
+
+  // publish scan
+  pub_scan.publish(source_manager_.scan_);
+  // TODO: move homography copy and timestamps into manager?
+
   auto t_measurements = ros::Time::now() - tic;
 
   //
@@ -159,13 +175,11 @@ void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
 
 void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
 {
-  // update: frontend, feature_manager_, homography_manager_, sources_
+  // update: frontend, feature_manager_, homography_manager_, source_manager_
   set_parameters(config);
   feature_manager_.set_parameters(config);
   homography_manager_.set_parameters(config);
-
-  for (int i=0; i<sources_.size(); i++)
-    sources_[i]->set_parameters(config);
+  source_manager_.set_parameters(config);
 
   ROS_INFO("visual frontend: parameters have been updated");
 };
@@ -186,99 +200,12 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     // update the low definition resolution
     sd_res_.width = hd_res_.width*downsize_scale_;
     sd_res_.height = hd_res_.height*downsize_scale_;
   }
-}
-
-// ----------------------------------------------------------------------------
-
-void VisualFrontend::generate_measurements()
-{
-  // Message for publishing measurements to R-RANSAC Tracker
-  visual_mtt::RRANSACScan scan;
-  scan.header_frame.stamp = timestamp_frame_;
-  if (!homography_manager_.homography_.empty())
-    std::memcpy(&scan.homography, homography_manager_.homography_.data, scan.homography.size()*sizeof(float));
-
-
-  for (int i=0; i<sources_.size(); i++)
-  {
-    sources_[i]->generate_measurements(
-      homography_manager_.homography_,
-      feature_manager_.prev_matched_,
-      feature_manager_.next_matched_,
-      homography_manager_.good_transform_);
-
-    // when in tuning mode, display the measurements from each source
-    // TODO: make pure virtual 'draw' function in source.h to keep this clean!
-    if (tuning_)
-    {
-      // display measurements
-      cv::Mat draw = hd_frame_.clone();
-      cv::Mat draw2 = sd_frame_.clone();
-
-      // treat points in the normalized image plane as 3D points (homogeneous).
-      // project the points onto the sensor (pixel space) for plotting.
-      // use no rotation or translation (world frame = camera frame).
-      std::vector<cv::Point3f> features_h; // homogeneous
-      std::vector<cv::Point2f> features_d; // distorted
-      std::vector<cv::Point2f> features_d2; // distorted
-      if (sources_[i]->features_.size()>0)
-      {
-        cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
-        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
-        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
-      }
-
-      // plot measurements
-      for (int j=0; j<features_d.size(); j++)
-      {
-        cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
-        cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
-        cv::circle(draw2, features_d2[j], 2, color, 2, CV_AA);
-      }
-      cv::imshow(sources_[i]->name_, draw);
-      cv::imshow("temporary", draw2);
-    }
-
-    // Create a Source msg
-    visual_mtt::Source src;
-    src.id = i;
-    src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
-
-    for (int j=0; j<sources_[i]->features_.size(); j++)
-    {
-
-      // TODO: Can I always assume that features_.size == features_vel_.size()?
-      auto pos = sources_[i]->features_[j];
-      auto vel = sources_[i]->features_vel_[j];
-
-      visual_mtt::Measurement mpos, mvel;
-      mpos.data = {pos.x, pos.y};
-      mvel.data = {vel.x, vel.y};
-
-      src.positions.push_back(mpos);
-      src.velocities.push_back(mvel);
-    }
-
-    // Add source to scan message
-    scan.sources.push_back(src);
-  }
-
-  if (tuning_)
-  {
-    // get the input from the keyboard
-    char keyboard = cv::waitKey(1);
-    if(keyboard == 'q')
-      ros::shutdown();
-  }
-
-  // timestamp after scan is completed
-  scan.header_scan.stamp = ros::Time::now();
-  pub_scan.publish(scan);
 }
 
 }

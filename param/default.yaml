@@ -19,9 +19,15 @@ visual_frontend/corner_quality_max:   0.05  # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
-# source_features
+# feature_outliers
+visual_frontend/feature_outliers_enabled: true
 visual_frontend/minimum_pixel_velocity: 0.0022 #0.00285714275
 visual_frontend/maximum_pixel_velocity: 0.014
+
+# difference_image
+visual_frontend/difference_image_enabled: false
+visual_frontend/filler1: 0.00285714275
+visual_frontend/filler2: 0.014
 
 ###############################################################################
 #### R-RANSAC Node
