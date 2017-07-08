@@ -31,7 +31,7 @@ void SourceFeatures::generate_measurements(cv::Mat& homography, std::vector<cv::
     features_.clear();
     features_vel_.clear();
     int numberOfPossibleMovers = 0;
-    for (int ii = 0; ii < std::min((int)next_features.size(), 200); ++ii)
+    for (int ii = 0; ii < next_features.size(); ++ii)
     {
       float vel = sqrt(features_vel[ii].x*features_vel[ii].x + features_vel[ii].y*features_vel[ii].y);
       if (vel > velocity_floor_ && vel < velocity_ceiling_)
