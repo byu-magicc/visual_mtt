@@ -42,13 +42,13 @@ namespace visual_frontend {
 
     // data management and execution
     void set_parameters(visual_mtt::visual_frontendConfig& config);
-    void add_frame(cv::Mat& newMat, cv::Mat& memberMat); // second argument: uMat
     void generate_measurements();
 
-    cv::Mat hd_frame_in;
-    cv::Mat sd_frame_in;
-    cv::Mat hd_frame; // uMat
-    cv::Mat sd_frame; // uMat
+    // frames
+    cv::Mat hd_frame_;
+    cv::Mat sd_frame_;
+    cv::Size hd_res_;
+    cv::Size sd_res_;
 
     visual_mtt::TracksPtr tracks_;
 
@@ -70,7 +70,7 @@ namespace visual_frontend {
 
     // camera parameters
     ros::Time timestamp_frame_;
-    cv::Mat camera_matrix_;
+    cv::Mat camera_matrix_, camera_matrix_scaled_;
     cv::Mat dist_coeff_;
     bool info_received_ = false;
 

@@ -42,6 +42,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // save the camera parameters and frame timestamp
   timestamp_frame_ = data->header.stamp;
 
+  // convert message data into OpenCV type cv::Mat
+  hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
+
   // save camera parameters one time
   if (!info_received_)
   {
@@ -57,7 +60,18 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     for(int i=0; i<cinfo->D.size(); i++)
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
-    feature_manager_.set_camera(camera_matrix_, dist_coeff_);
+    // scale the entire matrix except the 3,3 element
+    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_.at<double>(2,2) = 1;
+
+    // provide algorithm members with updated camera parameters
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+
+    // set the high and low definition resolutions
+    hd_res_.width = hd_frame_.cols;
+    hd_res_.height = hd_frame_.rows;
+    sd_res_.width = hd_frame_.cols*downsize_scale_;
+    sd_res_.height = hd_frame_.rows*downsize_scale_;
 
     info_received_ = true;
   }
@@ -67,25 +81,15 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   auto tic = ros::Time::now();
 
-  // convert message data into OpenCV type cv::Mat
-  hd_frame_in = cv_bridge::toCvCopy(data, "bgr8")->image;
-
-  // downsize image to standard definition
-  cv::Size def;
-  def.width = hd_frame_in.cols*downsize_scale_;
-  def.height = hd_frame_in.rows*downsize_scale_;
-  cv::resize(hd_frame_in, sd_frame_in, def, 0, 0, cv::INTER_LINEAR);
-
-  // add frames to recent history
-  add_frame(hd_frame_in, hd_frame);
-  add_frame(sd_frame_in, sd_frame);
+  // resize frame
+  cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_LINEAR);
 
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
   // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(hd_frame); // in future operate on sd
+  feature_manager_.find_correspondences(sd_frame_); // in future operate on sd
   auto t_features = ros::Time::now() - tic;
 
   //
@@ -172,16 +176,21 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
   downsize_scale_ = config.downsize_scale;
-  // TODO: scale camera calibration for sd_image
-}
 
-// ----------------------------------------------------------------------------
+  // if camera information is saved, update the scaled camera parameters
+  if (info_received_)
+  {
+    // scale the entire matrix except the 3,3 element
+    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_.at<double>(2,2) = 1;
 
-void VisualFrontend::add_frame(cv::Mat& newMat, cv::Mat& memberMat) // second argument: uMat
-{
-  // why does this need its own method?
-  // see https://github.com/jdmillard/opencv-cuda
-  memberMat = newMat;
+    // provide algorithm members with updated camera parameters
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+
+    // update the low definition resolution
+    sd_res_.width = hd_res_.width*downsize_scale_;
+    sd_res_.height = hd_res_.height*downsize_scale_;
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -208,26 +217,31 @@ void VisualFrontend::generate_measurements()
     if (tuning_)
     {
       // display measurements
-      cv::Mat draw = hd_frame.clone();
+      cv::Mat draw = hd_frame_.clone();
+      cv::Mat draw2 = sd_frame_.clone();
 
       // treat points in the normalized image plane as 3D points (homogeneous).
       // project the points onto the sensor (pixel space) for plotting.
       // use no rotation or translation (world frame = camera frame).
       std::vector<cv::Point3f> features_h; // homogeneous
       std::vector<cv::Point2f> features_d; // distorted
+      std::vector<cv::Point2f> features_d2; // distorted
       if (sources_[i]->features_.size()>0)
       {
         cv::convertPointsToHomogeneous(sources_[i]->features_, features_h);
         cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, features_d);
+        cv::projectPoints(features_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_scaled_, dist_coeff_, features_d2);
       }
 
       // plot measurements
       for (int j=0; j<features_d.size(); j++)
       {
-        cv::Scalar color = cv::Scalar(255, 0, 255);
+        cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
         cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
+        cv::circle(draw2, features_d2[j], 2, color, 2, CV_AA);
       }
       cv::imshow(sources_[i]->name_, draw);
+      cv::imshow("temporary", draw2);
     }
 
     // Create a Source msg

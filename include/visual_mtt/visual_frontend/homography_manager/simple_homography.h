@@ -18,9 +18,8 @@ namespace visual_frontend {
 
   private:
     std::vector<uchar> inlier_mask_;
-    std::vector<cv::Point2f> pixel_diff_;
     bool good_transform_;
-    
+
   };
 
 }
