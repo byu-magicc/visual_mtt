@@ -266,6 +266,10 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
 void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
+
+  if (frame_.empty())
+    return;
+
   cv::Mat draw = frame_.clone();
 
   int total_tracks = 0;
