@@ -113,8 +113,8 @@ void SourceManager::set_sources()
   }
   if (difference_image_)
   {
-    ROS_WARN("source manager: difference image not implemented");
-    // n_sources_++;
+    measurement_sources_.push_back(std::unique_ptr<DifferenceImage>(new DifferenceImage()));
+    n_sources_++;
   }
 
   // check for "no sources" error
