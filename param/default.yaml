@@ -27,8 +27,8 @@ visual_frontend/maximum_pixel_velocity: 0.014
 
 # difference_image
 visual_frontend/difference_image_enabled: false
-visual_frontend/filler1: 0.00285714275
-visual_frontend/filler2: 0.014
+visual_frontend/ksize: 10
+visual_frontend/sigma: 5
 
 ###############################################################################
 #### R-RANSAC Node

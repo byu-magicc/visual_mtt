@@ -27,8 +27,8 @@ namespace visual_frontend {
     cv::Mat frame_u_last_;
 
     // measurement source parameters
-    double velocity_floor_;
-    double velocity_ceiling_;
+    cv::Size ksize_;
+    double sigma_;
 
     // camera parameters
     cv::Mat camera_matrix_;

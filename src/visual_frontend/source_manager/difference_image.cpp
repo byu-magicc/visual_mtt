@@ -36,7 +36,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // difference
     cv::Mat diff;
     cv::absdiff(frame_u_, frame_u_last_, diff);
-    cv::imshow("raw difference", diff);
+    // cv::imshow("raw difference", diff);
 
     // mask the artifact edges TODO: move to separate function
 
@@ -56,12 +56,19 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // generate mask
     cv::Mat mask(frame_u_.size(), CV_8UC1, cv::Scalar(0));
     cv::fillConvexPoly(mask, corners_warped, cv::Scalar(255));
-    cv::imshow("\"what to keep from raw diff\" mask", mask);
+    // cv::imshow("\"what to keep from raw diff\" mask", mask);
 
     // apply mask
     cv::cvtColor(diff, diff, CV_BGR2GRAY);
     cv::bitwise_and(diff, mask, diff);
     cv::imshow("masked difference", diff);
+
+    // blur
+    double blur_size = 1;
+    double sig = 1;
+  	cv::Size gauss_filter_size = cv::Size(blur_size, blur_size);
+    cv::GaussianBlur(diff, diff, gauss_filter_size, sig);
+    cv::imshow("blur", diff);
 
     // morphology
 
@@ -86,8 +93,8 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   // example parameter set
-  velocity_floor_ = config.filler1;
-  velocity_ceiling_ = config.filler2;
+  ksize_ = cv::Size(config.ksize, config.ksize);
+  sigma_ = config.sigma;
 }
 
 // ----------------------------------------------------------------------------
