@@ -18,16 +18,25 @@ DifferenceImage::~DifferenceImage()
 
 void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
 {
+  // save the original image for plotting
   sd_frame_ = sd_frame;
+
+  // undisort the low resolution image
+  cv::undistort(sd_frame_, frame_u, camera_matrix_, dist_coeff_);
 
   if (!first_image_)
   {
-    // undisort image
+    // convert the current euclidean homography to pixel homography
+    camera_matrix_.convertTo(camera_matrix_, CV_32FC1); // for inverse
+    cv::Mat homography2 = camera_matrix_*homography*camera_matrix_.inv();
 
-    // convert euclidean homography
-    // warp images using new homography
+    // transform previous image using new homography
+    cv::warpPerspective(frame_u_last_, frame_u_last_, homography2, frame_u.size());
 
     // difference
+    cv::Mat diff;
+    cv::absdiff(frame_u, frame_u_last_, diff);
+    cv::imshow("raw difference", diff);
 
     // morphology
 
@@ -41,6 +50,10 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   {
     first_image_ = false;
   }
+
+  // bump undistorted image (save, overwriting the old one)
+  frame_u_last_ = frame_u;
+
 }
 
 // ----------------------------------------------------------------------------

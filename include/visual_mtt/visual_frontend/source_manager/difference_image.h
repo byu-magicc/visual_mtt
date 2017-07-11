@@ -23,6 +23,8 @@ namespace visual_frontend {
 
   private:
     cv::Mat sd_frame_;
+    cv::Mat frame_u_;
+    cv::Mat frame_u_last_;
 
     // measurement source parameters
     double velocity_floor_;
