@@ -38,6 +38,31 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     cv::absdiff(frame_u_, frame_u_last_, diff);
     cv::imshow("raw difference", diff);
 
+    // mask the artifact edges TODO: move to separate function
+
+    // get usable corners
+    std::vector<cv::Point2f> corners; // TODO: generate at beginning, dyn_recon
+    double border = 5; // TODO: make hard-coded
+    corners.push_back(cv::Point2f(border,               border));
+    corners.push_back(cv::Point2f(frame_u_.cols-border, border));
+    corners.push_back(cv::Point2f(frame_u_.cols-border, frame_u_.rows-border));
+    corners.push_back(cv::Point2f(border,               frame_u_.rows-border));
+
+    // see where the old corners land in current frame
+    cv::Mat corners_warped;
+    cv::perspectiveTransform(corners, corners_warped, homography2);
+    corners_warped.convertTo(corners_warped, CV_32SC1);
+
+    // generate mask
+    cv::Mat mask(frame_u_.size(), CV_8UC1, cv::Scalar(0));
+    cv::fillConvexPoly(mask, corners_warped, cv::Scalar(255));
+    cv::imshow("\"what to keep from raw diff\" mask", mask);
+
+    // apply mask
+    cv::cvtColor(diff, diff, CV_BGR2GRAY);
+    cv::bitwise_and(diff, mask, diff);
+    cv::imshow("masked difference", diff);
+
     // morphology
 
     // grid-based point generation
