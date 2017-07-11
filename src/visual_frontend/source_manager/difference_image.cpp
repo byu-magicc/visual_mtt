@@ -22,7 +22,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   sd_frame_ = sd_frame;
 
   // undisort the low resolution image
-  cv::undistort(sd_frame_, frame_u, camera_matrix_, dist_coeff_);
+  cv::undistort(sd_frame_, frame_u_, camera_matrix_, dist_coeff_);
 
   if (!first_image_)
   {
@@ -31,11 +31,11 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     cv::Mat homography2 = camera_matrix_*homography*camera_matrix_.inv();
 
     // transform previous image using new homography
-    cv::warpPerspective(frame_u_last_, frame_u_last_, homography2, frame_u.size());
+    cv::warpPerspective(frame_u_last_, frame_u_last_, homography2, frame_u_.size());
 
     // difference
     cv::Mat diff;
-    cv::absdiff(frame_u, frame_u_last_, diff);
+    cv::absdiff(frame_u_, frame_u_last_, diff);
     cv::imshow("raw difference", diff);
 
     // morphology
@@ -52,7 +52,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   }
 
   // bump undistorted image (save, overwriting the old one)
-  frame_u_last_ = frame_u;
+  frame_u_last_ = frame_u_.clone();
 
 }
 
