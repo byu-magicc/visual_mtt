@@ -6,8 +6,7 @@ RRANSAC::RRANSAC()
 {
   // get parameters from param server that are not dynamically reconfigurable
   ros::NodeHandle nh_private("~");
-  nh_private.param<bool>("show_tracks", show_tracks_, false);
-  nh_private.param<bool>("pub_output_img", pub_output_img_, false);
+  nh_private.param<bool>("pub_tracks_video", pub_tracks_video_, false);
 
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
@@ -18,8 +17,8 @@ RRANSAC::RRANSAC()
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
-  if (pub_output_img_)
-    pub_output_video = it.advertise("output_video", 1);
+  if (pub_tracks_video_)
+    pub_tracks_video = it.advertise("output_video", 1);
 
 
   // initialize the top left corner of normalized image plane with zeros
@@ -122,7 +121,7 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
   publish_tracks(tracks);
 
   // generate visualization
-  if (show_tracks_ || pub_output_img_)
+  if (pub_tracks_video_)
     draw_tracks(tracks);
 }
 
@@ -170,17 +169,8 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
   header_frame_last_ = header_frame_;
   header_frame_ = frame->header;
 
-  double alpha;
-  if (frame_seq_<30)
-  {
-    // early on converge quickly, allowing noise
-    alpha = 0.95;
-  }
-  else
-  {
-    // attenuate noise after values have converged
-    alpha = alpha_;
-  }
+  // LPF alpha: Converge quickly at first
+  double alpha = (frame_seq_ < 30) ? 0.95 : alpha_;
 
   // enforce realistic time differences (for rosbag looping)
   ros::Duration elapsed = header_frame_.stamp - header_frame_last_.stamp;
@@ -196,18 +186,8 @@ void RRANSAC::callback_stats(const visual_mtt::Stats& data)
   frame_stride_ = data.stride;
   double t_available = (1/fps_)*frame_stride_;
 
-  // Low-pass filter utilization
-  double alpha;
-  if (frame_seq_<30)
-  {
-    // early on converge quickly, allowing noise
-    alpha = 0.95;
-  }
-  else
-  {
-    // attenuate noise after values have converged, maintain time constant
-    alpha = 1/(time_constant_/t_available + 1);
-  }
+  // LPF alpha: Converge quickly at first
+  double alpha = (frame_seq_ < 30) ? 0.95 : 1/(time_constant_/t_available + 1);
 
   util_.time_available          = t_available;
   util_.feature_manager         = alpha*(data.t_feature_manager/t_available) + (1-alpha)*util_.feature_manager;
@@ -272,11 +252,11 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   cv::Mat draw = frame_.clone();
 
-  int total_tracks = 0;
+  static int max_num_tracks = 0;
 
   for (int i=0; i<tracks.size(); i++)
   {
-    total_tracks = std::max(total_tracks, (int)tracks[i]->GMN);
+    max_num_tracks = std::max(max_num_tracks, (int)tracks[i]->GMN);
     cv::Scalar color = colors_[tracks[i]->GMN];
 
     // Projecting Distances (tauR and velocity lines)
@@ -339,7 +319,7 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  sprintf(text, "Total models: %d", total_tracks);
+  sprintf(text, "Total models: %d", max_num_tracks);
   corner = cv::Point(5,25);
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
@@ -357,20 +337,12 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
-  if (pub_output_img_)
-  {
-    cv_bridge::CvImage image_msg;
-    image_msg.encoding = sensor_msgs::image_encodings::BGR8;
-    image_msg.image = draw;
-    image_msg.header = header_frame_;
-    pub_output_video.publish(image_msg.toImageMsg());
-  }
-
-  if (show_tracks_)
-  {
-    cv::imshow("Tracks", draw);
-    cv::waitKey(1);
-  }
+  // Publish over ROS network
+  cv_bridge::CvImage image_msg;
+  image_msg.encoding = sensor_msgs::image_encodings::BGR8;
+  image_msg.image = draw;
+  image_msg.header = header_frame_;
+  pub_tracks_video.publish(image_msg.toImageMsg());
 }
 
 }
