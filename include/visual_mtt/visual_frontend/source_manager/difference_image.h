@@ -30,6 +30,10 @@ namespace visual_frontend {
     cv::Size ksize_;
     double sigma_;
 
+    cv::Mat element_;
+    int morph_iterations_;
+    double threshold_;
+
     // camera parameters
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;

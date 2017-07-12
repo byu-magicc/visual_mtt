@@ -61,18 +61,32 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // apply mask
     cv::cvtColor(diff, diff, CV_BGR2GRAY);
     cv::bitwise_and(diff, mask, diff);
-    cv::imshow("masked difference", diff);
+    cv::imshow("(1) masked difference", diff);
 
     // blur
-    double blur_size = 1;
-    double sig = 1;
-  	cv::Size gauss_filter_size = cv::Size(blur_size, blur_size);
-    cv::GaussianBlur(diff, diff, gauss_filter_size, sig);
-    cv::imshow("blur", diff);
+    cv::GaussianBlur(diff, diff, ksize_, sigma_); // maybe make the sigma same as size
+    cv::imshow("(2) blur", diff);
+
+    // normalize
+    cv::normalize(diff, diff, 0, 255, cv::NORM_MINMAX);
+    cv::imshow("(2.5) normalize", diff);
+
+    // cv::blur(diff, diff, ksize_);
+    // cv::imshow("(2) blur", diff);
+
+    // morphology (one iteration)
+    // cv::morphologyEx(diff, diff, cv::MORPH_OPEN, element_, cv::Point(-1,-1), 1);
+    // cv::imshow("(2.5) morphologyEx", diff);
+
+    // threshold
+    cv::threshold(diff, diff, threshold_, 255, cv::THRESH_BINARY);
+    cv::imshow("(3) thresh", diff);
 
     // morphology
+    cv::morphologyEx(diff, diff, cv::MORPH_OPEN, element_, cv::Point(-1,-1), morph_iterations_);
+    cv::imshow("(4) morphologyEx", diff);
 
-    // grid-based point generation
+    // point generation
 
     // TODO: good_transform flag not yet used! (if false, discard measurements)
     // replace first_image_ logic with good_transform logic and make sure
@@ -93,8 +107,14 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   // example parameter set
-  ksize_ = cv::Size(config.ksize, config.ksize);
+  ksize_ = cv::Size(2*config.ksize + 1, 2*config.ksize + 1);
   sigma_ = config.sigma;
+  element_ = cv::getStructuringElement(
+    cv::MORPH_RECT,
+    cv::Size(2*config.morph_size + 1, 2*config.morph_size+1),
+    cv::Point(config.morph_size, config.morph_size));
+  morph_iterations_ = config.morph_iterations;
+  threshold_ = config.threshold;
 }
 
 // ----------------------------------------------------------------------------
