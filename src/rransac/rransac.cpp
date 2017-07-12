@@ -18,7 +18,7 @@ RRANSAC::RRANSAC()
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
   if (pub_tracks_video_)
-    pub_tracks_video = it.advertise("output_video", 1);
+    pub_tracks_video = it.advertise("tracks_video", 1);
 
 
   // initialize the top left corner of normalized image plane with zeros
@@ -38,7 +38,8 @@ RRANSAC::RRANSAC()
 // Private Methods
 // ----------------------------------------------------------------------------
 
-void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level) {
+void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level)
+{
 
   // general
   params_.dt = config.dt;
