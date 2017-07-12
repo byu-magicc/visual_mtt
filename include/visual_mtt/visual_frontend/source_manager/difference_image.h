@@ -33,6 +33,8 @@ namespace visual_frontend {
     cv::Mat element_;
     int morph_iterations_;
     double threshold_;
+    int minimum_diff_complexity_;
+    int maximum_diff_complexity_;
 
     // camera parameters
     cv::Mat camera_matrix_;

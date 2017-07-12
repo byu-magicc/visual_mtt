@@ -36,7 +36,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // difference
     cv::Mat diff;
     cv::absdiff(frame_u_, frame_u_last_, diff);
-    // cv::imshow("raw difference", diff);
+    cv::imshow("(1) difference", diff);
 
     // mask the artifact edges TODO: move to separate function
 
@@ -61,32 +61,53 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // apply mask
     cv::cvtColor(diff, diff, CV_BGR2GRAY);
     cv::bitwise_and(diff, mask, diff);
-    cv::imshow("(1) masked difference", diff);
+    // cv::imshow("(1) difference", diff);
 
     // blur
-    cv::GaussianBlur(diff, diff, ksize_, sigma_); // maybe make the sigma same as size
+    cv::GaussianBlur(diff, diff, ksize_, sigma_);
     cv::imshow("(2) blur", diff);
 
     // normalize
     cv::normalize(diff, diff, 0, 255, cv::NORM_MINMAX);
-    cv::imshow("(2.5) normalize", diff);
-
-    // cv::blur(diff, diff, ksize_);
-    // cv::imshow("(2) blur", diff);
-
-    // morphology (one iteration)
-    // cv::morphologyEx(diff, diff, cv::MORPH_OPEN, element_, cv::Point(-1,-1), 1);
-    // cv::imshow("(2.5) morphologyEx", diff);
+    cv::imshow("(3) normalize", diff);
 
     // threshold
     cv::threshold(diff, diff, threshold_, 255, cv::THRESH_BINARY);
-    cv::imshow("(3) thresh", diff);
+    cv::imshow("(4) threshold", diff);
 
-    // morphology
+    // open operation (erode then dilate)
     cv::morphologyEx(diff, diff, cv::MORPH_OPEN, element_, cv::Point(-1,-1), morph_iterations_);
-    cv::imshow("(4) morphologyEx", diff);
+    cv::imshow("(5) open", diff);
 
     // point generation
+
+
+    // turn the edges into many series of points
+    std::vector<std::vector<cv::Point>> contours1, contours2;
+    cv::findContours(diff, contours1, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+    cv::Mat outlines1(diff.size(), CV_64FC3, cv::Scalar(0, 0, 0));
+    cv::drawContours(outlines1, contours1, -1, cv::Scalar(0,255,0));
+    cv::imshow("(6) all contours", outlines1);
+
+    // filter difference outlines based on contour complexity
+    for (int i; i<contours1.size(); i++)
+    {
+      int complexity = contours1[i].size(); // switch to distance along contour
+      if (complexity > minimum_diff_complexity_ && complexity < maximum_diff_complexity_)
+      {
+        contours2.push_back(contours1[i]);
+      }
+    }
+    cv::Mat outlines2(diff.size(), CV_64FC3, cv::Scalar(0, 0, 0));
+    cv::drawContours(outlines2, contours2, -1, cv::Scalar(255,0,255));
+    cv::imshow("(7) filtered contours", outlines2);
+
+    // find centroids of remaining outlines
+
+
+
+
+
 
     // TODO: good_transform flag not yet used! (if false, discard measurements)
     // replace first_image_ logic with good_transform logic and make sure
@@ -115,6 +136,8 @@ void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
     cv::Point(config.morph_size, config.morph_size));
   morph_iterations_ = config.morph_iterations;
   threshold_ = config.threshold;
+  minimum_diff_complexity_ = config.minimum_diff_complexity;
+  maximum_diff_complexity_ = config.maximum_diff_complexity;
 }
 
 // ----------------------------------------------------------------------------
