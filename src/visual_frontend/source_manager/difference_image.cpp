@@ -25,7 +25,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   // save the original image for plotting
   sd_frame_ = sd_frame;
 
-  if(!size_known_)
+  if (!size_known_)
   {
     size_ = sd_frame_.size();
     corners_.clear();
@@ -86,6 +86,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
         cv::reduce(points, points, 0, CV_REDUCE_AVG);
         cv::Point2f centroid(points.at<float>(0), points.at<float>(1));
         features_.push_back(centroid);
+        features_vel_.push_back(cv::Point2f(0,0)); // no velocity provided
       }
     }
 
@@ -160,7 +161,7 @@ void DifferenceImage::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 void DifferenceImage::draw_measurements()
 {
-  if(!frame_difference_.empty())
+  if (!frame_difference_.empty())
   {
     cv::imshow("(1) difference", frame_difference_);
     cv::imshow("(2) blur",       frame_blur_);

@@ -69,8 +69,6 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
     if (tuning_)
       measurement_sources_[i]->draw_measurements();
 
-    if (i==0)   // <<<<< HACK HACK HACK to not add difference image to scan
-    {
     // create Source message
     visual_mtt::Source src;
     src.id = i;
@@ -91,17 +89,11 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
 
     // Add source to scan message
     scan.sources.push_back(src);
-    }   // <<<<< HACK HACK HACK
-
   }
   scan_ = scan; // TODO use only scan_ and use "new" up above
 
   if (tuning_)
-  {
     char keyboard = cv::waitKey(1);
-    if(keyboard == 'q')
-      ros::shutdown();
-  }
 
 }
 
