@@ -22,6 +22,8 @@ namespace visual_frontend {
     bool first_image_ = true; // see TODO notes in difference_image.cpp
 
   private:
+    void mask_edges(cv::Mat& difference_raw, cv::Mat& difference_masked, cv::Mat& homography);
+
     cv::Mat sd_frame_;
     cv::Mat frame_u_;
     cv::Mat frame_u_last_;
@@ -34,15 +36,24 @@ namespace visual_frontend {
     cv::Mat frame_contours_;
     cv::Mat frame_points_;
 
+    // image corners for difference mask
+    bool size_known_ = false;
+    cv::Size size_;
+    double border_ = 5;
+    std::vector<cv::Point2f> corners_;
+
+    // contours saved as members for plotting
+    std::vector<std::vector<cv::Point>> contours1_, contours2_;
+
     // measurement source parameters
-    cv::Size ksize_;
-    double sigma_;
+    cv::Size blur_kernel_;
+    double blur_sigma_;
 
     cv::Mat element_;
     int morph_iterations_;
     double threshold_;
-    int minimum_diff_complexity_;
-    int maximum_diff_complexity_;
+    int min_complexity_;
+    int max_complexity_;
 
     // camera parameters
     cv::Mat camera_matrix_;

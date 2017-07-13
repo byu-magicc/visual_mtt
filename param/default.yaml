@@ -27,13 +27,13 @@ visual_frontend/maximum_pixel_velocity: 0.014
 
 # difference_image
 visual_frontend/difference_image_enabled: true
-visual_frontend/ksize: 4 # TODO: make naming clearer
-visual_frontend/sigma: 8.0
+visual_frontend/blur_kernel: 4
+visual_frontend/blur_sigma: 8.0
 visual_frontend/threshold: 130
 visual_frontend/morph_size: 1
 visual_frontend/morph_iterations: 2
-visual_frontend/minimum_diff_complexity: 20 # TODO: make min/max, simple naming
-visual_frontend/maximum_diff_complexity: 70
+visual_frontend/min_complexity: 10
+visual_frontend/max_complexity: 100
 
 ###############################################################################
 #### R-RANSAC Node

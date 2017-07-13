@@ -96,6 +96,13 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
   }
   scan_ = scan; // TODO use only scan_ and use "new" up above
 
+  if (tuning_)
+  {
+    char keyboard = cv::waitKey(1);
+    if(keyboard == 'q')
+      ros::shutdown();
+  }
+
 }
 
 // ----------------------------------------------------------------------------

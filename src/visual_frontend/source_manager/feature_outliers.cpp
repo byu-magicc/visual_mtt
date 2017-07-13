@@ -95,15 +95,9 @@ void FeatureOutliers::draw_measurements()
   // plot measurements
   for (int j=0; j<features_d.size(); j++)
   {
-    cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
-    cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
+    cv::circle(draw, features_d[j], 2, cv::Scalar(255, 0, 255), 2, CV_AA);
   }
   cv::imshow(name_, draw);
-
-  // get the input from the keyboard, force display
-  char keyboard = cv::waitKey(1);
-  if(keyboard == 'q')
-    ros::shutdown();
 
 }
 
