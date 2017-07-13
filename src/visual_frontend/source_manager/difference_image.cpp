@@ -26,17 +26,17 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 
   if (!first_image_)
   {
-    // convert the current euclidean homography to pixel homography
-    camera_matrix_.convertTo(camera_matrix_, CV_32FC1); // for inverse
-    cv::Mat homography2 = camera_matrix_*homography*camera_matrix_.inv();
+    // convert the euclidean homography to pixel homography
+    camera_matrix_.convertTo(camera_matrix_, CV_32FC1); // needed for inverse
+    cv::Mat homography_pixel = camera_matrix_*homography*camera_matrix_.inv();
 
     // transform previous image using new homography
-    cv::warpPerspective(frame_u_last_, frame_u_last_, homography2, frame_u_.size());
+    cv::warpPerspective(frame_u_last_, frame_u_last_, homography_pixel, frame_u_.size());
 
     // difference
     cv::Mat diff;
-    cv::absdiff(frame_u_, frame_u_last_, diff);
-    cv::imshow("(1) difference", diff);
+    cv::absdiff(frame_u_, frame_u_last_, frame_difference_);
+    cv::imshow("(1) difference", frame_difference_);
 
     // mask the artifact edges TODO: move to separate function
 
@@ -50,7 +50,7 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 
     // see where the old corners land in current frame
     cv::Mat corners_warped;
-    cv::perspectiveTransform(corners, corners_warped, homography2);
+    cv::perspectiveTransform(corners, corners_warped, homography_pixel);
     corners_warped.convertTo(corners_warped, CV_32SC1);
 
     // generate mask
@@ -59,35 +59,35 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // cv::imshow("\"what to keep from raw diff\" mask", mask);
 
     // apply mask
-    cv::cvtColor(diff, diff, CV_BGR2GRAY);
-    cv::bitwise_and(diff, mask, diff);
+    cv::cvtColor(frame_difference_, frame_blur_, CV_BGR2GRAY);
+    cv::bitwise_and(frame_blur_, mask, frame_blur_);
     // cv::imshow("(1) difference", diff);
 
     // blur
-    cv::GaussianBlur(diff, diff, ksize_, sigma_);
-    cv::imshow("(2) blur", diff);
+    cv::GaussianBlur(frame_blur_, frame_blur_, ksize_, sigma_);
+    cv::imshow("(2) blur", frame_blur_);
 
     // normalize
-    cv::normalize(diff, diff, 0, 255, cv::NORM_MINMAX);
-    cv::imshow("(3) normalize", diff);
+    cv::normalize(frame_blur_, frame_normalized_, 0, 255, cv::NORM_MINMAX);
+    cv::imshow("(3) normalize", frame_normalized_);
 
     // threshold
-    cv::threshold(diff, diff, threshold_, 255, cv::THRESH_BINARY);
-    cv::imshow("(4) threshold", diff);
+    cv::threshold(frame_normalized_, frame_threshold_, threshold_, 255, cv::THRESH_BINARY);
+    cv::imshow("(4) threshold", frame_threshold_);
 
     // open operation (erode then dilate)
-    cv::morphologyEx(diff, diff, cv::MORPH_OPEN, element_, cv::Point(-1,-1), morph_iterations_);
-    cv::imshow("(5) open", diff);
+    cv::morphologyEx(frame_threshold_, frame_open_, cv::MORPH_OPEN, element_, cv::Point(-1,-1), morph_iterations_);
+    cv::imshow("(5) open", frame_open_);
 
     // point generation
 
-
     // turn the edges into many series of points
     std::vector<std::vector<cv::Point>> contours1, contours2;
-    cv::findContours(diff, contours1, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+    cv::findContours(frame_open_, contours1, cv::RETR_LIST, cv::CHAIN_APPROX_NONE);
+    frame_contours_ = cv::Mat::zeros(frame_open_.size(), CV_64FC3); // TODO: generic size member set in reconfigure?
     cv::Mat outlines1(diff.size(), CV_64FC3, cv::Scalar(0, 0, 0));
-    cv::drawContours(outlines1, contours1, -1, cv::Scalar(0,255,0));
-    cv::imshow("(6) all contours", outlines1);
+    cv::drawContours(frame_contours_, contours1, -1, cv::Scalar(0,255,0));
+    cv::imshow("(6) all contours", frame_contours_);
 
     // filter difference outlines based on contour complexity
     for (int i; i<contours1.size(); i++)
@@ -98,16 +98,40 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
         contours2.push_back(contours1[i]);
       }
     }
+    frame_points_ = cv::Mat::zeros(frame_open_.size(), CV_64FC3); // TODO: generic size member set in reconfigure?
     cv::Mat outlines2(diff.size(), CV_64FC3, cv::Scalar(0, 0, 0));
-    cv::drawContours(outlines2, contours2, -1, cv::Scalar(255,0,255));
-    cv::imshow("(7) filtered contours", outlines2);
+    cv::drawContours(frame_points_, contours2, -1, cv::Scalar(255,0,255));
+    // cv::imshow("(7) filtered contours", outlines2);
 
     // find centroids of remaining outlines
+    // TODO: put both into same loop above
+    features_.clear();
+    for (int i; i<contours2.size(); i++)
+    {
+      // convert the vector of cv::Point (int) to Mat of float
+      cv::Mat converted(contours2[i]);
+      converted.convertTo(converted, CV_32FC1);
 
+      // cv::Mat converted2;
+      cv::reduce(converted, converted, 0, CV_REDUCE_AVG);
 
+      // put this into push_back directly
+      cv::Point2f final(converted.at<float>(0), converted.at<float>(1));
+      features_.push_back(final); // put into one line, remove "final"
 
+      cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
+      cv::circle(frame_points_, final, 2, color, 2, CV_AA);
 
+    }
+    cv::imshow("(7) filtered contours", frame_points_);
 
+    if (features_.size()>0)
+    {
+      // transform points to the normalized image plane
+      // (lense distortion compensation already happened above)
+      cv::Mat dist_coeff; // empty
+      cv::undistortPoints(features_, features_, camera_matrix_, dist_coeff);
+    }
 
     // TODO: good_transform flag not yet used! (if false, discard measurements)
     // replace first_image_ logic with good_transform logic and make sure
@@ -168,6 +192,7 @@ void DifferenceImage::draw_measurements()
   // plot measurements
   for (int j=0; j<features_d.size(); j++)
   {
+    std::cout << "drawing circle " << j << std::endl;
     cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
     cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
   }

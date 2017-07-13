@@ -26,6 +26,14 @@ namespace visual_frontend {
     cv::Mat frame_u_;
     cv::Mat frame_u_last_;
 
+    cv::Mat frame_difference_;
+    cv::Mat frame_blur_;
+    cv::Mat frame_normalized_;
+    cv::Mat frame_threshold_;
+    cv::Mat frame_open_;
+    cv::Mat frame_contours_;
+    cv::Mat frame_points_;
+
     // measurement source parameters
     cv::Size ksize_;
     double sigma_;
