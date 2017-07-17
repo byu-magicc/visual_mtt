@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
+// #include <opencv2/gpu/gpu.hpp>
 #include "visual_frontend/source_manager/measurement_source.h"
 
 // dynamic reconfig
@@ -24,7 +25,10 @@ namespace visual_frontend {
   private:
     void mask_edges(cv::Mat& difference_raw, cv::Mat& difference_masked, cv::Mat& homography);
 
+    // untouched frame
     cv::Mat sd_frame_;
+
+#ifndef OPENCV_CUDA
     cv::Mat frame_u_;
     cv::Mat frame_u_last_;
 
@@ -35,6 +39,32 @@ namespace visual_frontend {
     cv::Mat frame_open_;
     cv::Mat frame_contours_;
     cv::Mat frame_points_;
+#endif
+
+#ifdef OPENCV_CUDA
+    cv::cuda::GpuMat frame_u_;
+    cv::cuda::GpuMat frame_u_last_;
+
+    cv::cuda::GpuMat frame_difference_;
+    cv::cuda::GpuMat frame_blur_;
+    cv::cuda::GpuMat frame_normalized_;
+    cv::cuda::GpuMat frame_threshold_;
+    cv::cuda::GpuMat frame_open_;
+    cv::cuda::GpuMat frame_contours_;
+    cv::cuda::GpuMat frame_points_;
+#endif
+
+
+    // cv::Mat frame_u_;
+    // cv::Mat frame_u_last_;
+
+    // cv::Mat frame_difference_;
+    // cv::Mat frame_blur_;
+    // cv::Mat frame_normalized_;
+    // cv::Mat frame_threshold_;
+    // cv::Mat frame_open_;
+    // cv::Mat frame_contours_;
+    // cv::Mat frame_points_;
 
     // image corners for difference mask
     bool size_known_ = false;

@@ -12,6 +12,14 @@ DifferenceImage::DifferenceImage()
 DifferenceImage::~DifferenceImage()
 {
   cv::destroyWindow(name_);
+
+  cv::destroyWindow("(1) difference");
+  cv::destroyWindow("(2) blur");
+  cv::destroyWindow("(3) normalize");
+  cv::destroyWindow("(4) threshold");
+  cv::destroyWindow("(5) open");
+  cv::destroyWindow("(6) all contours");
+  cv::destroyWindow("(7) filtered contours");
 }
 
 // ----------------------------------------------------------------------------
@@ -22,8 +30,15 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   contours2_.clear();
   features_.clear();
 
+// #if OPENCV_CUDA
+//   // upload the frame to gpu
+//   sd_frame_.upload(sd_frame);
+// #else
   // save the original image for plotting
   sd_frame_ = sd_frame;
+// #endif
+
+  // move homography conversion to here
 
   if (!size_known_)
   {
@@ -37,7 +52,43 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
   }
 
   // undisort the low resolution image
-  cv::undistort(sd_frame_, frame_u_, camera_matrix_, dist_coeff_);
+  cv::Mat frame_u;
+  cv::undistort(sd_frame_, frame_u, camera_matrix_, dist_coeff_);
+
+#if OPENCV_CUDA
+  frame_u_.upload(frame_u);
+
+  if (!first_image_)
+  {
+    // convert the euclidean homography to pixel homography
+    camera_matrix_.convertTo(camera_matrix_, CV_32FC1); // needed for inverse
+    cv::Mat homography_pixel = camera_matrix_*homography*camera_matrix_.inv();
+
+    // transform previous image using new homography
+    cv::cuda::GpuMat frame_u_last_warped;
+    cv::cuda::warpPerspective(frame_u_last_, frame_u_last_warped, homography_pixel, size_);
+
+    // raw difference
+    cv::cuda::absdiff(frame_u_, frame_u_last_warped, frame_difference_);
+
+    // mask the artifact edges
+    // mask_edges(frame_difference_, frame_blur_, homography_pixel);
+
+    // for debugging (temporary)
+    // cv::Mat test2(frame);
+    // cv::imshow("test2", test2);
+
+
+  }
+  else
+  {
+    first_image_ = false;
+  }
+
+
+
+#else
+  frame_u_ = frame_u;
 
   if (!first_image_)
   {
@@ -49,7 +100,6 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     cv::warpPerspective(frame_u_last_, frame_u_last_, homography_pixel, size_);
 
     // raw difference
-    cv::Mat diff;
     cv::absdiff(frame_u_, frame_u_last_, frame_difference_);
 
     // mask the artifact edges
@@ -107,6 +157,8 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     first_image_ = false;
   }
 
+#endif
+
   // bump undistorted image (save, overwriting the old one)
   frame_u_last_ = frame_u_.clone();
 
@@ -161,13 +213,26 @@ void DifferenceImage::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 void DifferenceImage::draw_measurements()
 {
+  // TODO: move this to a separate function and add a hardcoded boolean toggle
   if (!frame_difference_.empty())
   {
+#if OPENCV_CUDA
+    cv::Mat frame_difference(frame_difference_);
+    // cv::Mat frame_blur(frame_blur_);
+    // cv::Mat frame_normalize(frame_normalize_);
+    // cv::Mat frame_threshold(frame_threshold_);
+    // cv::Mat frame_open(frame_open_);
+    cv::imshow("(1) difference", frame_difference);
+    // cv::imshow("(2) blur",       frame_blur);
+    // cv::imshow("(3) normalize",  frame_normalized);
+    // cv::imshow("(4) threshold",  frame_threshold);
+    // cv::imshow("(5) open",       frame_open);
+#else
     cv::imshow("(1) difference", frame_difference_);
     cv::imshow("(2) blur",       frame_blur_);
-    cv::imshow("(3) normalize", frame_normalized_);
-    cv::imshow("(4) threshold", frame_threshold_);
-    cv::imshow("(5) open", frame_open_);
+    cv::imshow("(3) normalize",  frame_normalized_);
+    cv::imshow("(4) threshold",  frame_threshold_);
+    cv::imshow("(5) open",       frame_open_);
 
     frame_contours_ = cv::Mat::zeros(size_, CV_64FC3);
     cv::drawContours(frame_contours_, contours1_, -1, cv::Scalar(0,255,0));
@@ -176,9 +241,17 @@ void DifferenceImage::draw_measurements()
     frame_points_ = cv::Mat::zeros(size_, CV_64FC3);
     cv::drawContours(frame_points_, contours2_, -1, cv::Scalar(255,0,255));
     cv::imshow("(7) filtered contours", frame_points_);
+#endif
   }
 
+//   cv::Mat draw;
+// #if OPENCV_CUDA
+//   sd_frame_.download(draw);
+// #else
   cv::Mat draw = sd_frame_.clone();
+// #endif
+
+  // cv::Mat draw = sd_frame_.clone();
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
@@ -196,7 +269,11 @@ void DifferenceImage::draw_measurements()
   {
     cv::circle(draw, features_d[j], 3, cv::Scalar(255, 0, 255), 3, CV_AA);
   }
-  cv::imshow(name_, draw);
+
+  if (!draw.empty())
+  {
+    cv::imshow(name_, draw);
+  }
 
 }
 
