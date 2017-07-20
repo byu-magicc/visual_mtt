@@ -24,7 +24,7 @@ namespace visual_frontend {
     void set_camera(const cv::Mat& K, const cv::Mat& D);
 
     // vector of sources
-    std::vector<std::unique_ptr<MeasurementSource>> measurement_sources_;
+    std::vector<std::shared_ptr<MeasurementSource>> measurement_sources_;
 
     // scan of measurements
     visual_mtt::RRANSACScan scan_;

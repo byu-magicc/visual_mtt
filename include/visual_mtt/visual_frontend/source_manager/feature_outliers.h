@@ -32,7 +32,7 @@ namespace visual_frontend {
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
 
-    // for destroying windows in tuning mode
+    // at least one cv window exists
     bool drawn_;
   };
 

@@ -104,8 +104,8 @@ void FeatureOutliers::draw_measurements()
 
   if (!draw.empty())
   {
-    cv::imshow(name_, draw);
     drawn_ = true;
+    cv::imshow(name_, draw);
   }
 
 }

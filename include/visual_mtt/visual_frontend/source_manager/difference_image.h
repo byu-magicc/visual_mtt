@@ -29,47 +29,32 @@ namespace visual_frontend {
     void mask_edges(cv::Mat& difference_raw, cv::Mat& difference_masked, cv::Mat& homography);
 #endif
 
-    // untouched frame
+    // untouched input frame
     cv::Mat sd_frame_;
 
-#ifndef OPENCV_CUDA
-    // TODO: make simplified ifs
-    cv::Mat frame_u_;
-    cv::Mat frame_u_last_;
-
-    cv::Mat frame_difference_;
-    cv::Mat frame_blur_;
-    cv::Mat frame_normalized_;
-    cv::Mat frame_threshold_;
-    cv::Mat frame_open_;
-    cv::Mat frame_contours_;
-    cv::Mat frame_points_;
-#endif
-
-#ifdef OPENCV_CUDA
+#if OPENCV_CUDA
+    // saved undistorted frames
     cv::cuda::GpuMat frame_u_;
     cv::cuda::GpuMat frame_u_last_;
-
+    // intermediate steps
     cv::cuda::GpuMat frame_difference_;
     cv::cuda::GpuMat frame_blur_;
     cv::cuda::GpuMat frame_normalized_;
     cv::cuda::GpuMat frame_threshold_;
     cv::cuda::GpuMat frame_open_;
-    cv::cuda::GpuMat frame_contours_;
-    cv::cuda::GpuMat frame_points_;
+#else
+    // saved undistorted frames
+    cv::Mat frame_u_;
+    cv::Mat frame_u_last_;
+    // intermediate steps
+    cv::Mat frame_difference_;
+    cv::Mat frame_blur_;
+    cv::Mat frame_normalized_;
+    cv::Mat frame_threshold_;
+    cv::Mat frame_open_;
 #endif
-
-
-    // cv::Mat frame_u_;
-    // cv::Mat frame_u_last_;
-
-    // cv::Mat frame_difference_;
-    // cv::Mat frame_blur_;
-    // cv::Mat frame_normalized_;
-    // cv::Mat frame_threshold_;
-    // cv::Mat frame_open_;
-    // cv::Mat frame_contours_;
-    // cv::Mat frame_points_;
+    cv::Mat frame_contours_;
+    cv::Mat frame_points_;
 
     // image corners for difference mask
     bool size_known_ = false;
@@ -101,7 +86,10 @@ namespace visual_frontend {
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
 
-    // for destroying windows in tuning mode
+    // for extra introspective plots
+    bool extra_plots_;
+
+    // at least one cv window exists
     bool drawn_;
   };
 

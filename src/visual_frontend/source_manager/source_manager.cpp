@@ -110,12 +110,12 @@ void SourceManager::set_sources()
   // populate the sources vector according to the current configuration
   if (feature_motion_)
   {
-    measurement_sources_.push_back(std::unique_ptr<FeatureOutliers>(new FeatureOutliers()));
+    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>());
     n_sources_++;
   }
   if (difference_image_)
   {
-    measurement_sources_.push_back(std::unique_ptr<DifferenceImage>(new DifferenceImage()));
+    measurement_sources_.emplace_back(std::make_shared<DifferenceImage>());
     n_sources_++;
   }
 
