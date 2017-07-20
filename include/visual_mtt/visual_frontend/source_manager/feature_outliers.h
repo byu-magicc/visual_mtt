@@ -31,6 +31,9 @@ namespace visual_frontend {
     // camera parameters
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
+
+    // for destroying windows in tuning mode
+    bool drawn_;
   };
 
 }

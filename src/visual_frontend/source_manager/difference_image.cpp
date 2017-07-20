@@ -5,21 +5,25 @@ namespace visual_frontend {
 DifferenceImage::DifferenceImage()
 {
   name_ = "Difference Image";
+  drawn_ = false;
 }
 
 // ----------------------------------------------------------------------------
 
 DifferenceImage::~DifferenceImage()
 {
-  cv::destroyWindow(name_);
+  if (drawn_)
+  {
+    cv::destroyWindow(name_);
 
-  cv::destroyWindow("(1) difference");
-  cv::destroyWindow("(2) blur");
-  cv::destroyWindow("(3) normalize");
-  cv::destroyWindow("(4) threshold");
-  cv::destroyWindow("(5) open");
-  cv::destroyWindow("(6) all contours");
-  cv::destroyWindow("(7) filtered contours");
+    cv::destroyWindow("(1) difference");
+    cv::destroyWindow("(2) blur");
+    cv::destroyWindow("(3) normalize");
+    cv::destroyWindow("(4) threshold");
+    cv::destroyWindow("(5) open");
+    cv::destroyWindow("(6) all contours");
+    cv::destroyWindow("(7) filtered contours");
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -273,6 +277,7 @@ void DifferenceImage::draw_measurements()
   if (!draw.empty())
   {
     cv::imshow(name_, draw);
+    drawn_ = true;
   }
 
 }

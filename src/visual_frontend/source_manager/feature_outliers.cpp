@@ -5,13 +5,17 @@ namespace visual_frontend {
 FeatureOutliers::FeatureOutliers()
 {
   name_ = "Homography Outliers";
+  drawn_ = false;
 }
 
 // ----------------------------------------------------------------------------
 
 FeatureOutliers::~FeatureOutliers()
 {
-  cv::destroyWindow(name_);
+  if (drawn_)
+  {
+    cv::destroyWindow(name_);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -97,7 +101,12 @@ void FeatureOutliers::draw_measurements()
   {
     cv::circle(draw, features_d[j], 2, cv::Scalar(255, 0, 255), 2, CV_AA);
   }
-  cv::imshow(name_, draw);
+
+  if (!draw.empty())
+  {
+    cv::imshow(name_, draw);
+    drawn_ = true;
+  }
 
 }
 
