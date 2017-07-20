@@ -87,6 +87,10 @@ namespace visual_frontend {
     cv::Size blur_kernel_;
     double blur_sigma_;
 
+    // morphology open parameters
+#if OPENCV_CUDA
+    cv::Ptr<cv::cuda::Filter> filter_open_;
+#endif
     cv::Mat element_;
     int morph_iterations_;
     double threshold_;

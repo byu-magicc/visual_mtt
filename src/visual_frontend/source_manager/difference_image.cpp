@@ -84,8 +84,13 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     // normalize
     cv::cuda::normalize(frame_blur_, frame_normalized_, 0, 255, cv::NORM_MINMAX, -1);
 
+    // threshold
+    cv::cuda::threshold(frame_normalized_, frame_threshold_, threshold_, 255, cv::THRESH_BINARY);
 
-
+    // open operation (erode then dilate)
+    filter_open_->apply(frame_threshold_, frame_open_);
+    for (int i=1; i<morph_iterations_; i++)
+      filter_open_->apply(frame_open_, frame_open_);
 
     // for debugging (temporary)
     // cv::Mat test2(frame_blur_);
@@ -215,17 +220,24 @@ void DifferenceImage::mask_edges(cv::Mat& difference_raw, cv::Mat& difference_ma
 
 void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
+  // blur parameters
   blur_kernel_ = cv::Size(2*config.blur_kernel + 1, 2*config.blur_kernel + 1);
   blur_sigma_ = config.blur_sigma;
 #if OPENCV_CUDA
   filter_gauss_ = cv::cuda::createGaussianFilter(0, 0, blur_kernel_, blur_sigma_);
 #endif
 
+  // morphology open parameters
   element_ = cv::getStructuringElement(
     cv::MORPH_RECT,
     cv::Size(2*config.morph_size + 1, 2*config.morph_size+1),
     cv::Point(config.morph_size, config.morph_size));
   morph_iterations_ = config.morph_iterations;
+#if OPENCV_CUDA
+  filter_open_ = cv::cuda::createMorphologyFilter(cv::MORPH_OPEN, 0, element_);
+#endif
+
+
   threshold_ = config.threshold;
   min_complexity_ = config.min_complexity;
   max_complexity_ = config.max_complexity;
@@ -252,13 +264,13 @@ void DifferenceImage::draw_measurements()
     cv::Mat frame_difference(frame_difference_);
     cv::Mat frame_blur(frame_blur_);
     cv::Mat frame_normalized(frame_normalized_);
-    // cv::Mat frame_threshold(frame_threshold_);
-    // cv::Mat frame_open(frame_open_);
+    cv::Mat frame_threshold(frame_threshold_);
+    cv::Mat frame_open(frame_open_);
     cv::imshow("(1) difference", frame_difference);
     cv::imshow("(2) blur",       frame_blur);
     cv::imshow("(3) normalize",  frame_normalized);
-    // cv::imshow("(4) threshold",  frame_threshold);
-    // cv::imshow("(5) open",       frame_open);
+    cv::imshow("(4) threshold",  frame_threshold);
+    cv::imshow("(5) open",       frame_open);
 #else
     cv::imshow("(1) difference", frame_difference_);
     cv::imshow("(2) blur",       frame_blur_);
