@@ -23,12 +23,17 @@ namespace visual_frontend {
     bool first_image_ = true; // see TODO notes in difference_image.cpp
 
   private:
+#if OPENCV_CUDA
+    void mask_edges(cv::cuda::GpuMat& difference_raw, cv::cuda::GpuMat& difference_masked, cv::Mat& homography);
+#else
     void mask_edges(cv::Mat& difference_raw, cv::Mat& difference_masked, cv::Mat& homography);
+#endif
 
     // untouched frame
     cv::Mat sd_frame_;
 
 #ifndef OPENCV_CUDA
+    // TODO: make simplified ifs
     cv::Mat frame_u_;
     cv::Mat frame_u_last_;
 
@@ -75,7 +80,10 @@ namespace visual_frontend {
     // contours saved as members for plotting
     std::vector<std::vector<cv::Point>> contours1_, contours2_;
 
-    // measurement source parameters
+    // gaussian blur parameters
+#if OPENCV_CUDA
+    cv::Ptr<cv::cuda::Filter> filter_gauss_;
+#endif
     cv::Size blur_kernel_;
     double blur_sigma_;
 

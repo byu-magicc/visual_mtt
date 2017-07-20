@@ -76,11 +76,23 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
     cv::cuda::absdiff(frame_u_, frame_u_last_warped, frame_difference_);
 
     // mask the artifact edges
-    // mask_edges(frame_difference_, frame_blur_, homography_pixel);
+    mask_edges(frame_difference_, frame_blur_, homography_pixel);
+
+    // blur
+    filter_gauss_->apply(frame_blur_, frame_blur_);
+
+    // normalize
+    cv::cuda::normalize(frame_blur_, frame_normalized_, 0, 255, cv::NORM_MINMAX, -1);
+
+
+
 
     // for debugging (temporary)
-    // cv::Mat test2(frame);
+    // cv::Mat test2(frame_blur_);
     // cv::imshow("test2", test2);
+
+    // TODO: combine operations into single if first image
+    // keep common operations such as the homography conversion
 
 
   }
@@ -170,7 +182,11 @@ void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 
 // ----------------------------------------------------------------------------
 
+#if OPENCV_CUDA
+void DifferenceImage::mask_edges(cv::cuda::GpuMat& difference_raw, cv::cuda::GpuMat& difference_masked, cv::Mat& homography)
+#else
 void DifferenceImage::mask_edges(cv::Mat& difference_raw, cv::Mat& difference_masked, cv::Mat& homography)
+#endif
 {
   // see where the old corners land in current frame
   cv::Mat corners_transformed;
@@ -180,19 +196,31 @@ void DifferenceImage::mask_edges(cv::Mat& difference_raw, cv::Mat& difference_ma
   // generate mask
   cv::Mat mask(size_, CV_8UC1, cv::Scalar(0));
   cv::fillConvexPoly(mask, corners_transformed, cv::Scalar(255));
+#if OPENCV_CUDA
+  cv::cuda::GpuMat mask2;
+  mask2.upload(mask);
+#endif
 
   // apply mask
+#if OPENCV_CUDA
+  cv::cuda::cvtColor(difference_raw, difference_masked, CV_BGR2GRAY);
+  cv::cuda::bitwise_and(difference_masked, mask, difference_masked);
+#else
   cv::cvtColor(difference_raw, difference_masked, CV_BGR2GRAY);
   cv::bitwise_and(difference_masked, mask, difference_masked);
+#endif
 }
 
 // ----------------------------------------------------------------------------
 
 void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
-  // example parameter set
   blur_kernel_ = cv::Size(2*config.blur_kernel + 1, 2*config.blur_kernel + 1);
   blur_sigma_ = config.blur_sigma;
+#if OPENCV_CUDA
+  filter_gauss_ = cv::cuda::createGaussianFilter(0, 0, blur_kernel_, blur_sigma_);
+#endif
+
   element_ = cv::getStructuringElement(
     cv::MORPH_RECT,
     cv::Size(2*config.morph_size + 1, 2*config.morph_size+1),
@@ -222,13 +250,13 @@ void DifferenceImage::draw_measurements()
   {
 #if OPENCV_CUDA
     cv::Mat frame_difference(frame_difference_);
-    // cv::Mat frame_blur(frame_blur_);
-    // cv::Mat frame_normalize(frame_normalize_);
+    cv::Mat frame_blur(frame_blur_);
+    cv::Mat frame_normalized(frame_normalized_);
     // cv::Mat frame_threshold(frame_threshold_);
     // cv::Mat frame_open(frame_open_);
     cv::imshow("(1) difference", frame_difference);
-    // cv::imshow("(2) blur",       frame_blur);
-    // cv::imshow("(3) normalize",  frame_normalized);
+    cv::imshow("(2) blur",       frame_blur);
+    cv::imshow("(3) normalize",  frame_normalized);
     // cv::imshow("(4) threshold",  frame_threshold);
     // cv::imshow("(5) open",       frame_open);
 #else
