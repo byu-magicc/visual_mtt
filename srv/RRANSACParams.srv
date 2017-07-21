@@ -3,3 +3,8 @@
 # R-RANSAC node.
 
 float32 published_video_scale       # Scale of output video topic
+
+bool feature_outliers_enabled       # Status of source
+bool difference_image_enabled       # Status of source
+
+# add source info here: noise, etc

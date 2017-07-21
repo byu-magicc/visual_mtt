@@ -91,6 +91,37 @@ bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visua
 {
   pub_scale_ = req.published_video_scale;
 
+  // update the locally saved source parameters such as noise
+
+  // check to see if any of the source selections have changed
+  bool changed = false;
+  if (req.feature_outliers_enabled != feature_motion_)
+    changed = true;
+  if (req.difference_image_enabled != difference_image_)
+    changed = true;
+
+  if (changed)
+  {
+    // update the enabled/disabled status for each source
+    feature_motion_   = req.feature_outliers_enabled;
+    difference_image_ = req.difference_image_enabled;
+
+    // repopulate the vector of sources
+    params_.reset_sources();
+
+    // populate the sources vector according to the current configuration
+    if (feature_motion_)
+    {
+      params_.add_source(0); // hardcoded for now TODO: need a good source ID system. have a map define the ID in the frontend then pass the id value through the service call?
+    }
+    if (difference_image_)
+    {
+      params_.add_source(1);
+    }
+  }
+
+  tracker_.set_parameters(params_);
+
   ROS_INFO("rransac: service call param update");
 }
 

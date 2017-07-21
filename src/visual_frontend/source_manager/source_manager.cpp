@@ -69,7 +69,7 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
     if (tuning_)
       measurement_sources_[i]->draw_measurements();
 
-    // create Source message
+    // create Source message // TODO: loop through n_sources, creating a src for each, get id from each source object
     visual_mtt::Source src;
     src.id = i;
     src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
@@ -110,7 +110,7 @@ void SourceManager::set_sources()
   // populate the sources vector according to the current configuration
   if (feature_motion_)
   {
-    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>());
+    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>()); // TODO: make the id part of the constructor, and a polymophic member of the class
     n_sources_++;
   }
   if (difference_image_)
