@@ -4,12 +4,10 @@
 
   <arg name="params"            default="default" />
   <arg name="tuning"            default="false" />
-  <arg name="pub_tracks_video"  default="true" />
   <arg name="imgtopic"          default="/image_raw" />
 
   <!-- params:            name of .yaml contained the desired parameter values  -->
   <!-- tuning:            enables dynamic reconfigure and displays measurements -->
-  <!-- pub_tracks_video:  enables publishing of the tracking result image       -->
   <!-- imgtopic:          name of the topic that contains the video             -->
 
   <!-- ######################################################################## -->
@@ -25,7 +23,6 @@
 
   <!-- start R-RANSAC -->
   <node pkg="visual_mtt" type="rransac" name="rransac" output="screen">
-    <param name="pub_tracks_video" type="bool" value="$(arg pub_tracks_video)" />
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 

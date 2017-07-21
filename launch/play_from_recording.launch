@@ -24,7 +24,6 @@
   <!-- visual_mtt flags -->
   <arg name="params"            default="default" />
   <arg name="tuning"            default="true" />
-  <arg name="pub_tracks_video"  default="true" />
 
 
   <!-- video_path:      path to video file          (video only)              -->
@@ -42,7 +41,6 @@
 
   <!-- params:          name of .yaml containing camera parameter values      -->
   <!-- tuning:          enables dynamic reconfigure and displays measurements -->
-  <!-- pub_output_img:  enables publishing of the tracking result image       -->
 
 
   <!-- helpful args to simplify logic -->
@@ -148,7 +146,6 @@
   <include file="$(find visual_mtt)/launch/visual_mtt.launch">
     <arg name="params" value="$(arg params)" />
     <arg name="tuning" value="$(arg tuning)" />
-    <arg name="pub_tracks_video" value="$(arg pub_tracks_video)" />
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
   </include>
 

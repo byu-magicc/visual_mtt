@@ -61,7 +61,6 @@ namespace rransac {
     cv::Mat frame_;
     double pub_scale_;
     std::vector<cv::Scalar> colors_;
-    bool pub_tracks_video_;
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
     bool info_received_ = false;

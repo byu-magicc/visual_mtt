@@ -4,9 +4,7 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
-  // get parameters from param server that are not dynamically reconfigurable
   ros::NodeHandle nh_private("~");
-  nh_private.param<bool>("pub_tracks_video", pub_tracks_video_, false);
 
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
@@ -17,8 +15,7 @@ RRANSAC::RRANSAC()
   sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
   sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
   pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
-  if (pub_tracks_video_)
-    pub_tracks_video = it.advertise("tracks_video", 1);
+  pub_tracks_video = it.advertise("tracks_video", 1);
 
 
   // initialize the top left corner of normalized image plane with zeros
@@ -133,8 +130,8 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
   // publish the tracks onto ROS network
   publish_tracks(tracks);
 
-  // generate visualization
-  if (pub_tracks_video_)
+  // generate visualization only, but if someone is listening
+  if (pub_tracks_video.getNumSubscribers() > 0)
     draw_tracks(tracks);
 }
 
