@@ -19,8 +19,8 @@
 #include "visual_mtt/Tracks.h"
 #include "visual_mtt/RRANSACScan.h"
 #include "visual_mtt/Stats.h"
-#include "std_msgs/Float32.h" // temporary include for temporary message type (for compilation of imu callback)
-#include "sensor_msgs/Image.h" // needed for subscription to video message
+#include "visual_mtt/RRANSACParams.h"
+#include "sensor_msgs/Image.h"
 
 // key algorithm members
 #include "feature_manager/feature_manager.h"
@@ -36,34 +36,18 @@ namespace visual_frontend {
   public:
     VisualFrontend();
 
-    // subscription and dynamic reconfigure callbacks
-    void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
-    void callback_imu(const std_msgs::Float32 data);    // temporary message type
-    void callback_tracks(const visual_mtt::TracksPtr& data);
-    void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
-
-    // data management
-    void set_parameters(visual_mtt::visual_frontendConfig& config);
-
-    // frames
-    cv::Mat hd_frame_;
-    cv::Mat sd_frame_;
-    cv::Size hd_res_;
-    cv::Size sd_res_;
-
-    visual_mtt::TracksPtr tracks_;
 
   private:
     // ROS
     ros::NodeHandle nh_;
     image_transport::CameraSubscriber sub_video;
-    ros::Subscriber sub_imu;
     ros::Subscriber sub_tracks;
     ros::Publisher  pub_scan;
     ros::Publisher  pub_stats;
 
-    // dynamic reconfigure server
+    // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
+    ros::ServiceClient srv_params_;
 
     // algorithm managers
     FeatureManager    feature_manager_;
@@ -76,11 +60,28 @@ namespace visual_frontend {
     cv::Mat dist_coeff_;
     bool info_received_ = false;
 
+    visual_mtt::TracksPtr tracks_;
+    
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 
     // downsize scale
     double downsize_scale_;
+
+    // frames
+    cv::Mat hd_frame_;
+    cv::Mat sd_frame_;
+    cv::Size hd_res_;
+    cv::Size sd_res_;
+
+    // subscription and dynamic reconfigure callbacks
+    void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
+    void callback_tracks(const visual_mtt::TracksPtr& data);
+    void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
+
+    // data management
+    void set_parameters(visual_mtt::visual_frontendConfig& config);
+    void srv_set_params(visual_mtt::visual_frontendConfig& config);
   };
 
 }

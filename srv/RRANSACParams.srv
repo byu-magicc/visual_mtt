@@ -1,0 +1,5 @@
+# Service message for any R-RANSAC node specific parameters. This allows
+# Items in the Visual Frontend Dynamic Reconfigure to propagate to the
+# R-RANSAC node.
+
+float32 published_video_scale       # Scale of output video topic

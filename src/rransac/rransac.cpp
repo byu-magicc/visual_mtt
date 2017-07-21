@@ -29,6 +29,9 @@ RRANSAC::RRANSAC()
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 
+  // ROS service callback
+  srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
+
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
@@ -83,6 +86,15 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   tracker_.set_parameters(params_);
 
   ROS_INFO("rransac: parameters have been updated");
+}
+
+// ----------------------------------------------------------------------------
+
+bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visual_mtt::RRANSACParams::Response &res)
+{
+  pub_scale_ = req.published_video_scale;
+
+  ROS_INFO("rransac: service call param update");
 }
 
 // ----------------------------------------------------------------------------
@@ -338,10 +350,15 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
   cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 
+  // Resize the image according to the scale
+  cv::Mat resized;
+  cv::Size size(draw.cols*pub_scale_, draw.rows*pub_scale_);
+  cv::resize(draw, resized, size, 0, 0, cv::INTER_AREA);
+
   // Publish over ROS network
   cv_bridge::CvImage image_msg;
   image_msg.encoding = sensor_msgs::image_encodings::BGR8;
-  image_msg.image = draw;
+  image_msg.image = resized;
   image_msg.header = header_frame_;
   pub_tracks_video.publish(image_msg.toImageMsg());
 }

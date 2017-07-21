@@ -19,6 +19,7 @@
 #include "visual_mtt/Tracks.h"
 #include "visual_mtt/Track.h"
 #include "visual_mtt/Stats.h"
+#include "visual_mtt/RRANSACParams.h"
 #include "sensor_msgs/Image.h"
 
 #include <iostream>
@@ -35,7 +36,7 @@ namespace rransac {
     rransac::core::Parameters params_;
     rransac::Tracker tracker_;
 
-    // ROS
+    // ROS pub/sub
     ros::NodeHandle nh;
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
@@ -58,6 +59,7 @@ namespace rransac {
 
     // For visualization
     cv::Mat frame_;
+    double pub_scale_;
     std::vector<cv::Scalar> colors_;
     bool pub_tracks_video_;
     cv::Mat camera_matrix_;
@@ -65,12 +67,13 @@ namespace rransac {
     bool info_received_ = false;
     std::vector<cv::Point2f> corner_;
 
-
-    // dynamic reconfigure server
+    // dynamic reconfigure and service server
     dynamic_reconfigure::Server<visual_mtt::rransacConfig> server_;
+    ros::ServiceServer srv_params_;
 
     // Dynamic reconfigure callback
     void callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level);
+    bool callback_srv_params(visual_mtt::RRANSACParams::Request &req, visual_mtt::RRANSACParams::Response &res);
 
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.
