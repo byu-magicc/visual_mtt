@@ -204,6 +204,9 @@ void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
   visual_mtt::RRANSACParams srv;
   srv.request.published_video_scale = config.published_video_scale;
 
+  // Wait up to 1 second for the rransac service server to be ready
+  ros::service::waitForService(srv_params_.getService(), ros::Duration(1.0));
+  
   if (!srv_params_.call(srv))
     ROS_ERROR("Failed to call R-RANSAC parameter service.");
 }
