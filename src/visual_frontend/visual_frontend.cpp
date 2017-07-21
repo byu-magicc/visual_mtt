@@ -5,10 +5,10 @@ namespace visual_frontend {
 VisualFrontend::VisualFrontend()
 {
   // create a private node handle for use with param server
-  ros::NodeHandle nh("~");
+  ros::NodeHandle nh_private("~");
 
   // get parameters from param server that are not dynamically reconfigurable
-  nh.param<bool>("tuning", source_manager_.tuning_, 0);
+  nh_private.param<bool>("tuning", source_manager_.tuning_, 0);
 
   if (source_manager_.tuning_)
     ROS_WARN("tuning mode enabled");
@@ -16,10 +16,12 @@ VisualFrontend::VisualFrontend()
   // ROS communication
   image_transport::ImageTransport it(nh_);
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
-  sub_imu    = nh_.subscribe(     "imu",    1, &VisualFrontend::callback_imu,    this);
   sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
   pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
+
+  // connect ROS service client to R-RANSAC
+  srv_params_ = nh_.serviceClient<visual_mtt::RRANSACParams>("rransac/set_params");
 
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
@@ -140,22 +142,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_imu(const std_msgs::Float32 data) // temporary dummy std_msgs for compilation
-{
-  // we expect to be getting data for this at >500 Hz (adjust queue for this)
-  //
-  // for in-frame tracking, we'll need 2 homographies:
-  // one between the sliding frames for background subtraction
-  // one between the two recent frames for updating history and estimates
-  // if the homography filter operates on a manifold, maybe it can help?
-  // NOTE: need better understanding of homography filter to answer this.
-  // ---------------------------------------------------
-
-  // if IMU not ignored (from launchfile), call homography filter IMU propagate
-}
-
-// ----------------------------------------------------------------------------
-
 void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
 {
   // save most recent track information in class (for use in measurement
@@ -180,6 +166,9 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
   feature_manager_.set_parameters(config);
   homography_manager_.set_parameters(config);
   source_manager_.set_parameters(config);
+
+  // Update R-RANSAC specific parameters through a service call
+  srv_set_params(config);
 
   ROS_INFO("visual frontend: parameters have been updated");
 };
@@ -206,6 +195,20 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
     sd_res_.width = hd_res_.width*downsize_scale_;
     sd_res_.height = hd_res_.height*downsize_scale_;
   }
+}
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
+{
+  visual_mtt::RRANSACParams srv;
+  srv.request.published_video_scale = config.published_video_scale;
+
+  // Wait up to 1 second for the rransac service server to be ready
+  ros::service::waitForService(srv_params_.getService(), ros::Duration(1.0));
+  
+  if (!srv_params_.call(srv))
+    ROS_ERROR("Failed to call R-RANSAC parameter service.");
 }
 
 }
