@@ -11,8 +11,8 @@
 
   <!-- for rosbag -->
   <arg name="bag_path"    default="" />
-  <arg name="bag_topic"   default="/camera/image_raw" />
-  <arg name="info_topic"  default="" />
+  <arg name="bag_topic"   default="camera/image_raw" />
+  <arg name="info_topic"  default="camera/camera_info" />
   <arg name="compressed"  default="false" />
   <arg name="has_info"    default="true" />
   <arg name="hide_bag"    default="false" />
