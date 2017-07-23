@@ -92,9 +92,8 @@ namespace rransac {
     // Draw tracks over original frame
     void draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
-    // For managing sources
-    bool feature_motion_;
-    bool difference_image_;
+    // Saved source information
+    visual_mtt::RRANSACParams::Request req_last_;
   };
 
 }

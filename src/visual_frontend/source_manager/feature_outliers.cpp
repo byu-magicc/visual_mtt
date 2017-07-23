@@ -4,7 +4,9 @@ namespace visual_frontend {
 
 FeatureOutliers::FeatureOutliers()
 {
+  id_ = 0;
   name_ = "Homography Outliers";
+  has_velocity_ = true;
   drawn_ = false;
 }
 
@@ -69,6 +71,10 @@ void FeatureOutliers::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;
+
+  // noise parameters (only for storage, not used in measurement generation)
+  sigmaR_pos_ = config.feature_outliers_sigmaR_pos;
+  sigmaR_vel_ = config.feature_outliers_sigmaR_vel;
 }
 
 // ----------------------------------------------------------------------------

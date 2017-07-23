@@ -23,9 +23,11 @@ namespace visual_frontend {
     std::vector<cv::Point2f> features_;
     std::vector<cv::Point2f> features_vel_;
 
-    // add bool has_velocity?
-
+    int id_;
     std::string name_;
+    bool has_velocity_;
+    double sigmaR_pos_;
+    double sigmaR_vel_;
   private:
 
   };

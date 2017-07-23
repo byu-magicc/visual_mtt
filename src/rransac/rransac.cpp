@@ -91,36 +91,46 @@ bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visua
 {
   pub_scale_ = req.published_video_scale;
 
-  // update the locally saved source parameters such as noise
-
-  // check to see if any of the source selections have changed
+  // See if any source parameters have changed
   bool changed = false;
-  if (req.feature_outliers_enabled != feature_motion_)
-    changed = true;
-  if (req.difference_image_enabled != difference_image_)
-    changed = true;
-
-  if (changed)
+  if (req.n_sources!=req_last_.n_sources) changed = true;
+  else
   {
-    // update the enabled/disabled status for each source
-    feature_motion_   = req.feature_outliers_enabled;
-    difference_image_ = req.difference_image_enabled;
-
-    // repopulate the vector of sources
-    params_.reset_sources();
-
-    // populate the sources vector according to the current configuration
-    if (feature_motion_)
+    // loop through sources before and after
+    for (int i=0; i<req.n_sources; i++)
     {
-      params_.add_source(0); // hardcoded for now TODO: need a good source ID system. have a map define the ID in the frontend then pass the id value through the service call?
-    }
-    if (difference_image_)
-    {
-      params_.add_source(1);
+      if (req.id[i]!=req_last_.id[i])                 changed = true;
+      if (req.sigmaR_pos[i]!=req_last_.sigmaR_pos[i]) changed = true;
+      if (req.sigmaR_vel[i]!=req_last_.sigmaR_vel[i]) changed = true;
     }
   }
 
-  tracker_.set_parameters(params_);
+  if (changed)
+  {
+    // Clear the existing source information inside R-RANSAC
+    params_.reset_sources();
+
+    // Add each source with the corresponding new parameters
+    int id;
+    bool has_velocity;
+    double sigmaR_pos;
+    double sigmaR_vel;
+    for (int i=0; i<req.n_sources; i++)
+    {
+      id = req.id[i];
+      has_velocity = req.has_velocity[i];
+      sigmaR_pos = req.sigmaR_pos[i];
+      sigmaR_vel = req.sigmaR_vel[i];
+      params_.add_source(id, has_velocity, sigmaR_pos, sigmaR_vel, 2);
+      // 2 is environment dimensionality, just filler, hardcoded on the inside
+    }
+
+    // Remember the request (new source parameters)
+    req_last_ = req;
+
+    // Send updated parameters to R-RANSAC
+    tracker_.set_parameters(params_);
+  }
 
   ROS_INFO("rransac: service call param update");
 }

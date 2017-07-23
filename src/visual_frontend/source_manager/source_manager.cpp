@@ -110,7 +110,7 @@ void SourceManager::set_sources()
   // populate the sources vector according to the current configuration
   if (feature_motion_)
   {
-    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>()); // TODO: make the id part of the constructor, and a polymophic member of the class
+    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>());
     n_sources_++;
   }
   if (difference_image_)

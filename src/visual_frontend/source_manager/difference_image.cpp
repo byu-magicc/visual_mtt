@@ -4,7 +4,9 @@ namespace visual_frontend {
 
 DifferenceImage::DifferenceImage()
 {
+  id_ = 1;
   name_ = "Difference Image";
+  has_velocity_ = false;
   drawn_ = false;
 }
 
@@ -228,6 +230,10 @@ void DifferenceImage::set_parameters(visual_mtt::visual_frontendConfig& config)
     cv::destroyWindow("(6) all contours");
     cv::destroyWindow("(7) filtered contours");
   }
+
+  // noise parameters (only for storage, not used in measurement generation)
+  sigmaR_pos_ = config.difference_image_sigmaR_pos;
+  sigmaR_vel_ = 0;
 
   size_known_ = false;
 }
