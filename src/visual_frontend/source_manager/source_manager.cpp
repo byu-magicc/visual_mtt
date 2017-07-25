@@ -54,7 +54,7 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
   // initialize the scan message
   visual_mtt::RRANSACScan scan;
 
-  for (int i=0; i<measurement_sources_.size(); i++)
+  for (int i=0; i<n_sources_; i++)
   {
     // generate measurements for this source
     measurement_sources_[i]->generate_measurements(
@@ -69,10 +69,11 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
     if (tuning_)
       measurement_sources_[i]->draw_measurements();
 
-    // create Source message // TODO: loop through n_sources, creating a src for each, get id from each source object
+    // create Source message
     visual_mtt::Source src;
-    src.id = i;
+    src.id = measurement_sources_[i]->id_;
     src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
+    src.has_velocity = measurement_sources_[i]->has_velocity_;
 
     for (int j=0; j<measurement_sources_[i]->features_.size(); j++)
     {

@@ -152,9 +152,19 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
   for (auto src = rransac_scan->sources.begin(); src != rransac_scan->sources.end(); src++)
   {
     if (src->dimensionality == 2)
-      tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
+    {
+      if (src->has_velocity)
+        tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
+      else if (!src->has_velocity)
+        tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->id);
+    }
     else if (src->dimensionality == 3)
-      tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
+    {
+      if (src->has_velocity)
+        tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
+      else if (!src->has_velocity)
+        tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->id);
+    }
 
     // Keep track of how many measurements there are for utilization
     util_.number_of_rransac_measurements += src->positions.size();

@@ -29,7 +29,7 @@ namespace visual_frontend {
     // scan of measurements
     visual_mtt::RRANSACScan scan_;
 
-    // number of sources activated TODO: perhaps not needed for anything
+    // current number of sources
     int n_sources_;
 
     // whether or not to draw measurements
