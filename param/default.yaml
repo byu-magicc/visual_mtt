@@ -5,8 +5,8 @@
 #### Visual Frontend Node
 
 # general processing
-visual_frontend/frame_stride: 3
-visual_frontend/downsize_scale: 0.8
+visual_frontend/frame_stride: 2
+visual_frontend/downsize_scale: 0.4
 visual_frontend/published_video_scale: 1.0
 
 # feature manager
@@ -21,16 +21,16 @@ visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
 # feature_outliers
-visual_frontend/feature_outliers_enabled: true
+visual_frontend/feature_outliers_enabled: false
 visual_frontend/feature_outliers_sigmaR_pos: 0.00714285725
 visual_frontend/feature_outliers_sigmaR_vel: 0.0014285715
 visual_frontend/minimum_pixel_velocity: 0.0022 #0.00285714275
 visual_frontend/maximum_pixel_velocity: 0.014
 
 # difference_image
-visual_frontend/difference_image_enabled: false
+visual_frontend/difference_image_enabled: true
 visual_frontend/difference_extra_plots: false
-visual_frontend/difference_image_sigmaR_pos: 0.00714285725
+visual_frontend/difference_image_sigmaR_pos: 0.25
 visual_frontend/blur_kernel: 4
 visual_frontend/blur_sigma: 8.0
 visual_frontend/threshold: 130
