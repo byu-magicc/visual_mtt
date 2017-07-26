@@ -30,7 +30,7 @@ visual_frontend/maximum_pixel_velocity: 0.014
 # difference_image
 visual_frontend/difference_image_enabled: true
 visual_frontend/difference_extra_plots: false
-visual_frontend/difference_image_sigmaR_pos: 0.25
+visual_frontend/difference_image_sigmaR_pos: 0.007
 visual_frontend/blur_kernel: 4
 visual_frontend/blur_sigma: 8.0
 visual_frontend/threshold: 130
@@ -51,6 +51,8 @@ rransac/M: 30
 rransac/tauR: 0.0714285715
 rransac/sigmaR_pos: 0.00714285725
 rransac/sigmaR_vel: 0.0014285715
+rransac/sigmaQ_jrk: 0.0001
+rransac/alphaQ_jrk: 0.0001
 rransac/rransac_motion_model: 2
 
 # RANSAC specific parameters

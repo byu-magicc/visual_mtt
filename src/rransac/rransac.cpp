@@ -50,6 +50,8 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.tauR = config.tauR;
   params_.sigmaR_pos = config.sigmaR_pos;
   params_.sigmaR_vel = config.sigmaR_vel;
+  params_.sigmaQ_jrk = config.sigmaQ_jrk;
+  params_.alphaQ_jrk = config.alphaQ_jrk;
   params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
 
   // RANSAC specific parameters
