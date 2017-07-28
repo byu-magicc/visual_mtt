@@ -28,7 +28,7 @@ visual_frontend/minimum_pixel_velocity: 0.0022 #0.00285714275
 visual_frontend/maximum_pixel_velocity: 0.014
 
 # difference_image
-visual_frontend/difference_image_enabled: true
+visual_frontend/difference_image_enabled: false
 visual_frontend/difference_extra_plots: false
 visual_frontend/difference_image_sigmaR_pos: 0.007
 visual_frontend/blur_kernel: 4
@@ -45,14 +45,16 @@ visual_frontend/max_complexity: 100
 # general
 rransac/dt: 1
 
+# motion model specific parameters
+rransac/sigmaQ_vel: 3
+rransac/alphaQ_vel: 0.5
+rransac/sigmaQ_jrk: 0.0001
+rransac/alphaQ_jrk: 0.0001
+
 # R-RANSAC specific parameters
 rransac/Nw: 10
 rransac/M: 30
 rransac/tauR: 0.0714285715
-rransac/sigmaR_pos: 0.00714285725
-rransac/sigmaR_vel: 0.0014285715
-rransac/sigmaQ_jrk: 0.0001
-rransac/alphaQ_jrk: 0.0001
 rransac/rransac_motion_model: 2
 
 # RANSAC specific parameters
@@ -60,7 +62,6 @@ rransac/ell: 100
 rransac/guided_sampling_threshold: 1.4275
 rransac/tauR_RANSAC: 0.0714285715
 rransac/gamma: 0.0007142857143
-rransac/sigmaR_pos_RANSAC: 0.00714285725
 rransac/ransac_motion_model: 0
 
 # model merging parameters

@@ -45,14 +45,16 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   // general
   params_.dt = config.dt;
 
+  // motion model specific parameters
+  params_.sigmaQ_vel = config.sigmaQ_vel;
+  params_.alphaQ_vel = config.alphaQ_vel;
+  params_.sigmaQ_jrk = config.sigmaQ_jrk;
+  params_.alphaQ_jrk = config.alphaQ_jrk;
+
   // R-RANSAC specific parameters
   params_.Nw = config.Nw;
   params_.M = config.M;
   params_.tauR = config.tauR;
-  params_.sigmaR_pos = config.sigmaR_pos;
-  params_.sigmaR_vel = config.sigmaR_vel;
-  params_.sigmaQ_jrk = config.sigmaQ_jrk;
-  params_.alphaQ_jrk = config.alphaQ_jrk;
   params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
 
   // RANSAC specific parameters
@@ -60,7 +62,6 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.guided_sampling_threshold = config.guided_sampling_threshold;
   params_.tauR_RANSAC = config.tauR_RANSAC;
   params_.gamma = config.gamma;
-  params_.sigmaR_pos_RANSAC = config.sigmaR_pos_RANSAC;
   params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
 
   // model merging parameters
@@ -124,8 +125,7 @@ bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visua
       has_velocity = req.has_velocity[i];
       sigmaR_pos = req.sigmaR_pos[i];
       sigmaR_vel = req.sigmaR_vel[i];
-      params_.add_source(id, has_velocity, sigmaR_pos, sigmaR_vel, 2);
-      // 2 is environment dimensionality, just filler, hardcoded on the inside
+      params_.add_source(id, has_velocity, sigmaR_pos, sigmaR_vel);
     }
 
     // Remember the request (new source parameters)
