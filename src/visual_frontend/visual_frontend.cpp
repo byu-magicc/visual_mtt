@@ -4,6 +4,7 @@ namespace visual_frontend {
 
 VisualFrontend::VisualFrontend()
 {
+  ROS_INFO("visual frontend: starting");
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
 

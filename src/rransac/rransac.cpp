@@ -4,6 +4,7 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
+  ROS_INFO("rransac: starting");
   ros::NodeHandle nh_private("~");
 
   // instantiate the rransac::Tracker library class
