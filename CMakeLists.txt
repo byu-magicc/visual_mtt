@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
 )
 
-find_package(rransac 1.0.0 REQUIRED)
+find_package(rransac 1.0.2 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: ${OpenCV_VERSION} (${OpenCV_DIR})")
