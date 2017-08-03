@@ -201,6 +201,25 @@ class BenchmarkFile(object):
 
         return benchmarks
 
+    @staticmethod
+    def rename(filename, new_name):
+        """Rename
+        """
+
+        # Add the filename to a list so we can use the BenchmarkFile.load method
+        filenames = [filename]
+
+        # Load the current benchmark file into a dict
+        bm = BenchmarkFile.load(filenames)[0]
+
+        print(Fore.YELLOW + "Saving {} as {}".format(bm['name'], new_name))
+
+        # Rename the benchmark
+        bm['name'] = new_name
+
+        # Saving the benchmark will create a new file with the new_name
+        BenchmarkFile.save(bm)
+
 ###############################################################################
 ###############################################################################
 
@@ -696,9 +715,9 @@ class BenchmarkAnalyzer(object):
             axarr.set_ylabel('Avg. Util.')
             axarr.set_title('Utilization Summary for Stride = {}'.format(stride))
             axarr.set_xticks(ind + width)
-            axarr.set_xticklabels([b['name'] for b in self.benchmarks], fontsize=10)
+            axarr.set_xticklabels([b['name'] for b in self.benchmarks], fontsize=12)
             axarr.set_ylim([0, max(1, max_utilization)])
-            axarr.legend(loc='best', prop={'size': 10})
+            axarr.legend(loc='best', prop={'size': 14})
 
             plt.tight_layout()
         plt.show()
@@ -756,7 +775,18 @@ def run_benchmarks(args):
     benchmark = BenchmarkRunner(args['name'], args['cuda'], scenarios, frame_strides=[1, 2, 3])
     benchmark.run()
     benchmark.save()
-        
+    
+
+def rename_benchmarks(args):
+
+    # Grab the user-specified new name
+    new_name = args['rename'][0]
+
+    for bm_file in args['benchmark_files']:
+        # Expand the filename in case it has a `~`
+        bm_file = os.path.expanduser(bm_file)
+
+        BenchmarkFile.rename(bm_file, new_name)
 
 
 if __name__ == '__main__':
@@ -768,10 +798,14 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', help='Is this benchmark running on a CUDA-enabled build?', action='store_true')
     parser.add_argument('--timeline', help='Plot statistics over time', action='store_true')
     parser.add_argument('--all', help='Show all statistics over time', action='store_true')
+    parser.add_argument('--rename', help='Rename a benchmark', nargs=1, action='store')
     args = vars(parser.parse_args())
 
     if len(args['benchmark_files']) == 0 and args['file'] is not None:
         run_benchmarks(args)
+
+    elif args['rename']:
+        rename_benchmarks(args)
 
     elif len(args['benchmark_files']) > 0:
         analyzer = BenchmarkAnalyzer()
