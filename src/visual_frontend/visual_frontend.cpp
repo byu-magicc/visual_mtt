@@ -4,6 +4,7 @@ namespace visual_frontend {
 
 VisualFrontend::VisualFrontend()
 {
+  ROS_INFO("visual frontend: starting");
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
 
@@ -202,11 +203,31 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
 {
   visual_mtt::RRANSACParams srv;
-  srv.request.published_video_scale = config.published_video_scale;
+  srv.request.published_video_scale    = config.published_video_scale;
+
+  // retrieve the needed parameters for each source
+  std::vector<uint32_t> id;
+  std::vector<unsigned char> has_velocity;
+  std::vector<double> sigmaR_pos;
+  std::vector<double> sigmaR_vel;
+
+  for (int i=0; i<source_manager_.n_sources_; i++)
+  {
+    id.push_back(source_manager_.measurement_sources_[i]->id_);
+    has_velocity.push_back(source_manager_.measurement_sources_[i]->has_velocity_);
+    sigmaR_pos.push_back(source_manager_.measurement_sources_[i]->sigmaR_pos_);
+    sigmaR_vel.push_back(source_manager_.measurement_sources_[i]->sigmaR_vel_);
+  }
+
+  srv.request.n_sources    = source_manager_.n_sources_;
+  srv.request.id           = id;
+  srv.request.has_velocity = has_velocity;
+  srv.request.sigmaR_pos   = sigmaR_pos;
+  srv.request.sigmaR_vel   = sigmaR_vel;
 
   // Wait up to 1 second for the rransac service server to be ready
   ros::service::waitForService(srv_params_.getService(), ros::Duration(1.0));
-  
+
   if (!srv_params_.call(srv))
     ROS_ERROR("Failed to call R-RANSAC parameter service.");
 }

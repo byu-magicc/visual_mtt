@@ -11,6 +11,7 @@
 // available measurement generation methods
 #include "measurement_source.h"
 #include "feature_outliers.h"
+#include "difference_image.h"
 
 namespace visual_frontend {
 
@@ -23,12 +24,12 @@ namespace visual_frontend {
     void set_camera(const cv::Mat& K, const cv::Mat& D);
 
     // vector of sources
-    std::vector<std::unique_ptr<MeasurementSource>> measurement_sources_;
+    std::vector<std::shared_ptr<MeasurementSource>> measurement_sources_;
 
     // scan of measurements
     visual_mtt::RRANSACScan scan_;
 
-    // number of sources activated TODO: perhaps not needed for anything
+    // current number of sources
     int n_sources_;
 
     // whether or not to draw measurements

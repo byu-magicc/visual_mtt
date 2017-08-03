@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
 )
 
-find_package(rransac 1.0.0 REQUIRED)
+find_package(rransac 1.0.2 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: ${OpenCV_VERSION} (${OpenCV_DIR})")
@@ -163,6 +163,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
   # Measurement sources
   src/visual_frontend/source_manager/source_manager.cpp
   src/visual_frontend/source_manager/feature_outliers.cpp
+  src/visual_frontend/source_manager/difference_image.cpp
 
   # Common
   src/visual_frontend/gpu.cpp)

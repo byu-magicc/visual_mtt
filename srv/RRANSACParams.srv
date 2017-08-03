@@ -2,4 +2,12 @@
 # Items in the Visual Frontend Dynamic Reconfigure to propagate to the
 # R-RANSAC node.
 
-float32 published_video_scale       # Scale of output video topic
+float32     published_video_scale   # Scale of output video topic
+
+uint32      n_sources               # Number of sources
+uint32[]    id                      # Source ID numbers
+bool[]      has_velocity            # Velocity status of sources
+float64[]   sigmaR_pos              # Position noise values
+float64[]   sigmaR_vel              # Velocity noise values
+
+# IDEA make a message that defines a source, then use a vector of those

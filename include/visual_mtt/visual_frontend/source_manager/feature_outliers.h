@@ -31,6 +31,9 @@ namespace visual_frontend {
     // camera parameters
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
+
+    // at least one cv window exists
+    bool drawn_;
   };
 
 }

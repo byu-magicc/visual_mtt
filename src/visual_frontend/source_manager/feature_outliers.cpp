@@ -4,14 +4,20 @@ namespace visual_frontend {
 
 FeatureOutliers::FeatureOutliers()
 {
+  id_ = 0;
   name_ = "Homography Outliers";
+  has_velocity_ = true;
+  drawn_ = false;
 }
 
 // ----------------------------------------------------------------------------
 
 FeatureOutliers::~FeatureOutliers()
 {
-  cv::destroyWindow(name_);
+  if (drawn_)
+  {
+    cv::destroyWindow(name_);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -65,6 +71,10 @@ void FeatureOutliers::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   velocity_floor_ = config.minimum_pixel_velocity;
   velocity_ceiling_ = config.maximum_pixel_velocity;
+
+  // noise parameters (only for storage, not used in measurement generation)
+  sigmaR_pos_ = config.feature_outliers_sigmaR_pos;
+  sigmaR_vel_ = config.feature_outliers_sigmaR_vel;
 }
 
 // ----------------------------------------------------------------------------
@@ -95,15 +105,14 @@ void FeatureOutliers::draw_measurements()
   // plot measurements
   for (int j=0; j<features_d.size(); j++)
   {
-    cv::Scalar color = cv::Scalar(255, 0, 255); // TODO: set before loop, or make member
-    cv::circle(draw, features_d[j], 2, color, 2, CV_AA);
+    cv::circle(draw, features_d[j], 2, cv::Scalar(255, 0, 255), 2, CV_AA);
   }
-  cv::imshow(name_, draw);
 
-  // get the input from the keyboard, force display
-  char keyboard = cv::waitKey(1);
-  if(keyboard == 'q')
-    ros::shutdown();
+  if (!draw.empty())
+  {
+    drawn_ = true;
+    cv::imshow(name_, draw);
+  }
 
 }
 

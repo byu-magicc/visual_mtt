@@ -9,5 +9,8 @@ uint8 id
 # elements are in the `position` and `velocity` arrays
 uint8 dimensionality
 
+# Whether or not this source produces velocity measurements
+bool has_velocity
+
 Measurement[] positions
 Measurement[] velocities

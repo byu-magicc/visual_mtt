@@ -4,6 +4,7 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
+  ROS_INFO("rransac: starting");
   ros::NodeHandle nh_private("~");
 
   // instantiate the rransac::Tracker library class
@@ -44,12 +45,16 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   // general
   params_.dt = config.dt;
 
+  // motion model specific parameters
+  params_.sigmaQ_vel = config.sigmaQ_vel;
+  params_.alphaQ_vel = config.alphaQ_vel;
+  params_.sigmaQ_jrk = config.sigmaQ_jrk;
+  params_.alphaQ_jrk = config.alphaQ_jrk;
+
   // R-RANSAC specific parameters
   params_.Nw = config.Nw;
   params_.M = config.M;
   params_.tauR = config.tauR;
-  params_.sigmaR_pos = config.sigmaR_pos;
-  params_.sigmaR_vel = config.sigmaR_vel;
   params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
 
   // RANSAC specific parameters
@@ -57,7 +62,6 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
   params_.guided_sampling_threshold = config.guided_sampling_threshold;
   params_.tauR_RANSAC = config.tauR_RANSAC;
   params_.gamma = config.gamma;
-  params_.sigmaR_pos_RANSAC = config.sigmaR_pos_RANSAC;
   params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
 
   // model merging parameters
@@ -91,6 +95,46 @@ bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visua
 {
   pub_scale_ = req.published_video_scale;
 
+  // See if any source parameters have changed
+  bool changed = false;
+  if (req.n_sources!=req_last_.n_sources) changed = true;
+  else
+  {
+    // loop through sources before and after
+    for (int i=0; i<req.n_sources; i++)
+    {
+      if (req.id[i]!=req_last_.id[i])                 changed = true;
+      if (req.sigmaR_pos[i]!=req_last_.sigmaR_pos[i]) changed = true;
+      if (req.sigmaR_vel[i]!=req_last_.sigmaR_vel[i]) changed = true;
+    }
+  }
+
+  if (changed)
+  {
+    // Clear the existing source information inside R-RANSAC
+    params_.reset_sources();
+
+    // Add each source with the corresponding new parameters
+    int id;
+    bool has_velocity;
+    double sigmaR_pos;
+    double sigmaR_vel;
+    for (int i=0; i<req.n_sources; i++)
+    {
+      id = req.id[i];
+      has_velocity = req.has_velocity[i];
+      sigmaR_pos = req.sigmaR_pos[i];
+      sigmaR_vel = req.sigmaR_vel[i];
+      params_.add_source(id, has_velocity, sigmaR_pos, sigmaR_vel);
+    }
+
+    // Remember the request (new source parameters)
+    req_last_ = req;
+
+    // Send updated parameters to R-RANSAC
+    tracker_.set_parameters(params_);
+  }
+
   ROS_INFO("rransac: service call param update");
 }
 
@@ -111,9 +155,19 @@ void RRANSAC::callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan)
   for (auto src = rransac_scan->sources.begin(); src != rransac_scan->sources.end(); src++)
   {
     if (src->dimensionality == 2)
-      tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
+    {
+      if (src->has_velocity)
+        tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->velocities, src->id);
+      else if (!src->has_velocity)
+        tracker_.add_measurements<ROSVec2fAccess>(src->positions, src->id);
+    }
     else if (src->dimensionality == 3)
-      tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
+    {
+      if (src->has_velocity)
+        tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->velocities, src->id);
+      else if (!src->has_velocity)
+        tracker_.add_measurements<ROSVec3fAccess>(src->positions, src->id);
+    }
 
     // Keep track of how many measurements there are for utilization
     util_.number_of_rransac_measurements += src->positions.size();

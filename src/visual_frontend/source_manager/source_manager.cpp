@@ -54,7 +54,7 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
   // initialize the scan message
   visual_mtt::RRANSACScan scan;
 
-  for (int i=0; i<measurement_sources_.size(); i++)
+  for (int i=0; i<n_sources_; i++)
   {
     // generate measurements for this source
     measurement_sources_[i]->generate_measurements(
@@ -71,8 +71,9 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
 
     // create Source message
     visual_mtt::Source src;
-    src.id = i;
+    src.id = measurement_sources_[i]->id_;
     src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
+    src.has_velocity = measurement_sources_[i]->has_velocity_;
 
     for (int j=0; j<measurement_sources_[i]->features_.size(); j++)
     {
@@ -89,9 +90,11 @@ void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, 
 
     // Add source to scan message
     scan.sources.push_back(src);
-
   }
   scan_ = scan; // TODO use only scan_ and use "new" up above
+
+  if (tuning_)
+    char keyboard = cv::waitKey(1);
 
 }
 
@@ -108,13 +111,13 @@ void SourceManager::set_sources()
   // populate the sources vector according to the current configuration
   if (feature_motion_)
   {
-    measurement_sources_.push_back(std::unique_ptr<FeatureOutliers>(new FeatureOutliers()));
+    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>());
     n_sources_++;
   }
   if (difference_image_)
   {
-    ROS_WARN("source manager: difference image not implemented");
-    // n_sources_++;
+    measurement_sources_.emplace_back(std::make_shared<DifferenceImage>());
+    n_sources_++;
   }
 
   // check for "no sources" error

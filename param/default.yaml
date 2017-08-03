@@ -5,8 +5,8 @@
 #### Visual Frontend Node
 
 # general processing
-visual_frontend/frame_stride: 3
-visual_frontend/downsize_scale: 0.8
+visual_frontend/frame_stride: 2
+visual_frontend/downsize_scale: 0.4
 visual_frontend/published_video_scale: 1.0
 
 # feature manager
@@ -22,13 +22,22 @@ visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
 # feature_outliers
 visual_frontend/feature_outliers_enabled: true
-visual_frontend/minimum_pixel_velocity: 0.0022 #0.00285714275
-visual_frontend/maximum_pixel_velocity: 0.014
+visual_frontend/feature_outliers_sigmaR_pos: 0.007
+visual_frontend/feature_outliers_sigmaR_vel: 0.0014
+visual_frontend/minimum_pixel_velocity: 0.002
+visual_frontend/maximum_pixel_velocity: 0.02
 
 # difference_image
 visual_frontend/difference_image_enabled: false
-visual_frontend/filler1: 0.00285714275
-visual_frontend/filler2: 0.014
+visual_frontend/difference_extra_plots: false
+visual_frontend/difference_image_sigmaR_pos: 0.007
+visual_frontend/blur_kernel: 4
+visual_frontend/blur_sigma: 8.0
+visual_frontend/threshold: 130
+visual_frontend/morph_size: 1
+visual_frontend/morph_iterations: 2
+visual_frontend/min_complexity: 10
+visual_frontend/max_complexity: 100
 
 ###############################################################################
 #### R-RANSAC Node
@@ -36,35 +45,38 @@ visual_frontend/filler2: 0.014
 # general
 rransac/dt: 1
 
+# motion model specific parameters
+rransac/sigmaQ_vel: 3
+rransac/alphaQ_vel: 0.5
+rransac/sigmaQ_jrk: 0.0001
+rransac/alphaQ_jrk: 0.0001
+
 # R-RANSAC specific parameters
 rransac/Nw: 10
 rransac/M: 30
-rransac/tauR: 0.0714285715
-rransac/sigmaR_pos: 0.00714285725
-rransac/sigmaR_vel: 0.0014285715
+rransac/tauR: 0.07
 rransac/rransac_motion_model: 2
 
 # RANSAC specific parameters
 rransac/ell: 100
-rransac/guided_sampling_threshold: 1.4275
-rransac/tauR_RANSAC: 0.0714285715
-rransac/gamma: 0.0007142857143
-rransac/sigmaR_pos_RANSAC: 0.00714285725
+rransac/guided_sampling_threshold: 1.43
+rransac/tauR_RANSAC: 0.07
+rransac/gamma: 0.0007
 rransac/ransac_motion_model: 0
 
 # model merging parameters
 rransac/tau_vel_percent_diff: 0.25
-rransac/tau_vel_abs_diff: 1.285714286
+rransac/tau_vel_abs_diff: 1.28
 rransac/tau_angle_abs_diff: 15.0
-rransac/tau_xpos_abs_diff: 0.0714285715
-rransac/tau_ypos_abs_diff: 0.0714285715
+rransac/tau_xpos_abs_diff: 0.07
+rransac/tau_ypos_abs_diff: 0.07
 
 # model pruning parameters
-rransac/surveillance_region: 0.95
+rransac/surveillance_region: 0.99
 rransac/tau_CMD_prune: 10
 
 # track (i.e., good model) parameters
 rransac/tau_rho: 0.6
 rransac/tau_CMD: 4
-rransac/tau_Vmax: 0.04285714275
+rransac/tau_Vmax: 0.043
 rransac/tau_T: 4
