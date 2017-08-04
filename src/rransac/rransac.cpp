@@ -7,6 +7,9 @@ RRANSAC::RRANSAC()
   ROS_INFO("rransac: starting");
   ros::NodeHandle nh_private("~");
 
+  // establish librransac good model elevation event callback
+  params_.set_elevation_callback(std::bind(&RRANSAC::callback_elevation_event, this, std::placeholders::_1, std::placeholders::_2));
+
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 
@@ -38,6 +41,19 @@ RRANSAC::RRANSAC()
 // ----------------------------------------------------------------------------
 // Private Methods
 // ----------------------------------------------------------------------------
+
+
+uint32_t RRANSAC::callback_elevation_event(double x, double y) {
+    // call a ros service which queries the visual frontend
+    std::cout << x << std::endl;
+    std::cout << y << std::endl;
+    double c = x*y*1000;
+    uint32_t d = (uint32_t)c;
+
+    return d; // FILLER; garbage value
+
+}
+
 
 void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level)
 {

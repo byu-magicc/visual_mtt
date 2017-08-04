@@ -74,6 +74,9 @@ namespace rransac {
     void callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level);
     bool callback_srv_params(visual_mtt::RRANSACParams::Request &req, visual_mtt::RRANSACParams::Response &res);
 
+    // librransac good model elevation callback
+    uint32_t callback_elevation_event(double x, double y);
+
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.
     void callback_scan(const visual_mtt::RRANSACScanPtr& rransac_scan);
