@@ -45,12 +45,18 @@ RRANSAC::RRANSAC()
 
 uint32_t RRANSAC::callback_elevation_event(double x, double y) {
     // call a ros service which queries the visual frontend
+    // which will take an image about this location and compare
+    // to banks which are collected over time.
+    // the banks will be based off GMN, and an ID will be returned or 0
+
+    // the recognition manager will allow selection of the recogniton method
+    // the whole setup will subscribe to tracks and host a ros service call
+
+    std::cout << "---" << std::endl;
     std::cout << x << std::endl;
     std::cout << y << std::endl;
-    double c = x*y*1000;
-    uint32_t d = (uint32_t)c;
 
-    return d; // FILLER; garbage value
+    return (uint32_t)0;
 
 }
 
