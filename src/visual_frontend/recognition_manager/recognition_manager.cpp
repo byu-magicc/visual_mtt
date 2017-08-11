@@ -4,23 +4,24 @@ namespace visual_frontend {
 
 RecognitionManager::RecognitionManager()
 {
-
-  // Initialize feature tracker with default type
-  set_method(TEMPLATE_MATCHING);
+  // initialize track recognition with default type
+  set_method(NONE);
 }
+// TODO: alternative constructor with enum passed in?
 
 // ----------------------------------------------------------------------------
 
 void RecognitionManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   // check if method has changed
-  // if changed, call set_method then call set_parameters, set_camera, and update_image
-  // of recognition_method_ using the saved versions here
+  // if changed, call set_method then set_parameters of recognition_method_
+
+  std::cout << "updating callback parameters" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
 
-uint32_t RecognitionManager::find_track_idx(const double x, const double y)
+uint32_t RecognitionManager::identify_target(const double x, const double y)
 {
   // find the id of the new track (call the set method to do it)
   return (uint32_t)0;
@@ -30,16 +31,10 @@ uint32_t RecognitionManager::find_track_idx(const double x, const double y)
 
 void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
 {
-  // use track locations to update the descriptors
-  // need to decide if cycling through and cropping would be done here, then
-  // sending the cropped part in with the id
-  // OR
-  // if this would just call the selected version class method and cycle there
+  // for each published track, extract the local image and call
+  // update_descriptors passing in the image and the GMN
 
-  // if all approaches require the exact same cycle+crop approach, then
-  // do it here. also, if done here, the camera parameters and frame
-  // don't need to be passed all over the place. afterall this is the manager,
-  // perhaps such is the roll of the manager, to manage the cropping, etc?
+  std::cout << "updating all descriptors" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -47,13 +42,17 @@ void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
 void RecognitionManager::update_image(const cv::Mat hd_frame)
 {
   // save the high definition frame
+
+  std::cout << "updating local hd frame" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
 
 void RecognitionManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 {
-  // save the camera parameters
+  // save the high definition camera parameters
+
+  std::cout << "updating camera parameters" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -62,25 +61,22 @@ void RecognitionManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 void RecognitionManager::set_method(enum RecognitionMethodType type)
 {
+  if (type == NONE)
+  {
+    recognition_method_ = nullptr;
+  }
+  else if (type == TEMPLATE_MATCHING)
+  {
+    // repopulate the recognition method pointer
+    recognition_method_ = std::make_shared<TemplateMatching>();
+  }
+  else if (type == BAG_OF_WORDS)
+  {
+    ROS_WARN("BAG_OF_WORDS not implemented");
+  }
 
-  // // Create a instance of a private node handle
-  // ros::NodeHandle nh("~");
-  //
-  // if (type == SIMPLE_HOMOGRAPHY)
-  // {
-  //   // Create a new homography method
-  //   homography_method_ = std::make_shared<SimpleHomography>();
-  // }
-  // else if (type == HOMOGRAPHY_FILTER)
-  // {
-  //   ROS_WARN("HOMOGRAPHY_FILTER not implemented");
-  // }
-  //
-  // // Store what type of homography method we are for later
-  // homography_method_type_ = type;
-
-
-
+  // store the recognition method for later
+  recognition_method_type_ = type;
 }
 
 }

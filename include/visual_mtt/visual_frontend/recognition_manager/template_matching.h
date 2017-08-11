@@ -13,9 +13,11 @@ namespace visual_frontend {
   {
   public:
     TemplateMatching();
-    ~TemplateMatching();
-    // void set_parameters(visual_mtt::visual_frontendConfig& config);
-    // void set_camera(const cv::Mat& K, const cv::Mat& D);
+    // ~TemplateMatching();
+
+    virtual uint32_t identify_target(cv::Mat image);
+
+    virtual void update_descriptors(cv::Mat image, uint32_t idx);
 
 
   private:

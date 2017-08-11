@@ -1,5 +1,14 @@
 #pragma once
 
+#include <iostream>
+#include <opencv2/opencv.hpp>
+
+// dynamic reconfig
+#include "visual_mtt/visual_frontendConfig.h"
+
+// this defines the base class for all target recognition classes
+// a shared pointer of objects is used in the manager
+
 namespace visual_frontend {
 
   class RecognitionMethod
@@ -9,11 +18,12 @@ namespace visual_frontend {
     // good model. A high resolution image of the object is cropped and used to
     // compare to visual information of historical tracks. It returns an ID
     // number (GMN). A return of 0 means no match was made to previous tracks.
-    virtual uint32_t compare_history(double x, double y) = 0;
 
-    // Another function here for updating the historical information
+    // use new target image and historical descriptors to identify
+    virtual uint32_t identify_target(cv::Mat image) = 0;
 
-    // Functions for updating camera info, storing hd image, etc
+    // update the historical descriptors or clustering algorithm
+    virtual void update_descriptors(cv::Mat image, uint32_t idx) = 0;
 
   };
 

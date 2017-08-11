@@ -14,7 +14,7 @@
 
 namespace visual_frontend {
 
-  enum RecognitionMethodType { TEMPLATE_MATCHING, BAG_OF_WORDS };
+  enum RecognitionMethodType { NONE, TEMPLATE_MATCHING, BAG_OF_WORDS };
 
   class RecognitionManager
   {
@@ -22,7 +22,7 @@ namespace visual_frontend {
     RecognitionManager();
 
     // search among track descriptors (for GMN elevation event callback)
-    uint32_t find_track_idx(const double x, const double y);
+    uint32_t identify_target(const double x, const double y);
 
     // update image descriptors using current image (for tracks callback)
     void update_descriptors(const visual_mtt::TracksPtr& data);
@@ -41,7 +41,7 @@ namespace visual_frontend {
     std::shared_ptr<RecognitionMethod> recognition_method_;
     enum RecognitionMethodType recognition_method_type_;
 
-    // frame and camera parameters (saved here only for dynamic reconfigure)
+    // frame and camera parameters
     cv::Mat hd_frame_;
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;

@@ -26,6 +26,7 @@
 #include "feature_manager/feature_manager.h"
 #include "homography_manager/homography_manager.h"
 #include "source_manager/source_manager.h"
+#include "recognition_manager/recognition_manager.h"
 
 #include "source_manager/feature_outliers.h"
 
@@ -50,9 +51,10 @@ namespace visual_frontend {
     ros::ServiceClient srv_params_;
 
     // algorithm managers
-    FeatureManager    feature_manager_;
-    HomographyManager homography_manager_;
-    SourceManager     source_manager_;
+    FeatureManager     feature_manager_;
+    HomographyManager  homography_manager_;
+    SourceManager      source_manager_;
+    RecognitionManager recognition_manager_;
 
     // camera parameters
     ros::Time timestamp_frame_;
@@ -61,7 +63,7 @@ namespace visual_frontend {
     bool info_received_ = false;
 
     visual_mtt::TracksPtr tracks_;
-    
+
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 

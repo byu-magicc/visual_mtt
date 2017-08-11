@@ -44,6 +44,9 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // convert message data into OpenCV type cv::Mat
   hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
+  // update the target recognition algorithm with the recent frame
+  recognition_manager_.update_image(hd_frame_);
+
   // save camera parameters one time
   if (!info_received_)
   {
@@ -66,6 +69,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     // provide algorithm members with updated camera parameters
     feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
     source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    recognition_manager_.set_camera(camera_matrix_, dist_coeff_);
 
     // set the high and low definition resolutions
     hd_res_.width = hd_frame_.cols;
@@ -149,13 +153,8 @@ void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
   // sources such as direct methods)
   tracks_ = data;
 
-  // call track_recognition bank (will use newest information and the high-res
-  // video associated with the most recent update to maintain id descriptors.)
-  // note: tracks updates will contain the original frame timestamp which
-  // will be used to find the correct historical frame
-
-  // recognition bank will host a function for checking new tracks with
-  // existing id descriptors, this node will host a ROS service to interface
+  // use track information to update target descriptors
+  recognition_manager_.update_descriptors(data);
 }
 
 // ----------------------------------------------------------------------------
@@ -167,6 +166,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
   feature_manager_.set_parameters(config);
   homography_manager_.set_parameters(config);
   source_manager_.set_parameters(config);
+  recognition_manager_.set_parameters(config);
 
   // Update R-RANSAC specific parameters through a service call
   srv_set_params(config);
