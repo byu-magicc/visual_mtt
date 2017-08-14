@@ -13,7 +13,6 @@ visual_frontend/published_video_scale: 1.0
 visual_frontend/feature_type:    "GFTT"
 visual_frontend/matching_method: "LK"
 visual_frontend/points_max:      2000
-visual_frontend/points_target:   1200
 visual_frontend/corner_quality:       0.03  # NOT DYNAMICALLLY RECONFIGURABLE, AUTOMATICALLY ADJUSTED IN ALGORITHM
 visual_frontend/corner_quality_min:   0.03  # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/corner_quality_max:   0.05  # NOT DYNAMICALLLY RECONFIGURABLE
