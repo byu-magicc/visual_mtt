@@ -22,7 +22,7 @@
   <arg name="camera_info_url" default="file://$(find visual_mtt)/param/$(arg camera_name).yaml" />
 
   <!-- visual_mtt flags -->
-  <arg name="params"            default="default" />
+  <arg name="params"            default="$(find visual_mtt)/param/default.yaml" />
   <arg name="tuning"            default="true" />
 
 
@@ -39,7 +39,7 @@
   <!-- camera_name:     camera name                 (for known camera_info)   -->
   <!-- camera_info_url: path to camera .yaml        (for known camera_info)   -->
 
-  <!-- params:          name of .yaml containing camera parameter values      -->
+  <!-- params:          path to the yaml file with desired parameter values   -->
   <!-- tuning:          enables dynamic reconfigure and displays measurements -->
 
 

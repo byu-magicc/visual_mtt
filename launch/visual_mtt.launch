@@ -2,18 +2,18 @@
 
 <launch>
 
-  <arg name="params"            default="default" />
+  <arg name="params"            default="$(find visual_mtt)/param/default.yaml" />
   <arg name="tuning"            default="false" />
   <arg name="imgtopic"          default="/image_raw" />
 
-  <!-- params:            name of .yaml contained the desired parameter values  -->
+  <!-- params:            path to the yaml file with desired parameter values   -->
   <!-- tuning:            enables dynamic reconfigure and displays measurements -->
   <!-- imgtopic:          name of the topic that contains the video             -->
 
   <!-- ######################################################################## -->
 
   <!-- load the specified parameters -->
-  <rosparam command="load" file="$(find visual_mtt)/param/$(arg params).yaml" />
+  <rosparam command="load" file="$(arg params)" />
 
   <!-- start the visual frontend -->
   <node pkg="visual_mtt" type="visual_frontend" name="visual_frontend" output="screen">
