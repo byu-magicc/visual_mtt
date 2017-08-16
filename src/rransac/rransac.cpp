@@ -415,8 +415,8 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
     // draw model number and inlier ratio
     std::stringstream ssGMN;
-    ssGMN << tracks[i]->GMN << ", " << tracks[i]->rho;
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255));
+    ssGMN << tracks[i]->GMN;
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85, cv::Scalar(0, 0, 180), 2);
 
     // draw consensus sets
     for (int j=1; j<center_d.size(); j++)
