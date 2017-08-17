@@ -21,6 +21,9 @@ VisualFrontend::VisualFrontend()
   pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
 
+  // ROS service callback
+  srv_recognize_track_ = nh_private.advertiseService("recognize_track", &VisualFrontend::callback_srv_recognize_track, this);
+
   // connect ROS service client to R-RANSAC
   srv_params_ = nh_.serviceClient<visual_mtt::RRANSACParams>("rransac/set_params");
 
@@ -196,6 +199,17 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
     sd_res_.width = hd_res_.width*downsize_scale_;
     sd_res_.height = hd_res_.height*downsize_scale_;
   }
+}
+
+// ----------------------------------------------------------------------------
+
+bool VisualFrontend::callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request &req, visual_mtt::RecognizeTrack::Response &res)
+{
+  //
+  std::cout << "callback pinged in the frontend" << std::endl;
+
+  res.id = recognition_manager_.identify_target(req.x, req.y);
+
 }
 
 // ----------------------------------------------------------------------------

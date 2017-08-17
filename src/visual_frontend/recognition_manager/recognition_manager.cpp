@@ -24,7 +24,12 @@ void RecognitionManager::set_parameters(visual_mtt::visual_frontendConfig& confi
 uint32_t RecognitionManager::identify_target(const double x, const double y)
 {
   // find the id of the new track (call the set method to do it)
-  return (uint32_t)0;
+
+  std::cout << "identifying newly elevated target" << std::endl;
+  std::cout << x << std::endl;
+  std::cout << y << std::endl;
+
+  return (uint32_t)12;
 }
 
 // ----------------------------------------------------------------------------

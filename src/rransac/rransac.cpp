@@ -33,6 +33,9 @@ RRANSAC::RRANSAC()
   // ROS service callback
   srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
 
+  // connect ROS service client to R-RANSAC
+  srv_recognize_track_ = nh.serviceClient<visual_mtt::RecognizeTrack>("visual_frontend/recognize_track");
+
   // establish dynamic reconfigure and load defaults
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
@@ -44,19 +47,35 @@ RRANSAC::RRANSAC()
 
 
 uint32_t RRANSAC::callback_elevation_event(double x, double y) {
-    // call a ros service which queries the visual frontend
-    // which will take an image about this location and compare
-    // to banks which are collected over time.
-    // the banks will be based off GMN, and an ID will be returned or 0
-
-    // the recognition manager will allow selection of the recogniton method
-    // the whole setup will subscribe to tracks and host a ros service call
+    // Using the rransac::core::Parameters object, this function is passed to
+    // R-RANSAC to act as the model elevation event callback. Inside this
+    // function a ROS service call is made to the frontend, providing the
+    // normalized image coordinates of the elevated model. The frontend returns
+    // an old id of the recognized historical track. The return here passes
+    // this result directly into R-RANSAC.
 
     std::cout << "---" << std::endl;
     std::cout << x << std::endl;
     std::cout << y << std::endl;
 
-    return (uint32_t)0;
+    visual_mtt::RecognizeTrack srv;
+    srv.request.x = x;
+    srv.request.y = y;
+
+    std::cout << "attempting service call from rransac node" << std::endl;
+    if (srv_recognize_track_.call(srv))
+    {
+      std::cout << "got back: " << srv.response.id << std::endl;
+      // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
+    }
+    else
+    {
+      std::cout << "service failure" << std::endl;
+      // ROS_ERROR("Failed to call service add_two_ints");
+      // return 1;
+    }
+
+    return (uint32_t)srv.response.id;
 
 }
 

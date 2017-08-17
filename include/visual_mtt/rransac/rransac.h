@@ -20,6 +20,7 @@
 #include "visual_mtt/Track.h"
 #include "visual_mtt/Stats.h"
 #include "visual_mtt/RRANSACParams.h"
+#include "visual_mtt/RecognizeTrack.h"
 #include "sensor_msgs/Image.h"
 
 #include <iostream>
@@ -69,6 +70,7 @@ namespace rransac {
     // dynamic reconfigure and service server
     dynamic_reconfigure::Server<visual_mtt::rransacConfig> server_;
     ros::ServiceServer srv_params_;
+    ros::ServiceClient srv_recognize_track_;
 
     // Dynamic reconfigure callback
     void callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level);

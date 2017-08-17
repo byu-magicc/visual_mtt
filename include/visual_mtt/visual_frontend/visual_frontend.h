@@ -20,6 +20,7 @@
 #include "visual_mtt/RRANSACScan.h"
 #include "visual_mtt/Stats.h"
 #include "visual_mtt/RRANSACParams.h"
+#include "visual_mtt/RecognizeTrack.h"
 #include "sensor_msgs/Image.h"
 
 // key algorithm members
@@ -49,6 +50,7 @@ namespace visual_frontend {
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
     ros::ServiceClient srv_params_;
+    ros::ServiceServer srv_recognize_track_;
 
     // algorithm managers
     FeatureManager     feature_manager_;
@@ -80,6 +82,7 @@ namespace visual_frontend {
     void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
     void callback_tracks(const visual_mtt::TracksPtr& data);
     void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
+    bool callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request &req, visual_mtt::RecognizeTrack::Response &res);
 
     // data management
     void set_parameters(visual_mtt::visual_frontendConfig& config);
