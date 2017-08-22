@@ -51,6 +51,8 @@ namespace visual_frontend {
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
     ros::ServiceClient srv_params_;
     ros::ServiceServer srv_recognize_track_;
+    visual_mtt::RRANSACParams srv_saved_;
+    bool srv_resend_;
 
     // algorithm managers
     FeatureManager     feature_manager_;

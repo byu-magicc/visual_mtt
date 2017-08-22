@@ -8,6 +8,7 @@ RecognitionManager::RecognitionManager()
   set_method(NONE);
 }
 // TODO: alternative constructor with enum passed in?
+// TODO: account for nullptr case of NONE in every method
 
 // ----------------------------------------------------------------------------
 
@@ -15,21 +16,18 @@ void RecognitionManager::set_parameters(visual_mtt::visual_frontendConfig& confi
 {
   // check if method has changed
   // if changed, call set_method then set_parameters of recognition_method_
-
-  std::cout << "updating callback parameters" << std::endl;
+  // if not changed, just call set_parameters of current recognition_method_
 }
 
 // ----------------------------------------------------------------------------
 
 uint32_t RecognitionManager::identify_target(const double x, const double y)
 {
-  // find the id of the new track (call the set method to do it)
+  // find the id of the new track
+  // use the coordinates and the camera parameters to get an image, then call
+  // identify_target of current recognition_method_. then return resulting id
 
-  std::cout << "identifying newly elevated target" << std::endl;
-  std::cout << x << std::endl;
-  std::cout << y << std::endl;
-
-  return (uint32_t)12;
+  return (uint32_t)0;
 }
 
 // ----------------------------------------------------------------------------
@@ -38,8 +36,6 @@ void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
 {
   // for each published track, extract the local image and call
   // update_descriptors passing in the image and the GMN
-
-  std::cout << "updating all descriptors" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -47,8 +43,6 @@ void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
 void RecognitionManager::update_image(const cv::Mat hd_frame)
 {
   // save the high definition frame
-
-  std::cout << "updating local hd frame" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -56,8 +50,6 @@ void RecognitionManager::update_image(const cv::Mat hd_frame)
 void RecognitionManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 {
   // save the high definition camera parameters
-
-  std::cout << "updating camera parameters" << std::endl;
 }
 
 // ----------------------------------------------------------------------------

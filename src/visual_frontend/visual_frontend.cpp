@@ -4,9 +4,16 @@ namespace visual_frontend {
 
 VisualFrontend::VisualFrontend()
 {
-  ROS_INFO("visual frontend: starting");
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
+
+  // host the track recognition ROS service server
+  srv_recognize_track_ = nh_private.advertiseService("recognize_track", &VisualFrontend::callback_srv_recognize_track, this);
+
+  // connect the param update ROS service client
+  srv_params_ = nh_.serviceClient<visual_mtt::RRANSACParams>("rransac/set_params");
+  srv_params_.waitForExistence(ros::Duration(10.0));
+  ROS_INFO("visual frontend: services successfully established, starting node");
 
   // get parameters from param server that are not dynamically reconfigurable
   nh_private.param<bool>("tuning", source_manager_.tuning_, 0);
@@ -21,13 +28,7 @@ VisualFrontend::VisualFrontend()
   pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
   pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
 
-  // ROS service callback
-  srv_recognize_track_ = nh_private.advertiseService("recognize_track", &VisualFrontend::callback_srv_recognize_track, this);
-
-  // connect ROS service client to R-RANSAC
-  srv_params_ = nh_.serviceClient<visual_mtt::RRANSACParams>("rransac/set_params");
-
-  // establish dynamic reconfigure and load defaults
+  // establish dynamic reconfigure and load defaults (callback runs once here)
   auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
 }
@@ -152,6 +153,25 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
 void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
 {
+  // rransac_node may be idle now, resend parameter update if needed
+  if (srv_resend_)
+  {
+    // the last param update ROS service call failed, resend it
+    if (srv_params_.call(srv_saved_))
+    {
+      // service call was successful, do not attempt to resend later
+      srv_resend_ = false;
+    }
+    else
+    {
+      // service call was unsuccessful again
+      ROS_WARN("failed to call R-RANSAC parameter service, resending");
+
+      // attempt to resend later
+      srv_resend_ = true;
+    }
+  }
+
   // save most recent track information in class (for use in measurement
   // sources such as direct methods)
   tracks_ = data;
@@ -205,11 +225,12 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 bool VisualFrontend::callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request &req, visual_mtt::RecognizeTrack::Response &res)
 {
-  //
-  std::cout << "callback pinged in the frontend" << std::endl;
+  // for debug and testing:
+  // std::cout << "callback pinged in the frontend" << std::endl;
 
   res.id = recognition_manager_.identify_target(req.x, req.y);
 
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -217,7 +238,7 @@ bool VisualFrontend::callback_srv_recognize_track(visual_mtt::RecognizeTrack::Re
 void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
 {
   visual_mtt::RRANSACParams srv;
-  srv.request.published_video_scale    = config.published_video_scale;
+  srv.request.published_video_scale = config.published_video_scale;
 
   // retrieve the needed parameters for each source
   std::vector<uint32_t> id;
@@ -239,11 +260,22 @@ void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
   srv.request.sigmaR_pos   = sigmaR_pos;
   srv.request.sigmaR_vel   = sigmaR_vel;
 
-  // Wait up to 1 second for the rransac service server to be ready
-  ros::service::waitForService(srv_params_.getService(), ros::Duration(1.0));
+  // save a copy of the service request object
+  srv_saved_ = srv;
 
-  if (!srv_params_.call(srv))
-    ROS_ERROR("Failed to call R-RANSAC parameter service.");
+  if (srv_params_.call(srv))
+  {
+    // service call was successful, do not attempt to resend later
+    srv_resend_ = false;
+  }
+  else
+  {
+    // service call was unsuccessful
+    ROS_INFO("failed to call R-RANSAC parameter service, resending");
+
+    // attempt to resend later
+    srv_resend_ = true;
+  }
 }
 
 }

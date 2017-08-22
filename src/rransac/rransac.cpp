@@ -4,8 +4,16 @@ namespace rransac {
 
 RRANSAC::RRANSAC()
 {
-  ROS_INFO("rransac: starting");
+  // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
+
+  // host the param update ROS service server
+  srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
+
+  // connect the track recognition ROS service client
+  srv_recognize_track_ = nh_.serviceClient<visual_mtt::RecognizeTrack>("visual_frontend/recognize_track");
+  srv_recognize_track_.waitForExistence(ros::Duration(10.0));
+  ROS_INFO("rransac: services successfully established, starting node");
 
   // establish librransac good model elevation event callback
   params_.set_elevation_callback(std::bind(&RRANSAC::callback_elevation_event, this, std::placeholders::_1, std::placeholders::_2));
@@ -13,14 +21,13 @@ RRANSAC::RRANSAC()
   // instantiate the rransac::Tracker library class
   tracker_ = rransac::Tracker(params_);
 
-  // ROS stuff
-  image_transport::ImageTransport it(nh);
-  sub_video = it.subscribeCamera("video", 10, &RRANSAC::callback_video, this);
-  sub_scan = nh.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
-  sub_stats = nh.subscribe("stats", 1, &RRANSAC::callback_stats, this);
-  pub = nh.advertise<visual_mtt::Tracks>("tracks", 1);
+  // ROS communication
+  image_transport::ImageTransport it(nh_);
+  sub_video        = it.subscribeCamera("video", 10, &RRANSAC::callback_video, this);
+  sub_scan         = nh_.subscribe("measurements", 1, &RRANSAC::callback_scan, this);
+  sub_stats        = nh_.subscribe("stats", 1, &RRANSAC::callback_stats, this);
+  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
   pub_tracks_video = it.advertise("tracks_video", 1);
-
 
   // initialize the top left corner of normalized image plane with zeros
   corner_.push_back(cv::Point2f(0,0));
@@ -30,13 +37,7 @@ RRANSAC::RRANSAC()
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 
-  // ROS service callback
-  srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
-
-  // connect ROS service client to R-RANSAC
-  srv_recognize_track_ = nh.serviceClient<visual_mtt::RecognizeTrack>("visual_frontend/recognize_track");
-
-  // establish dynamic reconfigure and load defaults
+  // establish dynamic reconfigure and load defaults (callback runs once here)
   auto func = std::bind(&RRANSAC::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
   server_.setCallback(func);
 }
@@ -45,38 +46,48 @@ RRANSAC::RRANSAC()
 // Private Methods
 // ----------------------------------------------------------------------------
 
-
 uint32_t RRANSAC::callback_elevation_event(double x, double y) {
-    // Using the rransac::core::Parameters object, this function is passed to
-    // R-RANSAC to act as the model elevation event callback. Inside this
-    // function a ROS service call is made to the frontend, providing the
-    // normalized image coordinates of the elevated model. The frontend returns
-    // an old id of the recognized historical track. The return here passes
-    // this result directly into R-RANSAC.
+  // Using the rransac::core::Parameters object, this function is passed to
+  // R-RANSAC to act as the model elevation event callback. Inside this
+  // function a ROS service call is made to the frontend, providing the
+  // normalized image coordinates of the elevated model. The frontend returns
+  // an old ID of the recognized historical track. The return here passes
+  // this result directly into R-RANSAC.
 
-    std::cout << "---" << std::endl;
-    std::cout << x << std::endl;
-    std::cout << y << std::endl;
+  visual_mtt::RecognizeTrack srv;
+  srv.request.x = x;
+  srv.request.y = y;
 
-    visual_mtt::RecognizeTrack srv;
-    srv.request.x = x;
-    srv.request.y = y;
+  // All ROS service calls are blocking by nature (and have no timeout). This
+  // means that srv_params_ may have a call queued when the following service
+  // call is made. Such would put both nodes waiting on each other. In order to
+  // prevent such gridlock, clear the service call queue. This returns a fail
+  // signal to the caller, an event which is accommodated on that end.
 
-    std::cout << "attempting service call from rransac node" << std::endl;
-    if (srv_recognize_track_.call(srv))
-    {
-      std::cout << "got back: " << srv.response.id << std::endl;
-      // ROS_INFO("Sum: %ld", (long int)srv.response.sum);
-    }
-    else
-    {
-      std::cout << "service failure" << std::endl;
-      // ROS_ERROR("Failed to call service add_two_ints");
-      // return 1;
-    }
+  // clear the param update server call queue to prevent gridlock
+  srv_params_.shutdown();
 
+  if (srv_recognize_track_.call(srv))
+  {
+    // service call was successful, restart the param update server
+    ros::NodeHandle nh_private("~");
+    srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
+
+    // return the provided ID to R-RANSAC
     return (uint32_t)srv.response.id;
+  }
+  else
+  {
+    // service call was unsuccessful
+    ROS_ERROR("failed to call recognize track service.");
 
+    // restart the param update server
+    ros::NodeHandle nh_private("~");
+    srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
+
+    // return no ID to R-RANSAC
+    return (uint32_t)0;
+  }
 }
 
 
@@ -254,7 +265,7 @@ void RRANSAC::callback_video(const sensor_msgs::ImageConstPtr& frame, const sens
     cv::undistortPoints(corner_, corner_, camera_matrix_, dist_coeff_);
 
     double percentage;
-    nh.param<double>("rransac/surveillance_region", percentage, 0);
+    nh_.param<double>("rransac/surveillance_region", percentage, 0);
 
     params_.field_max_x = std::abs(corner_[0].x*percentage);
     params_.field_max_y = std::abs(corner_[0].y*percentage);
@@ -344,7 +355,7 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   msg.util = util_;
 
   // ROS publish
-  pub.publish(msg);
+  pub_tracks.publish(msg);
 }
 
 // ----------------------------------------------------------------------------

@@ -38,10 +38,10 @@ namespace rransac {
     rransac::Tracker tracker_;
 
     // ROS pub/sub
-    ros::NodeHandle nh;
+    ros::NodeHandle nh_;
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
-    ros::Publisher pub;
+    ros::Publisher  pub_tracks;
     image_transport::CameraSubscriber sub_video;
     image_transport::Publisher pub_tracks_video;
 
