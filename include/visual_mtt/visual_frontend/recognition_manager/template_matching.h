@@ -19,13 +19,12 @@ namespace visual_frontend {
 
     virtual void update_descriptors(cv::Mat image, uint32_t idx);
 
+    virtual void set_parameters(visual_mtt::visual_frontendConfig& config);
+
 
   private:
-    // cv::Mat sd_frame_;
-
-    // camera parameters
-    cv::Mat camera_matrix_;
-    cv::Mat dist_coeff_;
+    double thresh1;
+    double thresh2;
 
   };
 

@@ -46,7 +46,14 @@ namespace visual_frontend {
     cv::Mat camera_matrix_;
     cv::Mat dist_coeff_;
 
+    // crop parameters
+    uint32_t crop_width_;
+
+    // set method
     void set_method(enum RecognitionMethodType type);
+
+    // crop a subimage based on a desired point
+    cv::Mat crop(cv::Point center);
   };
 
 }

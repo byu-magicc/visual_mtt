@@ -14,9 +14,8 @@ namespace visual_frontend {
   class RecognitionMethod
   {
   public:
-    // This receives normalized image plane coordinates of a recently-elevated
-    // good model. A high resolution image of the object is cropped and used to
-    // compare to visual information of historical tracks. It returns an ID
+    // This receives images of a recently-elevated good models. It is then
+    // compared to visual information of historical tracks. It returns an ID
     // number (GMN). A return of 0 means no match was made to previous tracks.
 
     // use new target image and historical descriptors to identify
@@ -25,6 +24,8 @@ namespace visual_frontend {
     // update the historical descriptors or clustering algorithm
     virtual void update_descriptors(cv::Mat image, uint32_t idx) = 0;
 
+    // update relevant parameters (for dynamic reconfigure callback)
+    virtual void set_parameters(visual_mtt::visual_frontendConfig& config) = 0;
   };
 
 }

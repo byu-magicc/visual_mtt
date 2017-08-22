@@ -173,7 +173,7 @@ void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
   }
 
   // save most recent track information in class (for use in measurement
-  // sources such as direct methods)
+  // sources such as direct methods) NOTE: not used (yet)!
   tracks_ = data;
 
   // use track information to update target descriptors

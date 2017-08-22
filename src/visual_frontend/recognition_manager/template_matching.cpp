@@ -11,7 +11,8 @@ TemplateMatching::TemplateMatching()
 
 uint32_t TemplateMatching::identify_target(cv::Mat image)
 {
-  std::cout << "identifying requested track" << std::endl;
+  // use history and current image to identify target
+  // TODO
   return (uint32_t)0;
 }
 
@@ -19,7 +20,17 @@ uint32_t TemplateMatching::identify_target(cv::Mat image)
 
 void TemplateMatching::update_descriptors(cv::Mat image, uint32_t idx)
 {
-  std::cout << "updating descriptors for " << idx << std::endl;
+  // use id and current image to update the descriptors
+  // TODO
+  return;
+}
+
+// ----------------------------------------------------------------------------
+
+void TemplateMatching::set_parameters(visual_mtt::visual_frontendConfig& config)
+{
+  // update parameters
+  // TODO
   return;
 }
 
