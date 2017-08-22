@@ -61,7 +61,9 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
 void LKTTracker::set_max_features(int points_max)
 {
-#ifndef OPENCV_CUDA
+#ifdef OPENCV_CUDA
+  gftt_detector_ = init_gftt(points_max);
+#else
   gftt_detector_->setMaxFeatures(points_max);
 #endif
 }
@@ -70,14 +72,13 @@ void LKTTracker::set_max_features(int points_max)
 // Private Methods
 // ---------------------------------------------------------------------------
 
-cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt()
+cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt(int points_max)
 {
   const double minDistance = 10;
   const int blockSize = 3;
   const bool useHarrisDetector = false;
 
 #ifdef OPENCV_CUDA
-  const int points_max = 10000;
   return cv::cuda::createGoodFeaturesToTrackDetector(CV_8UC1, points_max, corner_quality_, minDistance, blockSize, useHarrisDetector);
 #else
   return cv::GFTTDetector::create(0, corner_quality_, minDistance, blockSize, useHarrisDetector);

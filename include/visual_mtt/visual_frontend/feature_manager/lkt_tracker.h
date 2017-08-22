@@ -44,7 +44,7 @@ namespace visual_frontend {
     cv::TermCriteria kltTerm_;
 
     // Create a feature detector object
-    cv::Ptr<cvFeatureDetector_t> init_gftt();
+    cv::Ptr<cvFeatureDetector_t> init_gftt(int points_max = 0);
 
     // Wrapper methods to calculate LK optical flow and to detect features
     void calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& next_features, std::vector<unsigned char>& valid);
