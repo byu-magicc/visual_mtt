@@ -20,6 +20,7 @@
 #include "visual_mtt/Track.h"
 #include "visual_mtt/Stats.h"
 #include "visual_mtt/RRANSACParams.h"
+#include "visual_mtt/RecognizeTrack.h"
 #include "sensor_msgs/Image.h"
 
 #include <iostream>
@@ -37,10 +38,10 @@ namespace rransac {
     rransac::Tracker tracker_;
 
     // ROS pub/sub
-    ros::NodeHandle nh;
+    ros::NodeHandle nh_;
     ros::Subscriber sub_scan;
     ros::Subscriber sub_stats;
-    ros::Publisher pub;
+    ros::Publisher  pub_tracks;
     image_transport::CameraSubscriber sub_video;
     image_transport::Publisher pub_tracks_video;
 
@@ -69,10 +70,14 @@ namespace rransac {
     // dynamic reconfigure and service server
     dynamic_reconfigure::Server<visual_mtt::rransacConfig> server_;
     ros::ServiceServer srv_params_;
+    ros::ServiceClient srv_recognize_track_;
 
     // Dynamic reconfigure callback
     void callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t level);
     bool callback_srv_params(visual_mtt::RRANSACParams::Request &req, visual_mtt::RRANSACParams::Response &res);
+
+    // librransac good model elevation callback
+    uint32_t callback_elevation_event(double x, double y);
 
     // ROS subscriber callback. Each callback a new measurement
     // scan is received and the R-RANSAC Tracker is run.

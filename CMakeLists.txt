@@ -23,7 +23,7 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
 )
 
-find_package(rransac 1.0.2 REQUIRED)
+find_package(rransac 1.0.3 REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 3 REQUIRED)
 message(STATUS "OpenCV Version: ${OpenCV_VERSION} (${OpenCV_DIR})")
@@ -80,6 +80,7 @@ add_message_files(
 add_service_files(
   FILES
   RRANSACParams.srv
+  RecognizeTrack.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -164,6 +165,10 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/source_manager/source_manager.cpp
   src/visual_frontend/source_manager/feature_outliers.cpp
   src/visual_frontend/source_manager/difference_image.cpp
+
+  # Target recognition
+  src/visual_frontend/recognition_manager/recognition_manager.cpp
+  src/visual_frontend/recognition_manager/template_matching.cpp
 
   # Common
   src/visual_frontend/gpu.cpp)

@@ -2,7 +2,7 @@
 # Items in the Visual Frontend Dynamic Reconfigure to propagate to the
 # R-RANSAC node.
 
-float32     published_video_scale   # Scale of output video topic
+float64     published_video_scale   # Scale of output video topic
 
 uint32      n_sources               # Number of sources
 uint32[]    id                      # Source ID numbers
