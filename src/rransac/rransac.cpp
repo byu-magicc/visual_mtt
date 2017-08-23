@@ -144,7 +144,8 @@ void RRANSAC::callback_reconfigure(visual_mtt::rransacConfig& config, uint32_t l
 
 bool RRANSAC::callback_srv_params(visual_mtt::RRANSACParams::Request &req, visual_mtt::RRANSACParams::Response &res)
 {
-  pub_scale_ = req.published_video_scale;
+  pub_scale_  = req.published_video_scale;
+  text_scale_ = req.text_scale;
 
   // See if any source parameters have changed
   bool changed = false;
@@ -416,7 +417,7 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
     // draw model number and inlier ratio
     std::stringstream ssGMN;
     ssGMN << tracks[i]->GMN;
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85, cv::Scalar(0, 0, 180), 2);
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 180), 2);
 
     // draw consensus sets
     for (int j=1; j<center_d.size(); j++)
@@ -428,29 +429,33 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 
   // draw top-left box
   char text[40];
+  cv::Point bl_corner = cv::Point(165, 18)*text_scale_;
+  cv::Point corner_offset = cv::Point(0, 20)*text_scale_;
+  cv::Point text_offset = cv::Point(5, 13)*text_scale_;
+  double text_size = 0.5*text_scale_;
 
   sprintf(text, "Frame: %d", frame_seq_);
-  cv::Point corner = cv::Point(5,5);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  cv::Point corner = cv::Point(5,5)*text_scale_;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   sprintf(text, "Total models: %d", max_num_tracks);
-  corner = cv::Point(5,25);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   sprintf(text, "Current models: %d", (int)tracks.size());
-  corner = cv::Point(5,45);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), cv::Scalar(255, 255, 255), -1);
-  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   // utilization rectangle background color
   cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
 
   sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
-  corner = cv::Point(5,65);
-  cv::rectangle(draw, corner, corner + cv::Point(165, 18), background, -1);
-  cv::putText(draw, text, corner + cv::Point(5, 13), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, background, -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   // Resize the image according to the scale
   cv::Mat resized;

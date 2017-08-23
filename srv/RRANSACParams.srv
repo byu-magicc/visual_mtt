@@ -3,6 +3,7 @@
 # R-RANSAC node.
 
 float64     published_video_scale   # Scale of output video topic
+float64     text_scale              # Scale of output video text
 
 uint32      n_sources               # Number of sources
 uint32[]    id                      # Source ID numbers

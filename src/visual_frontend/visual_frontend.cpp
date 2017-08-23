@@ -239,6 +239,7 @@ void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
 {
   visual_mtt::RRANSACParams srv;
   srv.request.published_video_scale = config.published_video_scale;
+  srv.request.text_scale = config.text_scale;
 
   // retrieve the needed parameters for each source
   std::vector<uint32_t> id;
