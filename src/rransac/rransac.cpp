@@ -66,28 +66,27 @@ uint32_t RRANSAC::callback_elevation_event(double x, double y) {
 
   // clear the param update server call queue to prevent gridlock
   srv_params_.shutdown();
+  uint32_t idx;
 
   if (srv_recognize_track_.call(srv))
   {
-    // service call was successful, restart the param update server
-    ros::NodeHandle nh_private("~");
-    srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
-
-    // return the provided ID to R-RANSAC
-    return (uint32_t)srv.response.id;
+    // service call was successful, return the provided ID to R-RANSAC
+    idx = srv.response.id;
   }
   else
   {
     // service call was unsuccessful
     ROS_ERROR("failed to call recognize track service.");
 
-    // restart the param update server
-    ros::NodeHandle nh_private("~");
-    srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
-
     // return no ID to R-RANSAC
-    return (uint32_t)0;
+    idx = 0;
   }
+
+  // restart the param update server
+  ros::NodeHandle nh_private("~");
+  srv_params_ = nh_private.advertiseService("set_params", &RRANSAC::callback_srv_params, this);
+
+  return idx;
 }
 
 

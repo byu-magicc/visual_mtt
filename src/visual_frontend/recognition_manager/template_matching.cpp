@@ -4,7 +4,7 @@ namespace visual_frontend {
 
 TemplateMatching::TemplateMatching()
 {
-
+  // TODO
 }
 
 // ----------------------------------------------------------------------------
