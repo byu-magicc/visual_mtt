@@ -6,7 +6,7 @@
 
 # general processing
 visual_frontend/frame_stride: 2
-visual_frontend/downsize_scale: 0.4
+visual_frontend/resize_scale: 0.4
 visual_frontend/published_video_scale: 1.0
 visual_frontend/text_scale: 1.0
 

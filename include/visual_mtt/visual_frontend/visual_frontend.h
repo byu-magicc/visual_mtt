@@ -71,8 +71,8 @@ namespace visual_frontend {
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 
-    // downsize scale
-    double downsize_scale_;
+    // resize scale
+    double resize_scale_;
 
     // frames
     cv::Mat hd_frame_;
