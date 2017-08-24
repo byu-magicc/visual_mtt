@@ -174,6 +174,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/gpu.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim
+  src/camera_sim/node.cpp
   src/camera_sim/camera_sim.cpp)
 
 ## Rename C++ executable without prefix
