@@ -163,7 +163,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
 
   # Measurement sources
   src/visual_frontend/source_manager/source_manager.cpp
-  src/visual_frontend/source_manager/feature_outliers.cpp
+  src/visual_frontend/source_manager/feature_motion.cpp
   src/visual_frontend/source_manager/difference_image.cpp
 
   # Target recognition

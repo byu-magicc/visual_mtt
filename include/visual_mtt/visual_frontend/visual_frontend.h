@@ -29,7 +29,7 @@
 #include "source_manager/source_manager.h"
 #include "recognition_manager/recognition_manager.h"
 
-#include "source_manager/feature_outliers.h"
+#include "source_manager/feature_motion.h"
 
 namespace visual_frontend {
 

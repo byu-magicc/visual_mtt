@@ -14,7 +14,7 @@ void SourceManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   // check to see if any of the source selections have changed
   bool changed = false;
-  if (config.feature_outliers_enabled != feature_motion_)
+  if (config.feature_motion_enabled != feature_motion_)
     changed = true;
   if (config.difference_image_enabled != difference_image_)
     changed = true;
@@ -22,7 +22,7 @@ void SourceManager::set_parameters(visual_mtt::visual_frontendConfig& config)
   if (changed)
   {
     // update the enabled/disabled status for each source
-    feature_motion_   = config.feature_outliers_enabled;
+    feature_motion_   = config.feature_motion_enabled;
     difference_image_ = config.difference_image_enabled;
 
     // repopulate the vector of sources
@@ -111,7 +111,7 @@ void SourceManager::set_sources()
   // populate the sources vector according to the current configuration
   if (feature_motion_)
   {
-    measurement_sources_.emplace_back(std::make_shared<FeatureOutliers>());
+    measurement_sources_.emplace_back(std::make_shared<FeatureMotion>());
     n_sources_++;
   }
   if (difference_image_)

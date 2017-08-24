@@ -9,17 +9,17 @@
 
 namespace visual_frontend {
 
-  class FeatureOutliers: public MeasurementSource
+  class FeatureMotion: public MeasurementSource
   {
   public:
-    FeatureOutliers();
-    ~FeatureOutliers();
+    FeatureMotion();
+    ~FeatureMotion();
     void generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform);
     void set_parameters(visual_mtt::visual_frontendConfig& config);
     void set_camera(const cv::Mat& K, const cv::Mat& D);
     void draw_measurements();
 
-    bool first_image_ = true; // see TODO notes in feature_outliers.cpp
+    bool first_image_ = true; // see TODO notes in feature_motion.cpp
 
   private:
     cv::Mat sd_frame_;
