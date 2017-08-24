@@ -1,55 +1,6 @@
-// libraries
-#include <iostream>
-#include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
-#include <ros/ros.h>
-#include <ros/console.h>
-#include <image_transport/image_transport.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <camera_info_manager/camera_info_manager.h>
-
-// messages
-#include "sensor_msgs/Image.h"
-#include "std_msgs/Header.h"
-
-// This only shows the syntax for dual-message publishing and image transport.
-// Eventually read in video rather than subscribe, then replace video_player.py
-
-// Near-term list:
-// TODO: cpp header file
-// TODO: separate into node.cpp and camera_sim.cpp to match other nodes?
+#include "camera_sim/camera_sim.h"
 
 namespace camera_sim {
-
-  class CameraSim
-  {
-  public:
-    CameraSim();
-
-    // subscription
-    void callback(const sensor_msgs::ImageConstPtr& data);
-
-    void play_video();
-
-  private:
-    // ROS
-    ros::NodeHandle nh_;
-    ros::Subscriber sub_;
-    image_transport::CameraPublisher pub_;
-
-    // image data
-    cv::Mat frame_;
-
-    bool parameters_guessed_;
-    bool video_file_only_;
-    std::string video_path_;
-    double fps_;
-
-    // camera manager class
-    std::shared_ptr<camera_info_manager::CameraInfoManager> camera_manager_;
-  };
-
-// ----------------------------------------------------------------------------
 
 CameraSim::CameraSim()
 {
@@ -81,7 +32,7 @@ CameraSim::CameraSim()
   // ROS communication
   // if the video source is a rosbag, subscription is needed
   // if the video source is a standard file, there is no need to subscribe
-  image_transport::ImageTransport it(nh_private); // use private node handle
+  image_transport::ImageTransport it(nh_private);
   pub_ = it.advertiseCamera("image_raw", 1);
   if (!video_file_only_)
     sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
@@ -226,22 +177,4 @@ void CameraSim::play_video()
   }
 }
 
-}
-
-// ----------------------------------------------------------------------------
-
-int main(int argc, char **argv)
-{
-  // start node
-  ros::init(argc, argv, "camera_sim");
-
-  // instantiate the CameraSim class
-  camera_sim::CameraSim camera_sim;
-
-  // read video file if applicable
-  camera_sim.play_video();
-
-  // prepare for rosbag callback if applicable
-  ros::spin();
-  return 0;
 }
