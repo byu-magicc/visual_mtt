@@ -23,8 +23,8 @@ visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/feature_outliers_enabled: true
 visual_frontend/feature_outliers_sigmaR_pos: 0.007
 visual_frontend/feature_outliers_sigmaR_vel: 0.0014
-visual_frontend/minimum_pixel_velocity: 0.002
-visual_frontend/maximum_pixel_velocity: 0.02
+visual_frontend/minimum_feature_velocity: 0.002
+visual_frontend/maximum_feature_velocity: 0.02
 
 # difference image
 visual_frontend/difference_image_enabled: false

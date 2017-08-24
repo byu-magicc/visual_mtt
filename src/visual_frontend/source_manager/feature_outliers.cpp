@@ -69,8 +69,8 @@ void FeatureOutliers::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 
 void FeatureOutliers::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
-  velocity_floor_ = config.minimum_pixel_velocity;
-  velocity_ceiling_ = config.maximum_pixel_velocity;
+  velocity_floor_ = config.minimum_feature_velocity;
+  velocity_ceiling_ = config.maximum_feature_velocity;
 
   // noise parameters (only for storage, not used in measurement generation)
   sigmaR_pos_ = config.feature_outliers_sigmaR_pos;
