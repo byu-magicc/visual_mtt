@@ -10,7 +10,7 @@
 
 // available measurement generation methods
 #include "measurement_source.h"
-#include "feature_outliers.h"
+#include "feature_motion.h"
 #include "difference_image.h"
 
 namespace visual_frontend {

@@ -67,7 +67,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       dist_coeff_.at<double>(i, 0) = cinfo->D[i];
 
     // scale the entire matrix except the 3,3 element
-    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
     // provide algorithm members with updated camera parameters
@@ -78,8 +78,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     // set the high and low definition resolutions
     hd_res_.width = hd_frame_.cols;
     hd_res_.height = hd_frame_.rows;
-    sd_res_.width = hd_frame_.cols*downsize_scale_;
-    sd_res_.height = hd_frame_.rows*downsize_scale_;
+    sd_res_.width = hd_frame_.cols*resize_scale_;
+    sd_res_.height = hd_frame_.rows*resize_scale_;
 
     info_received_ = true;
   }
@@ -209,13 +209,13 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
 void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
-  downsize_scale_ = config.downsize_scale;
+  resize_scale_ = config.resize_scale;
 
   // if camera information is saved, update the scaled camera parameters
   if (info_received_)
   {
     // scale the entire matrix except the 3,3 element
-    camera_matrix_scaled_ = camera_matrix_ * downsize_scale_;
+    camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
     // provide algorithm members with updated camera parameters
@@ -223,8 +223,8 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
     source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
 
     // update the low definition resolution
-    sd_res_.width = hd_res_.width*downsize_scale_;
-    sd_res_.height = hd_res_.height*downsize_scale_;
+    sd_res_.width = hd_res_.width*resize_scale_;
+    sd_res_.height = hd_res_.height*resize_scale_;
   }
 }
 

@@ -1,18 +1,18 @@
-#include "visual_frontend/source_manager/feature_outliers.h"
+#include "visual_frontend/source_manager/feature_motion.h"
 
 namespace visual_frontend {
 
-FeatureOutliers::FeatureOutliers()
+FeatureMotion::FeatureMotion()
 {
   id_ = 0;
-  name_ = "Homography Outliers";
+  name_ = "Feature Motion";
   has_velocity_ = true;
   drawn_ = false;
 }
 
 // ----------------------------------------------------------------------------
 
-FeatureOutliers::~FeatureOutliers()
+FeatureMotion::~FeatureMotion()
 {
   if (drawn_)
   {
@@ -22,7 +22,7 @@ FeatureOutliers::~FeatureOutliers()
 
 // ----------------------------------------------------------------------------
 
-void FeatureOutliers::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
+void FeatureMotion::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
 {
   sd_frame_ = sd_frame;
 
@@ -67,19 +67,19 @@ void FeatureOutliers::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame
 
 // ----------------------------------------------------------------------------
 
-void FeatureOutliers::set_parameters(visual_mtt::visual_frontendConfig& config)
+void FeatureMotion::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   velocity_floor_ = config.minimum_feature_velocity;
   velocity_ceiling_ = config.maximum_feature_velocity;
 
   // noise parameters (only for storage, not used in measurement generation)
-  sigmaR_pos_ = config.feature_outliers_sigmaR_pos;
-  sigmaR_vel_ = config.feature_outliers_sigmaR_vel;
+  sigmaR_pos_ = config.feature_motion_sigmaR_pos;
+  sigmaR_vel_ = config.feature_motion_sigmaR_vel;
 }
 
 // ----------------------------------------------------------------------------
 
-void FeatureOutliers::set_camera(const cv::Mat& K, const cv::Mat& D)
+void FeatureMotion::set_camera(const cv::Mat& K, const cv::Mat& D)
 {
   camera_matrix_ = K.clone();
   dist_coeff_ = D.clone();
@@ -87,7 +87,7 @@ void FeatureOutliers::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 // ----------------------------------------------------------------------------
 
-void FeatureOutliers::draw_measurements()
+void FeatureMotion::draw_measurements()
 {
   cv::Mat draw = sd_frame_.clone();
 

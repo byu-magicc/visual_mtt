@@ -29,7 +29,7 @@
 #include "source_manager/source_manager.h"
 #include "recognition_manager/recognition_manager.h"
 
-#include "source_manager/feature_outliers.h"
+#include "source_manager/feature_motion.h"
 
 namespace visual_frontend {
 
@@ -71,8 +71,8 @@ namespace visual_frontend {
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 
-    // downsize scale
-    double downsize_scale_;
+    // resize scale
+    double resize_scale_;
 
     // frames
     cv::Mat hd_frame_;

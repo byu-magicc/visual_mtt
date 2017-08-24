@@ -6,7 +6,7 @@
 
 # general processing
 visual_frontend/frame_stride: 2
-visual_frontend/downsize_scale: 0.4
+visual_frontend/resize_scale: 0.4
 visual_frontend/published_video_scale: 1.0
 visual_frontend/text_scale: 1.0
 
@@ -19,10 +19,10 @@ visual_frontend/corner_quality_max:   0.05  # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/corner_quality_alpha: 0.999 # NOT DYNAMICALLLY RECONFIGURABLE
 visual_frontend/pyramid_size: 21            # NOT DYNAMICALLLY RECONFIGURABLE
 
-# feature outliers
-visual_frontend/feature_outliers_enabled: true
-visual_frontend/feature_outliers_sigmaR_pos: 0.007
-visual_frontend/feature_outliers_sigmaR_vel: 0.0014
+# feature motion
+visual_frontend/feature_motion_enabled: true
+visual_frontend/feature_motion_sigmaR_pos: 0.007
+visual_frontend/feature_motion_sigmaR_vel: 0.0014
 visual_frontend/minimum_feature_velocity: 0.002
 visual_frontend/maximum_feature_velocity: 0.02
 
