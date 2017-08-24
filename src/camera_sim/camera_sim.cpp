@@ -43,6 +43,7 @@ namespace camera_sim {
     bool parameters_guessed_;
     bool video_file_only_;
     std::string video_path_;
+    double fps_;
 
     // camera manager class
     std::shared_ptr<camera_info_manager::CameraInfoManager> camera_manager_;
@@ -60,11 +61,7 @@ CameraSim::CameraSim()
   nh_private.param<std::string>("camera_name",     camera_name,     "");
   nh_private.param<std::string>("camera_info_url", camera_info_url, "");
   nh_private.param<std::string>("video_path",      video_path_,     "");
-
-  // TODO: remove
-  std::cout << camera_name << std::endl;
-  std::cout << camera_info_url << std::endl;
-  std::cout << video_path_ << std::endl;
+  nh_private.param<double>     ("fps",             fps_,            30);
 
   video_file_only_ = false;
   if (video_path_ != "")
@@ -82,22 +79,19 @@ CameraSim::CameraSim()
   camera_manager_.reset(new camera_info_manager::CameraInfoManager(nh_, camera_name, camera_info_url));
 
   // ROS communication
-  image_transport::ImageTransport it(nh_private); // use private node handle
-  sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
-  pub_ = it.advertiseCamera("image_raw", 1);
-
   // if the video source is a rosbag, subscription is needed
   // if the video source is a standard file, there is no need to subscribe
-  if (video_file_only_)
-    sub_.shutdown();
+  image_transport::ImageTransport it(nh_private); // use private node handle
+  pub_ = it.advertiseCamera("image_raw", 1);
+  if (!video_file_only_)
+    sub_ = nh_.subscribe("input", 1, &CameraSim::callback,  this);
 }
 
 // ----------------------------------------------------------------------------
 
 void CameraSim::callback(const sensor_msgs::ImageConstPtr& data)
 {
-  // convert image to OpenCV because that's how it will be in the future
-  // when it's read from .mp4 file, eventually replacing the python script
+  // convert image to OpenCV
   frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
   // convert to image transport
@@ -142,14 +136,20 @@ void CameraSim::play_video()
   if (!source.isOpened())
     ROS_ERROR("Invalid video file path");
 
+  // time regulation
+  ros::Time tic_fps = ros::Time::now();
+  ros::Time tic_publish;
+  ros::Duration spf = ros::Duration(1/fps_);  // seconds per frame
+  ros::Duration t_publish = ros::Duration(0); // estimate of publish cost
+  ros::Duration t_publish_i;                  // measured cost (one iteration)
+  ros::Duration t_elapsed;                    // time since last frame
+  ros::Duration t_remaining;                  // time until next frame
+
+  // alpha for lpf of t_publish (based on time constant of 3s)
+  double alpha = spf.toSec()/(3 + spf.toSec());
+
   while (ros::ok()) {
-
-    std::cout << "---" << std::endl;
-    auto tic = ros::Time::now();
-
-
-
-    // get the next frame; if the end of the video is reached, loop
+    // get the next frame; loop if the end of the video is reached
     source >> frame_;
     if(frame_.empty())
     {
@@ -159,22 +159,12 @@ void CameraSim::play_video()
       source >> frame_;
     }
 
-    std::cout << "from file time: " << (ros::Time::now() - tic).toSec() << std::endl;
-    tic = ros::Time::now();
-
     // convert frame to image transport message
     sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", frame_).toImageMsg();
-    msg->header.stamp = ros::Time::now();
-
-    std::cout << "convert time:   " << (ros::Time::now() - tic).toSec() << std::endl;
-    tic = ros::Time::now();
 
     // get the camera info
     sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
-    ci->header.stamp = msg->header.stamp; // TODO: move stamps to pre-publish
 
-    std::cout << "info time:      " << (ros::Time::now() - tic).toSec() << std::endl;
-    tic = ros::Time::now();
 
     // update the height, width, and principal point if parameters are guessed
     // if (parameters_guessed_)
@@ -187,15 +177,39 @@ void CameraSim::play_video()
     //   ci->K[5] = (double)frame_.rows/2; // cy
     // }       // TODO: generate fx, fy based on guessed FOV
 
+
+    t_elapsed = ros::Time::now() - tic_fps;
+    t_remaining = spf - t_elapsed - t_publish;
+
+    // if time remaining, wait in order to match desired fps
+    if (t_remaining.toSec()<0)
+      ROS_WARN("Video cannot be played back at the requested fps");
+    else
+      t_remaining.sleep();
+
+    // the frame is not available to other nodes until the end of the
+    // publication command, so we estimate the time cost of publishing (which
+    // is pretty consistent) in order to anticipate and offset it.
+    tic_publish = ros::Time::now();
+
     // publish frame and camera info together (can only publish <msg>Ptr types)
-    // std::cout << "publishing" << std::endl;
+    msg->header.stamp = ros::Time::now();
+    ci->header.stamp = msg->header.stamp;
     pub_.publish(msg, ci);
 
-    std::cout << "publish time:   " << (ros::Time::now() - tic).toSec() << std::endl;
+    // update the "time of last frame" tic for the next iteration
+    tic_fps = ros::Time::now();
 
+    // calculate the time cost of publishing this iteration
+    t_publish_i = ros::Time::now()-tic_publish;
+
+    // lpf the time cost of publishing
+    if (t_publish.toSec()==0)
+      t_publish = t_publish_i; // first iteration
+    else
+      t_publish = t_publish_i*alpha + t_publish*(1-alpha);
   }
 }
-
 
 }
 
@@ -212,6 +226,7 @@ int main(int argc, char **argv)
   // read video file if applicable
   camera_sim.play_video();
 
+  // prepare for rosbag callback if applicable
   ros::spin();
   return 0;
 }
