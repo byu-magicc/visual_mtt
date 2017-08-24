@@ -461,7 +461,14 @@ void RRANSAC::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // Resize the image according to the scale
   cv::Mat resized;
   cv::Size size(draw.cols*pub_scale_, draw.rows*pub_scale_);
+#if OPENCV_CUDA
+  cv::cuda::GpuMat draw_cuda, resized_cuda;
+  draw_cuda.upload(draw);
+  cv::cuda::resize(draw_cuda, resized_cuda, size, 0, 0, cv::INTER_AREA);
+  resized_cuda.download(resized);
+#else
   cv::resize(draw, resized, size, 0, 0, cv::INTER_AREA);
+#endif
 
   // Publish over ROS network
   cv_bridge::CvImage image_msg;

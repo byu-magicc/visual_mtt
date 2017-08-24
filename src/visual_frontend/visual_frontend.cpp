@@ -90,7 +90,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   auto tic = ros::Time::now();
 
   // resize frame
-  cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_LINEAR);
+#if OPENCV_CUDA
+  cv::cuda::GpuMat hd_frame_cuda, sd_frame_cuda;
+  hd_frame_cuda.upload(hd_frame_);
+  cv::cuda::resize(hd_frame_cuda, sd_frame_cuda, sd_res_, 0, 0, cv::INTER_AREA);
+  sd_frame_cuda.download(sd_frame_);
+#else
+  cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
+#endif
 
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
