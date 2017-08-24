@@ -148,6 +148,10 @@ void CameraSim::play_video()
   // alpha for lpf of t_publish (based on time constant of 3s)
   double alpha = spf.toSec()/(3 + spf.toSec());
 
+  // latch logic for slow playback warning
+  bool warning_latched = false;
+  uint32_t latch_counter = 0;
+
   while (ros::ok()) {
     // get the next frame; loop if the end of the video is reached
     source >> frame_;
@@ -165,27 +169,38 @@ void CameraSim::play_video()
     // get the camera info
     sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(camera_manager_->getCameraInfo()));
 
-
     // update the height, width, and principal point if parameters are guessed
-    // if (parameters_guessed_)
-    // {
-    //   ci->height = frame_.rows;
-    //   ci->width = frame_.cols;
-    //   // ci->K[0] = 700;                // fx (keep original guess)
-    //   // ci->K[4] = 700;                // fy (keep original guess)
-    //   ci->K[2] = (double)frame_.cols/2; // cx
-    //   ci->K[5] = (double)frame_.rows/2; // cy
-    // }       // TODO: generate fx, fy based on guessed FOV
-
+    if (parameters_guessed_)
+    {
+      ci->height = frame_.rows;
+      ci->width = frame_.cols;
+      // ci->K[0] = 700;                // fx (keep original guess)
+      // ci->K[4] = 700;                // fy (keep original guess)
+      ci->K[2] = (double)frame_.cols/2; // cx
+      ci->K[5] = (double)frame_.rows/2; // cy
+    }
 
     t_elapsed = ros::Time::now() - tic_fps;
     t_remaining = spf - t_elapsed - t_publish;
 
-    // if time remaining, wait in order to match desired fps
+    // less-than-real-time logic and warning latch logic
     if (t_remaining.toSec()<0)
-      ROS_WARN("Video cannot be played back at the requested fps");
+    {
+      if (!warning_latched) latch_counter++;
+
+      // if the latch threshold is met, latch and fire warning
+      if (latch_counter>=10 && !warning_latched)
+      {
+        ROS_WARN("Video cannot be published at the requested fps");
+        warning_latched = true;
+      }
+    }
     else
+    {
+      // reset latch counter and wait for the remaining time
+      latch_counter = 0;
       t_remaining.sleep();
+    }
 
     // the frame is not available to other nodes until the end of the
     // publication command, so we estimate the time cost of publishing (which
