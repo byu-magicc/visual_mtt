@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
-// #include <opencv2/gpu/gpu.hpp>
+#include "visual_frontend/gpu.h"
 #include "visual_frontend/source_manager/measurement_source.h"
 
 // dynamic reconfig
