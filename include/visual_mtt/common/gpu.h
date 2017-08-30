@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef OPENCV_CUDA
+  #include <opencv2/core/cuda.hpp>
   #include <opencv2/cudaoptflow.hpp>
   #include <opencv2/cudaimgproc.hpp>
   #include <opencv2/cudaarithm.hpp>
@@ -8,7 +9,7 @@
   #include <opencv2/cudawarping.hpp>
 #endif
 
-namespace visual_frontend { namespace gpu {
+namespace common { namespace gpu {
 
 #ifdef OPENCV_CUDA
 

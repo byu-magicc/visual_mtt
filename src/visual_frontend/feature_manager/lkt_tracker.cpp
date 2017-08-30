@@ -111,15 +111,15 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
 
       // Upload previous features to GPU
       cv::cuda::GpuMat gPrevFeatures;
-      gpu::upload(prev_features_, gPrevFeatures);
+      common::gpu::upload(prev_features_, gPrevFeatures);
 
       // Run LK optical flow on the GPU
       cv::cuda::GpuMat gNextFeatures, gValid;
       gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
 
       // Download from the GPU
-      gpu::download(gNextFeatures, next_features);
-      gpu::download(gValid, valid);
+      common::gpu::download(gNextFeatures, next_features);
+      common::gpu::download(gValid, valid);
 
 #else
       std::vector<float> err;
@@ -159,7 +159,7 @@ void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& 
     gftt_detector_->detect(gMono, gFeatures);
 
     // Download
-    gpu::download(gFeatures, features);
+    common::gpu::download(gFeatures, features);
 
   #else
 

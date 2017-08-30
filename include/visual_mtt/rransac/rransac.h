@@ -23,6 +23,8 @@
 #include "visual_mtt/RecognizeTrack.h"
 #include "sensor_msgs/Image.h"
 
+#include "common/gpu.h"
+
 #include <iostream>
 #include <algorithm>
 

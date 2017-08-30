@@ -1,6 +1,6 @@
-#include "visual_frontend/gpu.h"
+#include "common/gpu.h"
 
-namespace visual_frontend { namespace gpu {
+namespace common { namespace gpu {
 
 #ifdef OPENCV_CUDA
 
