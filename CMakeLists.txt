@@ -147,7 +147,8 @@ include_directories( include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_rransac
   src/rransac/node.cpp
-  src/rransac/rransac.cpp)
+  src/rransac/rransac.cpp
+  src/common/gpu.cpp)
 
 add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/node.cpp
@@ -171,7 +172,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/recognition_manager/template_matching.cpp
 
   # Common
-  src/visual_frontend/gpu.cpp)
+  src/common/gpu.cpp)
 
 add_executable(${PROJECT_NAME}_camera_sim
   src/camera_sim/node.cpp

@@ -4,7 +4,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#include "visual_frontend/gpu.h"
+#include "common/gpu.h"
 #include "feature_tracker.h"
 
 namespace visual_frontend {
