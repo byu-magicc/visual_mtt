@@ -50,8 +50,6 @@ void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res
   cv::Mat dist_coeff; // we started with the theoretical undistorted image
   cv::undistortPoints(boundary, boundary, camera_matrix_, dist_coeff);
 
-  // scale the points up or down from here // TODO: implement this scaling
-
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
   // use no rotation or translation (world frame = camera frame).
@@ -61,21 +59,12 @@ void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res
   cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, boundary_d);
 
   // boundary_d is a polygon in the original sd frame, put in matrix form
-  boundary_ = cv::Mat(boundary_d);
+  cv::Mat boundary_mat(boundary_d);
 
-  // build a mask out of this
-  boundary_.convertTo(boundary_, CV_32SC1);
-  cv::Mat mask(res, CV_8UC1, cv::Scalar(0));
-  cv::fillConvexPoly(mask, boundary_, cv::Scalar(255));
-  // TODO: use this mask in LKT or in GFTT generation, whichever is easier
-
-  // draw the lines to demonstrate syntax (TODO: move this to feature motion source)
-  cv::Mat new12 = mask.clone();
-  cv::cvtColor(new12, new12, CV_GRAY2RGB);
-  cv::polylines(new12, boundary_, true, cv::Scalar(255,0,255));
-
-  cv::imshow("test", new12);
-  char keyboard = cv::waitKey(1);
+  // build the mask
+  boundary_mat.convertTo(boundary_mat, CV_32SC1);
+  mask_ = cv::Mat(res, CV_8UC1, cv::Scalar(0));
+  cv::fillConvexPoly(mask_, boundary_mat, cv::Scalar(255));
 }
 
 // ----------------------------------------------------------------------------
@@ -89,7 +78,7 @@ void FeatureManager::find_correspondences(cv::Mat& img)
 
   // Find the feature correspondences across current and previous frame
   // and expose as public data members: `prev_matched_` and `next_matched_`.
-  feature_tracker_->find_correspondences(img, prev_matched_, next_matched_);
+  feature_tracker_->find_correspondences(img, prev_matched_, next_matched_, mask_);
 
   // compensate for lens distortion and project onto normalized image plane
   if (prev_matched_.size() > 0 && next_matched_.size() > 0)

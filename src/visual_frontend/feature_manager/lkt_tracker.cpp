@@ -21,9 +21,8 @@ LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched)
+void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched, const cv::Mat& mask)
 {
-
   // Convert to grayscale
   cv::Mat mono;
   cv::cvtColor(img, mono, CV_RGB2GRAY);
@@ -51,7 +50,7 @@ void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2
 
   // find fresh feature points
   std::vector<cv::Point2f> features;
-  detect_features(mono, features);
+  detect_features(mono, features, mask);
 
   // save features for the next iteration.
   prev_features_.swap(features);
@@ -150,13 +149,14 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
 
 // ---------------------------------------------------------------------------
 
-void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features)
+void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
 {
   #ifdef OPENCV_CUDA
 
     cv::cuda::GpuMat gMono(mono);
+    cv::cuda::GpuMat gMask(mask);
     cv::cuda::GpuMat gFeatures;
-    gftt_detector_->detect(gMono, gFeatures);
+    gftt_detector_->detect(gMono, gFeatures, gMask);
 
     // Download
     common::gpu::download(gFeatures, features);
@@ -164,7 +164,7 @@ void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& 
   #else
 
     std::vector<cv::KeyPoint> keypoints;
-    gftt_detector_->detect(mono, keypoints);
+    gftt_detector_->detect(mono, keypoints, mask);
 
     // Unpack keypoints and create regular features points
     features.resize(keypoints.size());

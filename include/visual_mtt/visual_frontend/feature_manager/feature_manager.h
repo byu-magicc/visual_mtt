@@ -40,7 +40,7 @@ namespace visual_frontend {
     std::vector<cv::Point2f> next_matched_;
 
     // points representing the undistorted region
-    cv::Mat boundary_;
+    cv::Mat mask_;
 
   private:
     // feature detector/tracker
