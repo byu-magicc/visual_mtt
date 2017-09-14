@@ -50,7 +50,7 @@ void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res
   cv::Mat dist_coeff; // we started with the theoretical undistorted image
   cv::undistortPoints(boundary, boundary, camera_matrix_, dist_coeff);
 
-  // scale the points up or down from here
+  // scale the points up or down from here // TODO: implement this scaling
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
@@ -67,8 +67,9 @@ void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res
   boundary_.convertTo(boundary_, CV_32SC1);
   cv::Mat mask(res, CV_8UC1, cv::Scalar(0));
   cv::fillConvexPoly(mask, boundary_, cv::Scalar(255));
+  // TODO: use this mask in LKT or in GFTT generation, whichever is easier
 
-  // draw the lines for fun
+  // draw the lines to demonstrate syntax (TODO: move this to feature motion source)
   cv::Mat new12 = mask.clone();
   cv::cvtColor(new12, new12, CV_GRAY2RGB);
   cv::polylines(new12, boundary_, true, cv::Scalar(255,0,255));
