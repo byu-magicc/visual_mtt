@@ -27,7 +27,7 @@ namespace visual_frontend {
     // Give the feature manager the camera matrix and distortion coefficients.
     // Expect all features generated herein to be returned in normalized
     // image coordinates, i.e., `prev_matched_` and `next_matched_`.
-    void set_camera(const cv::Mat& K, const cv::Mat& D);
+    void set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res);
 
     // This method finds correspondences based on the new frame arguments
     // and the previous frame stored in the FeatureManager's memory.
@@ -38,6 +38,9 @@ namespace visual_frontend {
     // frame and this current frame. Updated after a call to `find_correspondences`
     std::vector<cv::Point2f> prev_matched_;
     std::vector<cv::Point2f> next_matched_;
+
+    // points representing the undistorted region
+    cv::Mat boundary_;
 
   private:
     // feature detector/tracker

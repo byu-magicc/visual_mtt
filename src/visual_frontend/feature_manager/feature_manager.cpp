@@ -9,7 +9,7 @@ namespace visual_frontend {
 
 FeatureManager::FeatureManager()
 {
-  
+
   // Initialize feature tracker with default type
   set_tracker(KLT_TRACKER);
 }
@@ -28,10 +28,53 @@ void FeatureManager::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
-void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D)
+void FeatureManager::set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res)
 {
   camera_matrix_ = K.clone();
   dist_coeff_ = D.clone();
+
+  // define the boundary of the theoretical undistorted image
+  int edge_points = 10; // points per edge
+  std::vector<cv::Point2f> boundary;
+  for (uint32_t i=0; i<edge_points; i++)
+    boundary.push_back(cv::Point2f(i*(res.width/edge_points), 0));
+  for (uint32_t i=0; i<edge_points; i++)
+    boundary.push_back(cv::Point2f(res.width, i*(res.height/edge_points)));
+  for (uint32_t i=0; i<edge_points; i++)
+    boundary.push_back(cv::Point2f(res.width - i*(res.width/edge_points), res.height));
+  for (uint32_t i=0; i<edge_points; i++)
+    boundary.push_back(cv::Point2f(0, res.height - i*(res.height/edge_points)));
+
+  // move points to the normalized image plane (original frame and undistorted
+  // frame have the same camera matrix)
+  cv::Mat dist_coeff; // we started with the theoretical undistorted image
+  cv::undistortPoints(boundary, boundary, camera_matrix_, dist_coeff);
+
+  // scale the points up or down from here
+
+  // treat points in the normalized image plane as 3D points (homogeneous).
+  // project the points onto the sensor (pixel space) for plotting.
+  // use no rotation or translation (world frame = camera frame).
+  std::vector<cv::Point3f> boundary_h; // homogeneous
+  std::vector<cv::Point2f> boundary_d; // distorted
+  cv::convertPointsToHomogeneous(boundary, boundary_h);
+  cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, boundary_d);
+
+  // boundary_d is a polygon in the original sd frame, put in matrix form
+  boundary_ = cv::Mat(boundary_d);
+
+  // build a mask out of this
+  boundary_.convertTo(boundary_, CV_32SC1);
+  cv::Mat mask(res, CV_8UC1, cv::Scalar(0));
+  cv::fillConvexPoly(mask, boundary_, cv::Scalar(255));
+
+  // draw the lines for fun
+  cv::Mat new12 = mask.clone();
+  cv::cvtColor(new12, new12, CV_GRAY2RGB);
+  cv::polylines(new12, boundary_, true, cv::Scalar(255,0,255));
+
+  cv::imshow("test", new12);
+  char keyboard = cv::waitKey(1);
 }
 
 // ----------------------------------------------------------------------------
