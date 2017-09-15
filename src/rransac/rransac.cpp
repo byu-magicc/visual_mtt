@@ -350,6 +350,7 @@ void RRANSAC::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
   // Include the original frame header and add the current time to the tracks
   msg.header_frame = header_frame_;
   msg.header_update.stamp = ros::Time::now();
+  msg.header_update.seq = ++iter_num_;
 
   // Attach utilization statistics to the message
   msg.util = util_;

@@ -60,6 +60,9 @@ namespace rransac {
     double alpha_           = 0.003; // fps filter: large time constant ~10s
     double time_constant_   = 1.0;   // utilization filter: chose time constant
 
+    // R-RANSAC iteration counter
+    int iter_num_ = 0;
+
     // For visualization
     cv::Mat frame_;
     double pub_scale_;
