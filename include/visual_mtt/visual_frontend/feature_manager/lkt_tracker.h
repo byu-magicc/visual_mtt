@@ -19,8 +19,8 @@ namespace visual_frontend {
   {
   public:
     LKTTracker(double corner_quality, double corner_quality_min, double corner_quality_max, double corner_quality_alpha, int pyramid_size);
-    
-    virtual void find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched);
+
+    virtual void find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched, const cv::Mat& mask);
     virtual void set_max_features(int points_max);
 
   private:
@@ -48,8 +48,8 @@ namespace visual_frontend {
 
     // Wrapper methods to calculate LK optical flow and to detect features
     void calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& next_features, std::vector<unsigned char>& valid);
-    void detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features);
-    
+    void detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
+
   };
 
 }

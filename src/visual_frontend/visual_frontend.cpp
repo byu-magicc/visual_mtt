@@ -70,16 +70,16 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
-    // provide algorithm members with updated camera parameters
-    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-    recognition_manager_.set_camera(camera_matrix_, dist_coeff_);
-
     // set the high and low definition resolutions
     hd_res_.width = hd_frame_.cols;
     hd_res_.height = hd_frame_.rows;
     sd_res_.width = hd_frame_.cols*resize_scale_;
     sd_res_.height = hd_frame_.rows*resize_scale_;
+
+    // provide algorithm members with updated camera parameters
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_, sd_res_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
+    recognition_manager_.set_camera(camera_matrix_, dist_coeff_);
 
     info_received_ = true;
   }
@@ -218,13 +218,13 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
     camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
     camera_matrix_scaled_.at<double>(2,2) = 1;
 
-    // provide algorithm members with updated camera parameters
-    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-
     // update the low definition resolution
     sd_res_.width = hd_res_.width*resize_scale_;
     sd_res_.height = hd_res_.height*resize_scale_;
+
+    // provide algorithm members with updated camera parameters
+    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_, sd_res_);
+    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
   }
 }
 
