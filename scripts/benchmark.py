@@ -136,7 +136,7 @@ class ROSLauncher(object):
         self.process = None
 
         # Hide the roslaunch output
-        self.squelch = False
+        self.squelch = True
         
 
     def run(self):
