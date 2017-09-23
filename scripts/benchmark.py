@@ -134,6 +134,9 @@ class ROSLauncher(object):
 
         # Store the roslaunch process
         self.process = None
+
+        # Hide the roslaunch output
+        self.squelch = False
         
 
     def run(self):
@@ -144,7 +147,9 @@ class ROSLauncher(object):
             See: https://stackoverflow.com/a/4791612/2392520
         """
         if not rospy.is_shutdown():
-            cmd = 'roslaunch visual_mtt play_from_recording.launch {} > /dev/null 2>&1'.format(self.flags)
+            cmd = 'roslaunch visual_mtt play_from_recording.launch {}'.format(self.flags)
+            if self.squelch:
+                cmd += ' > /dev/null 2>&1'
             # print("Running command: {}".format(cmd))
             self.process = subprocess.Popen(cmd, shell=True, preexec_fn=os.setsid)
 
@@ -274,6 +279,12 @@ class ScenarioRunner(object):
 
         if 'cam_info' in kwargs:
             self.flags += ' camera_info_url:=file://{}'.format(kwargs['cam_info'])
+
+        if 'info_topic' in kwargs:
+            self.flags += ' info_topic:={}'.format(kwargs['info_topic'])
+
+        if 'params' in kwargs:
+            self.flags += ' params:={}'.format(kwargs['params'])
 
         if 'compressed' in kwargs:
             self.flags += ' compressed:=true'
@@ -769,7 +780,13 @@ def run_benchmarks(args):
     # Prepend the paths with the root
     for scenario in scenarios:
         scenario['bag_path'] = os.path.join(root, scenario['bag_path'])
-        scenario['cam_info'] = os.path.join(root, scenario['cam_info'])
+
+        if 'cam_info' in scenario and not scenario['cam_info'].startswith('/'):
+            scenario['cam_info'] = os.path.join(root, scenario['cam_info'])
+
+        if 'params' in scenario and not scenario['params'].startswith('/'):
+            scenario['params'] = os.path.join(root, scenario['params'])
+
 
     # Benchmark the scenario and add the results
     benchmark = BenchmarkRunner(args['name'], args['cuda'], scenarios, frame_strides=[1, 2, 3])
