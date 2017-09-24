@@ -702,18 +702,25 @@ class BenchmarkAnalyzer(object):
             ind = np.arange(len(self.benchmarks))
             width = 0.25
 
-            keys = ['u_feature_manager', 'u_homography_manager', 'u_measurement_generation', 'u_rransac']
-            colors = ('#d62728', 'royalblue', 'mediumseagreen', 'darkviolet')
-            labels = ('Feature Manager', 'Homography Manager', 'Meas Generation', 'R-RANSAC')
+            # To make the bar chart actually stacked, we have to set the 'bottom' coordinate each time
+            nc_bottom = np.zeros(len(self.benchmarks))
+            c_bottom = np.zeros(len(self.benchmarks))
+
+            keys = ['u_rransac', 'u_measurement_generation', 'u_homography_manager', 'u_feature_manager']
+            colors = ('darkviolet', 'mediumseagreen', 'royalblue', '#d62728')
+            labels = ('R-RANSAC', 'Meas Generation', 'Homography Manager', 'Feature Manager')
             for i,key in enumerate(keys):
 
                 # Get non-CUDA utilizations by stride
                 data = [b['noncuda_summary_stats'][stride][key] if stride in b['noncuda_summary_stats'] else 0 for b in bdata]
-                axarr.bar(ind, data, width, color=colors[i], label=labels[i])
+                axarr.bar(ind, data, width, bottom=nc_bottom, color=colors[i], label=labels[i])
+                nc_bottom += data
 
                 # Get CUDA uttilizations by stride
                 data = [b['cuda_summary_stats'][stride][key] if stride in b['cuda_summary_stats'] else 0 for b in bdata]
-                axarr.bar(ind + width, data, width, color=colors[i])
+                #print("{}: {} = {}".format(stride, key, data))
+                axarr.bar(ind + width, data, width, bottom=c_bottom, color=colors[i])
+                c_bottom += data
 
             max_noncuda = [b['noncuda_summary_stats'][stride]['u_total'] if stride in b['noncuda_summary_stats'] else 0 for b in bdata]
             max_cuda    = [b['cuda_summary_stats'][stride]['u_total'] if stride in b['cuda_summary_stats'] else 0 for b in bdata]
