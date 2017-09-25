@@ -12,6 +12,7 @@ from colorama import init; init(autoreset=True)
 from colorama import Fore, Style
 
 import matplotlib.pyplot as plt
+plt.style.use('ggplot')
 import numpy as np
 
 from std_msgs.msg import Header
