@@ -11,9 +11,14 @@ import dynamic_reconfigure.client
 from colorama import init; init(autoreset=True)
 from colorama import Fore, Style
 
+import numpy as np
 import matplotlib.pyplot as plt
 plt.style.use('ggplot')
-import numpy as np
+
+# ACC doesn't like Type 3 fonts, this will use Type 42
+plt.rcParams['pdf.fonttype'] = 42
+plt.rcParams['ps.fonttype'] = 42
+
 
 from std_msgs.msg import Header
 from sensor_msgs.msg import CompressedImage, Image
