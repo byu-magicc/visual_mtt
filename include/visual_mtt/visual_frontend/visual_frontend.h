@@ -56,7 +56,6 @@ namespace visual_frontend {
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
     std::unique_ptr<dynamic_reconfigure::Server<visual_mtt::rransacConfig>> rransac_server_;
-    ros::ServiceServer srv_recognize_track_;
 
     // algorithm managers
     FeatureManager     feature_manager_;
@@ -66,6 +65,7 @@ namespace visual_frontend {
 
     // Recursive-RANSAC Tracker
     rransac::Tracker tracker_;
+    std::vector<rransac::core::ModelPtr> tracks_;
     rransac::core::Parameters params_;
     std::vector<cv::Point2f> corner_{{0,0}};
     std::vector<cv::Scalar> colors_;
@@ -91,8 +91,6 @@ namespace visual_frontend {
     cv::Mat dist_coeff_;
     bool info_received_ = false;
 
-    visual_mtt::TracksPtr tracks_;
-
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
 
@@ -107,10 +105,11 @@ namespace visual_frontend {
 
     // subscription and dynamic reconfigure callbacks
     void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
-    void callback_tracks(const visual_mtt::TracksPtr& data);
     void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
     void callback_reconfigure_rransac(visual_mtt::rransacConfig& config, uint32_t level);
-    bool callback_srv_recognize_track();
+    
+    // R-RANSAC callback
+    uint32_t callback_elevation_event(double x, double y);
 
     // data management
     void set_parameters(visual_mtt::visual_frontendConfig& config);

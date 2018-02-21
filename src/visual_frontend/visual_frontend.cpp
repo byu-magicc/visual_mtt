@@ -7,9 +7,6 @@ VisualFrontend::VisualFrontend()
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
 
-  // // host the track recognition ROS service server
-  // srv_recognize_track_ = nh_private.advertiseService("recognize_track", &VisualFrontend::callback_srv_recognize_track, this);
-
   // get parameters from param server that are not dynamically reconfigurable
   nh_private.param<bool>("tuning", source_manager_.tuning_, 0);
 
@@ -20,9 +17,6 @@ VisualFrontend::VisualFrontend()
   image_transport::ImageTransport it(nh_);
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
   // sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
-  // pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
-  // pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
-
   pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
   pub_tracks_video = it.advertise("tracks_video", 1);
 
@@ -40,6 +34,9 @@ VisualFrontend::VisualFrontend()
   rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
   auto func2 = std::bind(&VisualFrontend::callback_reconfigure_rransac, this, std::placeholders::_1, std::placeholders::_2);
   rransac_server_->setCallback(func2);
+
+  // establish librransac good model elevation event callback
+  params_.set_elevation_callback(std::bind(&VisualFrontend::callback_elevation_event, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 // ----------------------------------------------------------------------------
@@ -74,7 +71,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
 
   // update the target recognition algorithm with the recent frame
-  // recognition_manager_.update_image(hd_frame_);
+  recognition_manager_.update_image(hd_frame_);
 
   // save camera parameters one time
   if (!info_received_)
@@ -139,6 +136,10 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
 #endif
 
+  // use track information (from last iteration) to update target descriptors
+  if (tracks_.size() > 0)
+     recognition_manager_.update_descriptors(tracks_);
+
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
@@ -186,7 +187,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // measurements have already been added by source manager
 
   // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
-  std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
+  tracks_ = tracker_.run();
 
   double t_rransac = (ros::Time::now() - tic).toSec();
 
@@ -214,11 +215,11 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   // publish the tracks onto ROS network
-  publish_tracks(tracks);
+  publish_tracks(tracks_);
 
   // generate visualization only, but if someone is listening
   if (pub_tracks_video.getNumSubscribers() > 0) {
-    const cv::Mat drawing = draw_tracks(tracks);
+    const cv::Mat drawing = draw_tracks(tracks_);
 
     // Publish over ROS network
     if (!drawing.empty()) {
@@ -229,37 +230,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       pub_tracks_video.publish(image_msg.toImageMsg());
     }
   }
-}
-
-// ----------------------------------------------------------------------------
-
-void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
-{
-  // // rransac_node may be idle now, resend parameter update if needed
-  // if (srv_resend_)
-  // {
-  //   // the last param update ROS service call failed, resend it
-  //   if (srv_params_.call(srv_saved_))
-  //   {
-  //     // service call was successful, do not attempt to resend later
-  //     srv_resend_ = false;
-  //   }
-  //   else
-  //   {
-  //     // service call was unsuccessful again
-  //     ROS_WARN("failed to call R-RANSAC parameter service, resending");
-
-  //     // attempt to resend later
-  //     srv_resend_ = true;
-  //   }
-  // }
-
-  // // save most recent track information in class (for use in measurement
-  // // sources such as direct methods) NOTE: not used (yet)!
-  // tracks_ = data;
-
-  // // use track information to update target descriptors
-  // recognition_manager_.update_descriptors(data);
 }
 
 // ----------------------------------------------------------------------------
@@ -372,14 +342,9 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
-bool VisualFrontend::callback_srv_recognize_track()
-{
-//   // for debug and testing:
-//   // std::cout << "callback pinged in the frontend" << std::endl;
-
-//   res.id = recognition_manager_.identify_target(req.x, req.y);
-
-//   return true;
+uint32_t VisualFrontend::callback_elevation_event(double x, double y) {
+  uint32_t id = recognition_manager_.identify_target(x, y);
+  return id;
 }
 
 // ----------------------------------------------------------------------------

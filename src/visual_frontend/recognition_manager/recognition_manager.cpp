@@ -61,19 +61,18 @@ uint32_t RecognitionManager::identify_target(const double x, const double y)
 
 // ----------------------------------------------------------------------------
 
-void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
+void RecognitionManager::update_descriptors(const std::vector<rransac::core::ModelPtr> tracks)
 {
   // if no method is selected (NONE), return 0 (no ID recognized)
   if (recognition_method_ == nullptr)
     return;
 
   // for each published track get a subimage and call update_descriptors
-  for (uint32_t i=0; i<data->tracks.size(); i++)
+  for (auto&& track : tracks)
   {
     // for convenience
-    visual_mtt::Track track = data->tracks[i];
-    double x = track.position.x;
-    double y = track.position.y;
+    double x = track->xhat(0);
+    double y = track->xhat(1);
 
     // get pixel location in the hd frame
     cv::Point center;
@@ -95,7 +94,7 @@ void RecognitionManager::update_descriptors(const visual_mtt::TracksPtr& data)
     cv::Mat subimage = crop(center);
 
     // update historical visual information about target
-    recognition_method_->update_descriptors(subimage, track.id);
+    recognition_method_->update_descriptors(subimage, track->GMN);
   }
 }
 
