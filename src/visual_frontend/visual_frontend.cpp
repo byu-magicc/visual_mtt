@@ -225,7 +225,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       cv_bridge::CvImage image_msg;
       image_msg.encoding = sensor_msgs::image_encodings::BGR8;
       image_msg.image = drawing;
-      // image_msg.header = header_frame_;
+      image_msg.header = header_frame_;
       pub_tracks_video.publish(image_msg.toImageMsg());
     }
   }
@@ -415,12 +415,12 @@ void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& 
   }
 
   // Include the original frame header and add the current time to the tracks
-  // msg.header_frame = header_frame_;
+  msg.header_frame = header_frame_;
   msg.header_update.stamp = ros::Time::now();
   msg.header_update.seq = ++iter_num_;
 
   // Attach utilization statistics to the message
-  // msg.util = util_;
+  msg.util = util_;
 
   // ROS publish
   pub_tracks.publish(msg);
