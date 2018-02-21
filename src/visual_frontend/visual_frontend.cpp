@@ -341,7 +341,7 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
-bool VisualFrontend::callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request& req, visual_mtt::RecognizeTrack::Response& res)
+bool VisualFrontend::callback_srv_recognize_track()
 {
 //   // for debug and testing:
 //   // std::cout << "callback pinged in the frontend" << std::endl;

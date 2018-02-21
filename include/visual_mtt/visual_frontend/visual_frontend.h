@@ -22,11 +22,8 @@
 #include "visual_mtt/visual_frontendConfig.h"
 
 // messages
+#include "visual_mtt/Track.h"
 #include "visual_mtt/Tracks.h"
-#include "visual_mtt/RRANSACScan.h"
-#include "visual_mtt/Stats.h"
-#include "visual_mtt/RRANSACParams.h"
-#include "visual_mtt/RecognizeTrack.h"
 #include "sensor_msgs/Image.h"
 
 // key algorithm members
@@ -105,7 +102,7 @@ namespace visual_frontend {
     void callback_tracks(const visual_mtt::TracksPtr& data);
     void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
     void callback_reconfigure_rransac(visual_mtt::rransacConfig& config, uint32_t level);
-    bool callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request &req, visual_mtt::RecognizeTrack::Response &res);
+    bool callback_srv_recognize_track();
 
     // data management
     void set_parameters(visual_mtt::visual_frontendConfig& config);
