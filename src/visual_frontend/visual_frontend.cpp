@@ -46,12 +46,29 @@ VisualFrontend::VisualFrontend()
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
+
+  // save the camera parameters and frame timestamp
+  static std_msgs::Header header_frame_last;
+  header_frame_last = header_frame_;
+  header_frame_ = data->header;
+
+  //
+  // Estimate FPS
+  //
+
+  // LPF alpha: Converge quickly at first
+  double alpha = (frame_ < 30) ? 0.95 : alpha_;
+
+  // enforce realistic time differences (for rosbag looping)
+  ros::Duration elapsed = header_frame_.stamp - header_frame_last.stamp;
+  if (!(elapsed.toSec()<=0 || elapsed.toSec()>1))
+    fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
+
+
+
   // Only process every Nth frame
   if (frame_++ % frame_stride_ != 0)
     return;
-
-  // save the camera parameters and frame timestamp
-  timestamp_frame_ = data->header.stamp;
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -128,7 +145,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
   // manage features (could be LK, NN, Brute Force)
   feature_manager_.find_correspondences(sd_frame_);
-  auto t_features = ros::Time::now() - tic;
+  double t_features = (ros::Time::now() - tic).toSec();
 
   //
   // Homography Manager
@@ -137,7 +154,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // calculate the homography
   tic = ros::Time::now();
   homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
-  auto t_homography = ros::Time::now() - tic;
+  double t_homography = (ros::Time::now() - tic).toSec();
 
   //
   // Measurement Generation from multiple sources
@@ -153,7 +170,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     feature_manager_.prev_matched_,
     feature_manager_.next_matched_);
 
-  auto t_measurements = ros::Time::now() - tic;
+  double t_measurements = (ros::Time::now() - tic).toSec();
 
   //
   // R-RANSAC Tracker
@@ -171,7 +188,26 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
   std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
 
-  auto t_rransac = ros::Time::now() - tic;
+  double t_rransac = (ros::Time::now() - tic).toSec();
+
+  //
+  // Calculate utiliization
+  //
+
+  // Save stride
+  double t_available = (1/fps_)*frame_stride_;
+
+  // LPF alpha: Converge quickly at first
+  alpha = (frame_ < 30) ? 0.95 : 1/(time_constant_/t_available + 1);
+
+  util_.time_available          = t_available;
+  util_.feature_manager         = alpha*(t_features/t_available)      + (1-alpha)*util_.feature_manager;
+  util_.homography_manager      = alpha*(t_homography/t_available)    + (1-alpha)*util_.homography_manager;
+  util_.measurement_generation  = alpha*(t_measurements/t_available)  + (1-alpha)*util_.measurement_generation;
+  util_.rransac                 = alpha*(t_rransac/t_available)      + (1-alpha)*util_.rransac;
+
+  double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
+  util_.total = alpha*total + (1-alpha)*util_.total;
 
   //
   // Publish results
@@ -193,18 +229,6 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       pub_tracks_video.publish(image_msg.toImageMsg());
     }
   }
-
-
-  //
-  // publish stats
-  //
-
-  // visual_mtt::Stats stats;
-  // stats.stride = frame_stride_;
-  // stats.t_feature_manager = t_features.toSec();
-  // stats.t_homography_manager = t_homography.toSec();
-  // stats.t_measurement_generation = t_measurements.toSec();
-  // pub_stats.publish(stats);
 }
 
 // ----------------------------------------------------------------------------
@@ -497,11 +521,9 @@ cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& 
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   // utilization rectangle background color
-  // cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
-  cv::Scalar background = cv::Scalar(255, 255, 255);
+  cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
 
-  // sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
-  sprintf(text, "Utilization: %d%%", 0);
+  sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
   corner += corner_offset;
   cv::rectangle(draw, corner, corner + bl_corner, background, -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));

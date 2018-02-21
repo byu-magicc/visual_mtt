@@ -70,6 +70,14 @@ namespace visual_frontend {
     std::vector<cv::Point2f> corner_{{0,0}};
     std::vector<cv::Scalar> colors_;
 
+    // Low-pass filter for fps and utilization
+    visual_mtt::Utilization util_;   // store utilization values
+    double fps_             = 30;
+    double alpha_           = 0.003; // fps filter: large time constant ~10s
+    double time_constant_   = 1.0;   // utilization filter: chose time constant
+
+    // Saved frame headers, received at each callback
+    std_msgs::Header header_frame_;
     int frame_ = 0;
 
     // R-RANSAC iteration counter
