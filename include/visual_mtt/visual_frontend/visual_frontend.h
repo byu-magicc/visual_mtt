@@ -111,7 +111,7 @@ namespace visual_frontend {
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
 
     // Draw tracks over original frame
-    void draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
+    cv::Mat draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
   };
 
 }

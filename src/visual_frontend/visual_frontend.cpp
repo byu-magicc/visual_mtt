@@ -109,7 +109,8 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
   // Initial image processing
   //
-  // auto tic = ros::Time::now();
+
+  auto tic = ros::Time::now();
 
   // resize frame
 #if OPENCV_CUDA
@@ -127,21 +128,22 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
 
   // manage features (could be LK, NN, Brute Force)
   feature_manager_.find_correspondences(sd_frame_);
-  // auto t_features = ros::Time::now() - tic;
+  auto t_features = ros::Time::now() - tic;
 
   //
   // Homography Manager
   //
-  // tic = ros::Time::now();
 
   // calculate the homography
+  tic = ros::Time::now();
   homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
-  // auto t_homography = ros::Time::now() - tic;
+  auto t_homography = ros::Time::now() - tic;
 
   //
   // Measurement Generation from multiple sources
   //
-  // tic = ros::Time::now();
+
+  tic = ros::Time::now();
 
   // call measurement sources execution
   source_manager_.feed_rransac(tracker_,
@@ -151,10 +153,13 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     feature_manager_.prev_matched_,
     feature_manager_.next_matched_);
 
+  auto t_measurements = ros::Time::now() - tic;
 
   //
   // R-RANSAC Tracker
   //
+
+  tic = ros::Time::now();
 
   Eigen::Matrix3f HH;
   cv::cv2eigen(homography_manager_.homography_, HH);
@@ -166,27 +171,29 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
   std::vector<rransac::core::ModelPtr> tracks = tracker_.run();
 
+  auto t_rransac = ros::Time::now() - tic;
+
+  //
+  // Publish results
+  //
+
   // publish the tracks onto ROS network
   publish_tracks(tracks);
 
   // generate visualization only, but if someone is listening
-  if (pub_tracks_video.getNumSubscribers() > 0)
-    draw_tracks(tracks);
+  if (pub_tracks_video.getNumSubscribers() > 0) {
+    const cv::Mat drawing = draw_tracks(tracks);
 
+    // Publish over ROS network
+    if (!drawing.empty()) {
+      cv_bridge::CvImage image_msg;
+      image_msg.encoding = sensor_msgs::image_encodings::BGR8;
+      image_msg.image = drawing;
+      // image_msg.header = header_frame_;
+      pub_tracks_video.publish(image_msg.toImageMsg());
+    }
+  }
 
-  // manage scan timestamps
-  // source_manager_.scan_.header_frame.stamp = timestamp_frame_;
-  // source_manager_.scan_.header_scan.stamp  = ros::Time::now();
-
-  // copy the homography to the scan TODO: don't let the homography manager ever allow an empty matrix, then remove 'if'
-  // if (!homography_manager_.homography_.empty())
-  //   std::memcpy(&source_manager_.scan_.homography, homography_manager_.homography_.data, source_manager_.scan_.homography.size()*sizeof(float));
-
-  // publish scan
-  // pub_scan.publish(source_manager_.scan_);
-  // TODO: move homography copy and timestamps into manager?
-
-  // auto t_measurements = ros::Time::now() - tic;
 
   //
   // publish stats
@@ -397,11 +404,11 @@ void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& 
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
+cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
 
   if (hd_frame_.empty())
-    return;
+    return hd_frame_;
 
   // std::cout << "Tracks: " << tracks.size() << std::endl;
 
@@ -511,12 +518,7 @@ void VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& tra
   cv::resize(draw, resized, size, 0, 0, cv::INTER_AREA);
 #endif
 
-  // Publish over ROS network
-  cv_bridge::CvImage image_msg;
-  image_msg.encoding = sensor_msgs::image_encodings::BGR8;
-  image_msg.image = resized;
-  // image_msg.header = header_frame_;
-  pub_tracks_video.publish(image_msg.toImageMsg());
+  return resized;
 }
 
 }
