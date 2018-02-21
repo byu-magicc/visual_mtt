@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <algorithm>
+
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
@@ -8,9 +11,8 @@
 #include <cv_bridge/cv_bridge.h>
 
 #include <rransac/tracker.h>
-#include <rransac/access_type.h>
 
-#include "rransac/accessors.h"
+#include "visual_frontend/accessors.h"
 
 #include "visual_mtt/rransacConfig.h"
 #include "visual_mtt/RRANSACScan.h"
@@ -24,9 +26,6 @@
 #include "sensor_msgs/Image.h"
 
 #include "common/gpu.h"
-
-#include <iostream>
-#include <algorithm>
 
 namespace rransac {
 

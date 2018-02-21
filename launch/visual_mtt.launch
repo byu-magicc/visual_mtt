@@ -21,11 +21,6 @@
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 
-  <!-- start R-RANSAC -->
-  <node pkg="visual_mtt" type="rransac" name="rransac" output="screen">
-    <remap from="video" to="$(arg imgtopic)" />
-  </node>
-
   <!-- tuning tools: dynamic reconfigure and track video -->
   <group if="$(arg tuning)">
     <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="dynamic_reconfigure" />

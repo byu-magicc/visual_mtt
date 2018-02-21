@@ -67,21 +67,15 @@ endif()
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  RRANSACScan.msg
-  Source.msg
-  Measurement.msg
   Tracks.msg
   Track.msg
-  Stats.msg
   Utilization.msg
 )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  RRANSACParams.srv
-  RecognizeTrack.srv
-)
+# add_service_files(
+#   FILES
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -140,7 +134,7 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories( include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE_DIRS} )
+include_directories(include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE_DIRS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -167,7 +161,7 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/recognition_manager/template_matching.cpp
 
   # R-RANSAC
-  src/visual_frontend/rransac.cpp
+  # src/visual_frontend/rransac.cpp
 
   # Common
   src/common/gpu.cpp)

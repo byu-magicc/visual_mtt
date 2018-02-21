@@ -49,49 +49,31 @@ void SourceManager::set_camera(const cv::Mat& K, const cv::Mat& D)
 
 // ----------------------------------------------------------------------------
 
-void SourceManager::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
+void SourceManager::feed_rransac(rransac::Tracker& tracker,
+                      cv::Mat& hd_frame, cv::Mat& sd_frame,
+                      cv::Mat& homography, bool good_transform,
+                      std::vector<cv::Point2f>& prev_features,
+                      std::vector<cv::Point2f>& next_features)
 {
-  // initialize the scan message
-  visual_mtt::RRANSACScan scan;
 
-  for (int i=0; i<n_sources_; i++)
+  for (auto&& src : measurement_sources_)
   {
     // generate measurements for this source
-    measurement_sources_[i]->generate_measurements(
-      hd_frame,
-      sd_frame,
-      homography,
-      prev_features,
-      next_features,
-      good_transform);
+    src->generate_measurements(
+      hd_frame, sd_frame,
+      homography, good_transform,
+      prev_features, next_features);
 
     // draw measurements for this source
-    if (tuning_)
-      measurement_sources_[i]->draw_measurements();
+    if (tuning_) src->draw_measurements();
 
-    // create Source message
-    visual_mtt::Source src;
-    src.id = measurement_sources_[i]->id_;
-    src.dimensionality = 2; // TODO: Maybe ask the source what kind of measurements it produces?
-    src.has_velocity = measurement_sources_[i]->has_velocity_;
+    // Add each source's measurements along with its ID to the R-RANSAC Tracker
+    if (src->has_velocity_)
+      tracker.add_measurements<CVPoint2fAccess>(src->features_, src->features_vel_, src->id_);
+    else if (!src->has_velocity_)
+      tracker.add_measurements<CVPoint2fAccess>(src->features_, src->id_);
 
-    for (int j=0; j<measurement_sources_[i]->features_.size(); j++)
-    {
-      auto pos = measurement_sources_[i]->features_[j];
-      auto vel = measurement_sources_[i]->features_vel_[j];
-
-      visual_mtt::Measurement mpos, mvel;
-      mpos.data = {pos.x, pos.y};
-      mvel.data = {vel.x, vel.y};
-
-      src.positions.push_back(mpos);
-      src.velocities.push_back(mvel);
-    }
-
-    // Add source to scan message
-    scan.sources.push_back(src);
   }
-  scan_ = scan; // TODO use only scan_ and use "new" up above
 
   if (tuning_)
     char keyboard = cv::waitKey(1);

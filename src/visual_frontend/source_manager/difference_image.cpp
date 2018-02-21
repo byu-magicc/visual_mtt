@@ -30,7 +30,10 @@ DifferenceImage::~DifferenceImage()
 
 // ----------------------------------------------------------------------------
 
-void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform)
+void DifferenceImage::generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame,
+                                      cv::Mat& homography, bool good_transform,
+                                      std::vector<cv::Point2f>& prev_features,
+                                      std::vector<cv::Point2f>& next_features)
 {
   contours1_.clear();
   contours2_.clear();
