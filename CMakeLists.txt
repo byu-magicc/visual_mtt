@@ -160,9 +160,6 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/recognition_manager/recognition_manager.cpp
   src/visual_frontend/recognition_manager/template_matching.cpp
 
-  # R-RANSAC
-  # src/visual_frontend/rransac.cpp
-
   # Common
   src/common/gpu.cpp)
 
