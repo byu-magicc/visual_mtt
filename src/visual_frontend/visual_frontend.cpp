@@ -7,14 +7,6 @@ VisualFrontend::VisualFrontend()
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
 
-  // host the track recognition ROS service server
-  srv_recognize_track_ = nh_private.advertiseService("recognize_track", &VisualFrontend::callback_srv_recognize_track, this);
-
-  // connect the param update ROS service client
-  srv_params_ = nh_.serviceClient<visual_mtt::RRANSACParams>("rransac/set_params");
-  srv_params_.waitForExistence(ros::Duration(10.0));
-  ROS_INFO("visual frontend: services successfully established, starting node");
-
   // get parameters from param server that are not dynamically reconfigurable
   nh_private.param<bool>("tuning", source_manager_.tuning_, 0);
 
@@ -24,26 +16,56 @@ VisualFrontend::VisualFrontend()
   // ROS communication
   image_transport::ImageTransport it(nh_);
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
-  sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
-  pub_scan   = nh_.advertise<visual_mtt::RRANSACScan>("measurements", 1);
-  pub_stats  = nh_.advertise<visual_mtt::Stats>("stats", 1);
+  // sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
+  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
+  pub_tracks_video = it.advertise("tracks_video", 1);
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 
   // establish dynamic reconfigure and load defaults (callback runs once here)
-  auto func = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
-  server_.setCallback(func);
+  auto func1 = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func1);
+
+  // establish dynamic reconfigure and load defaults (callback runs once here)
+  ros::NodeHandle nh_private_rransac("rransac");
+  rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
+  auto func2 = std::bind(&VisualFrontend::callback_reconfigure_rransac, this, std::placeholders::_1, std::placeholders::_2);
+  rransac_server_->setCallback(func2);
+
+  // establish librransac good model elevation event callback
+  params_.set_elevation_callback(std::bind(&VisualFrontend::callback_elevation_event, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
-  // Only process every Nth frame
-  static int frame = 0;
-  if (frame++ % frame_stride_ != 0)
-    return;
 
   // save the camera parameters and frame timestamp
-  timestamp_frame_ = data->header.stamp;
+  static std_msgs::Header header_frame_last;
+  header_frame_last = header_frame_;
+  header_frame_ = data->header;
+
+  //
+  // Estimate FPS
+  //
+
+  // LPF alpha: Converge quickly at first
+  double alpha = (frame_ < 30) ? 0.95 : alpha_;
+
+  // enforce realistic time differences (for rosbag looping)
+  ros::Duration elapsed = header_frame_.stamp - header_frame_last.stamp;
+  if (!(elapsed.toSec()<=0 || elapsed.toSec()>1))
+    fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
+
+
+
+  // Only process every Nth frame
+  if (frame_++ % frame_stride_ != 0)
+    return;
 
   // convert message data into OpenCV type cv::Mat
   hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
@@ -81,12 +103,27 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
     recognition_manager_.set_camera(camera_matrix_, dist_coeff_);
 
+
+    // update surveillance region based on normalized image plane
+    // corner_.push_back(cv::Point2f(0,0));
+    cv::undistortPoints(corner_, corner_, camera_matrix_, dist_coeff_);
+
+    double percentage;
+    nh_.param<double>("rransac/surveillance_region", percentage, 0);
+
+    params_.field_max_x = std::abs(corner_[0].x*percentage);
+    params_.field_max_y = std::abs(corner_[0].y*percentage);
+    tracker_.set_parameters(params_);
+
+
+
     info_received_ = true;
   }
 
   //
   // Initial image processing
   //
+
   auto tic = ros::Time::now();
 
   // resize frame
@@ -99,98 +136,109 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
 #endif
 
+  // use track information (from last iteration) to update target descriptors
+  if (tracks_.size() > 0)
+     recognition_manager_.update_descriptors(tracks_);
+
   //
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
   // manage features (could be LK, NN, Brute Force)
   feature_manager_.find_correspondences(sd_frame_);
-  auto t_features = ros::Time::now() - tic;
+  double t_features = (ros::Time::now() - tic).toSec();
 
   //
   // Homography Manager
   //
-  tic = ros::Time::now();
 
   // calculate the homography
+  tic = ros::Time::now();
   homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
-  auto t_homography = ros::Time::now() - tic;
+  double t_homography = (ros::Time::now() - tic).toSec();
 
   //
   // Measurement Generation from multiple sources
   //
+
   tic = ros::Time::now();
 
   // call measurement sources execution
-  source_manager_.generate_measurements(
-    hd_frame_,
-    sd_frame_,
+  source_manager_.feed_rransac(tracker_,
+    hd_frame_, sd_frame_,
     homography_manager_.homography_,
+    homography_manager_.good_transform_,
     feature_manager_.prev_matched_,
-    feature_manager_.next_matched_,
-    homography_manager_.good_transform_);
+    feature_manager_.next_matched_);
 
-  // manage scan timestamps
-  source_manager_.scan_.header_frame.stamp = timestamp_frame_;
-  source_manager_.scan_.header_scan.stamp  = ros::Time::now();
-
-  // copy the homography to the scan TODO: don't let the homography manager ever allow an empty matrix, then remove 'if'
-  if (!homography_manager_.homography_.empty())
-    std::memcpy(&source_manager_.scan_.homography, homography_manager_.homography_.data, source_manager_.scan_.homography.size()*sizeof(float));
-
-  // publish scan
-  pub_scan.publish(source_manager_.scan_);
-  // TODO: move homography copy and timestamps into manager?
-
-  auto t_measurements = ros::Time::now() - tic;
+  double t_measurements = (ros::Time::now() - tic).toSec();
 
   //
-  // publish stats
+  // R-RANSAC Tracker
   //
 
-  visual_mtt::Stats stats;
-  stats.stride = frame_stride_;
-  stats.t_feature_manager = t_features.toSec();
-  stats.t_homography_manager = t_homography.toSec();
-  stats.t_measurement_generation = t_measurements.toSec();
-  pub_stats.publish(stats);
-}
+  tic = ros::Time::now();
 
-// ----------------------------------------------------------------------------
+  Eigen::Matrix3f HH;
+  cv::cv2eigen(homography_manager_.homography_, HH);
+  Eigen::Projective2d T(HH.cast<double>());
+  tracker_.apply_transformation(T);
 
-void VisualFrontend::callback_tracks(const visual_mtt::TracksPtr& data)
-{
-  // rransac_node may be idle now, resend parameter update if needed
-  if (srv_resend_)
-  {
-    // the last param update ROS service call failed, resend it
-    if (srv_params_.call(srv_saved_))
-    {
-      // service call was successful, do not attempt to resend later
-      srv_resend_ = false;
-    }
-    else
-    {
-      // service call was unsuccessful again
-      ROS_WARN("failed to call R-RANSAC parameter service, resending");
+  // measurements have already been added by source manager
 
-      // attempt to resend later
-      srv_resend_ = true;
+  // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
+  tracks_ = tracker_.run();
+
+  double t_rransac = (ros::Time::now() - tic).toSec();
+
+  //
+  // Calculate utiliization
+  //
+
+  // Save stride
+  double t_available = (1/fps_)*frame_stride_;
+
+  // LPF alpha: Converge quickly at first
+  alpha = (frame_ < 30) ? 0.95 : 1/(time_constant_/t_available + 1);
+
+  util_.time_available          = t_available;
+  util_.feature_manager         = alpha*(t_features/t_available)      + (1-alpha)*util_.feature_manager;
+  util_.homography_manager      = alpha*(t_homography/t_available)    + (1-alpha)*util_.homography_manager;
+  util_.measurement_generation  = alpha*(t_measurements/t_available)  + (1-alpha)*util_.measurement_generation;
+  util_.rransac                 = alpha*(t_rransac/t_available)      + (1-alpha)*util_.rransac;
+
+  double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
+  util_.total = alpha*total + (1-alpha)*util_.total;
+
+  //
+  // Publish results
+  //
+
+  // publish the tracks onto ROS network
+  publish_tracks(tracks_);
+
+  // generate visualization only, but if someone is listening
+  if (pub_tracks_video.getNumSubscribers() > 0) {
+    const cv::Mat drawing = draw_tracks(tracks_);
+
+    // Publish over ROS network
+    if (!drawing.empty()) {
+      cv_bridge::CvImage image_msg;
+      image_msg.encoding = sensor_msgs::image_encodings::BGR8;
+      image_msg.image = drawing;
+      image_msg.header = header_frame_;
+      pub_tracks_video.publish(image_msg.toImageMsg());
     }
   }
-
-  // save most recent track information in class (for use in measurement
-  // sources such as direct methods) NOTE: not used (yet)!
-  tracks_ = data;
-
-  // use track information to update target descriptors
-  recognition_manager_.update_descriptors(data);
 }
 
 // ----------------------------------------------------------------------------
 
 void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
 {
+
+  int current_num_sources = source_manager_.n_sources_;
+
   // update: frontend, feature_manager_, homography_manager_, source_manager_
   set_parameters(config);
   feature_manager_.set_parameters(config);
@@ -198,11 +246,75 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
   source_manager_.set_parameters(config);
   recognition_manager_.set_parameters(config);
 
-  // Update R-RANSAC specific parameters through a service call
-  srv_set_params(config);
+
+  // Was there a change inthe number of sources?
+  // if (current_num_sources != source_manager_.n_sources_)
+  {
+    // Clear the existing source information inside R-RANSAC
+    params_.reset_sources();
+
+    // Add each source with the corresponding new parameters
+    for (auto&& src : source_manager_.measurement_sources_)
+      params_.add_source(src->id_, src->has_velocity_, src->sigmaR_pos_, src->sigmaR_vel_);
+
+    // Send updated parameters to R-RANSAC
+    tracker_.set_parameters(params_);
+  }
 
   ROS_INFO("visual frontend: parameters have been updated");
 };
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::callback_reconfigure_rransac(visual_mtt::rransacConfig& config, uint32_t level)
+{
+
+  // general
+  params_.dt = config.dt;
+
+  // motion model specific parameters
+  params_.sigmaQ_vel = config.sigmaQ_vel;
+  params_.alphaQ_vel = config.alphaQ_vel;
+  params_.sigmaQ_jrk = config.sigmaQ_jrk;
+  params_.alphaQ_jrk = config.alphaQ_jrk;
+
+  // R-RANSAC specific parameters
+  params_.Nw = config.Nw;
+  params_.M = config.M;
+  params_.tauR = config.tauR;
+  params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
+
+  // RANSAC specific parameters
+  params_.ell = config.ell;
+  params_.guided_sampling_threshold = config.guided_sampling_threshold;
+  params_.tauR_RANSAC = config.tauR_RANSAC;
+  params_.gamma = config.gamma;
+  params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
+
+  // model merging parameters
+  params_.tau_vel_percent_diff = config.tau_vel_percent_diff;
+  params_.tau_vel_abs_diff = config.tau_vel_abs_diff;
+  params_.tau_angle_abs_diff = config.tau_angle_abs_diff;
+  params_.tau_xpos_abs_diff = config.tau_xpos_abs_diff;
+  params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
+
+  // model pruning parameters
+  double percentage = config.surveillance_region;
+  params_.field_max_x = std::abs(corner_[0].x*percentage);
+  params_.field_max_y = std::abs(corner_[0].y*percentage);
+  params_.tau_CMD_prune = config.tau_CMD_prune;
+
+  // track (i.e., Good Model) parameters
+  params_.tau_rho = config.tau_rho;
+  params_.tau_CMD = config.tau_CMD;
+  params_.tau_Vmax = config.tau_Vmax;
+  params_.tau_T = config.tau_T;
+
+  // Update the R-RANSAC Tracker with these new parameters
+  tracker_.set_parameters(params_);
+
+  ROS_INFO("rransac: parameters have been updated");
+}
 
 // ----------------------------------------------------------------------------
 
@@ -230,60 +342,170 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
-bool VisualFrontend::callback_srv_recognize_track(visual_mtt::RecognizeTrack::Request &req, visual_mtt::RecognizeTrack::Response &res)
-{
-  // for debug and testing:
-  // std::cout << "callback pinged in the frontend" << std::endl;
-
-  res.id = recognition_manager_.identify_target(req.x, req.y);
-
-  return true;
+uint32_t VisualFrontend::callback_elevation_event(double x, double y) {
+  uint32_t id = recognition_manager_.identify_target(x, y);
+  return id;
 }
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::srv_set_params(visual_mtt::visual_frontendConfig& config)
+void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
-  visual_mtt::RRANSACParams srv;
-  srv.request.published_video_scale = config.published_video_scale;
-  srv.request.text_scale = config.text_scale;
 
-  // retrieve the needed parameters for each source
-  std::vector<uint32_t> id;
-  std::vector<unsigned char> has_velocity;
-  std::vector<double> sigmaR_pos;
-  std::vector<double> sigmaR_vel;
+  // Create the ROS message we will send
+  visual_mtt::Tracks msg;
 
-  for (int i=0; i<source_manager_.n_sources_; i++)
+  for (int i=0; i<tracks.size(); i++)
   {
-    id.push_back(source_manager_.measurement_sources_[i]->id_);
-    has_velocity.push_back(source_manager_.measurement_sources_[i]->has_velocity_);
-    sigmaR_pos.push_back(source_manager_.measurement_sources_[i]->sigmaR_pos_);
-    sigmaR_vel.push_back(source_manager_.measurement_sources_[i]->sigmaR_vel_);
+    visual_mtt::Track track;
+
+    // General track information
+    track.id            = tracks[i]->GMN;
+    track.inlier_ratio  = tracks[i]->rho;
+
+    // Position measurements
+    track.position.x    = tracks[i]->xhat(0);
+    track.position.y    = tracks[i]->xhat(1);
+
+    // Velocity measurements
+    track.velocity.x    = tracks[i]->xhat(2);
+    track.velocity.y    = tracks[i]->xhat(3);
+
+    // Error covariance: Convert col-major double to row-major float  ---  #MakeDonaldDrumpfAgain
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> covfefe = tracks[i]->P.cast<float>();
+    track.covariance.insert(track.covariance.end(), covfefe.data(), covfefe.data()+covfefe.size());
+
+    // Add this track to the tracks msg
+    msg.tracks.push_back(track);
   }
 
-  srv.request.n_sources    = source_manager_.n_sources_;
-  srv.request.id           = id;
-  srv.request.has_velocity = has_velocity;
-  srv.request.sigmaR_pos   = sigmaR_pos;
-  srv.request.sigmaR_vel   = sigmaR_vel;
+  // Include the original frame header and add the current time to the tracks
+  msg.header_frame = header_frame_;
+  msg.header_update.stamp = ros::Time::now();
+  msg.header_update.seq = ++iter_num_;
 
-  // save a copy of the service request object
-  srv_saved_ = srv;
+  // Attach utilization statistics to the message
+  msg.util = util_;
 
-  if (srv_params_.call(srv))
+  // ROS publish
+  pub_tracks.publish(msg);
+}
+
+// ----------------------------------------------------------------------------
+
+cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
+{
+
+  if (hd_frame_.empty())
+    return hd_frame_;
+
+  // std::cout << "Tracks: " << tracks.size() << std::endl;
+
+  cv::Mat draw = hd_frame_.clone();
+
+  static int max_num_tracks = 0;
+
+  for (int i=0; i<tracks.size(); i++)
   {
-    // service call was successful, do not attempt to resend later
-    srv_resend_ = false;
-  }
-  else
-  {
-    // service call was unsuccessful
-    ROS_INFO("failed to call R-RANSAC parameter service, resending");
+    max_num_tracks = std::max(max_num_tracks, (int)tracks[i]->GMN);
+    cv::Scalar color = colors_[tracks[i]->GMN];
 
-    // attempt to resend later
-    srv_resend_ = true;
+    // Projecting Distances (tauR and velocity lines)
+    // since the 2 important dimensions of the transform have roughly equal
+    // eigenvalues, a raw distance in the normalized image plane can be
+    // projected by scaling by that eigenvalue. camera_matrix_ is upper
+    // triangular so the (0,0) element represents this scaling
+
+    // get normalized image plane point
+    cv::Point center;
+    center.x = tracks[i]->xhat(0);
+    center.y = tracks[i]->xhat(1);
+
+    // treat points in the normalized image plane as a 3D points (homogeneous).
+    // project the points onto the sensor (pixel space) for plotting.
+    // use no rotation or translation (world frame = camera frame).
+    std::vector<cv::Point3f> center_h; // homogeneous
+    std::vector<cv::Point2f> center_d; // distorted
+
+    // project the center point and the consensus set
+    center_h.push_back(cv::Point3f(tracks[i]->xhat(0), tracks[i]->xhat(1), 1));
+    for (int j=0; j<tracks[i]->CS.size(); j++)
+      center_h.push_back(cv::Point3f(tracks[i]->CS[j]->pos(0), tracks[i]->CS[j]->pos(1), 1));
+
+    cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
+    center = center_d[0];
+
+    // draw circle with center at position estimate
+    double radius = params_.tauR * camera_matrix_.at<double>(0,0);
+    cv::circle(draw, center, (int)radius, color, 2, 8, 0);
+
+    // draw red dot at the position estimate
+    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
+
+    // draw scaled velocity vector
+    cv::Point velocity;
+    double velocity_scale = 10; // for visibility
+    velocity.x = tracks[i]->xhat(2) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+
+    // draw model number and inlier ratio
+    std::stringstream ssGMN;
+    ssGMN << tracks[i]->GMN;
+    int boldness = 2*((int)text_scale_);
+    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 210), boldness);
+
+    // draw consensus sets
+    for (int j=1; j<center_d.size(); j++)
+    {
+      center = center_d[j];
+      cv::circle(draw, center, 2, color, -1, 8, 0);
+    }
   }
+
+  // draw top-left box
+  char text[40];
+  cv::Point bl_corner = cv::Point(165, 18)*text_scale_;
+  cv::Point corner_offset = cv::Point(0, 20)*text_scale_;
+  cv::Point text_offset = cv::Point(5, 13)*text_scale_;
+  double text_size = 0.5*text_scale_;
+
+  sprintf(text, "Frame: %d", frame_);
+  cv::Point corner = cv::Point(5,5)*text_scale_;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+
+  sprintf(text, "Total models: %d", max_num_tracks);
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+
+  sprintf(text, "Current models: %d", (int)tracks.size());
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+
+  // utilization rectangle background color
+  cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
+
+  sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, background, -1);
+  cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+
+  // Resize the image according to the scale
+  cv::Mat resized;
+  cv::Size size(draw.cols*pub_scale_, draw.rows*pub_scale_);
+#if OPENCV_CUDA
+  cv::cuda::GpuMat draw_cuda, resized_cuda;
+  draw_cuda.upload(draw);
+  cv::cuda::resize(draw_cuda, resized_cuda, size, 0, 0, cv::INTER_AREA);
+  resized_cuda.download(resized);
+#else
+  cv::resize(draw, resized, size, 0, 0, cv::INTER_AREA);
+#endif
+
+  return resized;
 }
 
 }

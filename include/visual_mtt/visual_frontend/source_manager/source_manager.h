@@ -1,12 +1,14 @@
 #pragma once
 
 #include <iostream>
+#include <stdexcept>
+
+#include <rransac/tracker.h>
+
+#include "visual_frontend/accessors.h"
 
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
-
-// messages
-#include "visual_mtt/RRANSACScan.h"
 
 // available measurement generation methods
 #include "measurement_source.h"
@@ -19,15 +21,20 @@ namespace visual_frontend {
   {
   public:
     SourceManager();
-    void generate_measurements(cv::Mat& hd_frame, cv::Mat& sd_frame, cv::Mat& homography, std::vector<cv::Point2f>& prev_features, std::vector<cv::Point2f>& next_features, bool good_transform);
+
+    // Generates measurements from each measurement source,
+    // then feeds the rransac tracker with those measurements.
+    void feed_rransac(rransac::Tracker& tracker,
+                        cv::Mat& hd_frame, cv::Mat& sd_frame,
+                        cv::Mat& homography, bool good_transform, 
+                        std::vector<cv::Point2f>& prev_features,
+                        std::vector<cv::Point2f>& next_features);
+
     void set_parameters(visual_mtt::visual_frontendConfig& config);
     void set_camera(const cv::Mat& K, const cv::Mat& D);
 
     // vector of sources
     std::vector<std::shared_ptr<MeasurementSource>> measurement_sources_;
-
-    // scan of measurements
-    visual_mtt::RRANSACScan scan_;
 
     // current number of sources
     int n_sources_;

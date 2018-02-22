@@ -67,21 +67,15 @@ endif()
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
-  RRANSACScan.msg
-  Source.msg
-  Measurement.msg
   Tracks.msg
   Track.msg
-  Stats.msg
   Utilization.msg
 )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  RRANSACParams.srv
-  RecognizeTrack.srv
-)
+# add_service_files(
+#   FILES
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -140,16 +134,11 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories( include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE_DIRS} )
+include_directories(include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE_DIRS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_rransac
-  src/rransac/node.cpp
-  src/rransac/rransac.cpp
-  src/common/gpu.cpp)
-
 add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/node.cpp
   src/visual_frontend/visual_frontend.cpp
@@ -182,19 +171,16 @@ add_executable(${PROJECT_NAME}_camera_sim
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
 ## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-set_target_properties(${PROJECT_NAME}_rransac PROPERTIES OUTPUT_NAME rransac PREFIX "")
 set_target_properties(${PROJECT_NAME}_visual_frontend PROPERTIES OUTPUT_NAME visual_frontend PREFIX "")
 set_target_properties(${PROJECT_NAME}_camera_sim PROPERTIES OUTPUT_NAME camera_sim PREFIX "")
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_rransac ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(${PROJECT_NAME}_visual_frontend ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 add_dependencies(${PROJECT_NAME}_camera_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_rransac ${catkin_LIBRARIES} ${RRANSAC_LIBS} ${OpenCV_LIBS})
-target_link_libraries(${PROJECT_NAME}_visual_frontend ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(${PROJECT_NAME}_visual_frontend ${catkin_LIBRARIES} ${OpenCV_LIBS} ${RRANSAC_LIBS})
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
