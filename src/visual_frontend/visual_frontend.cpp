@@ -322,6 +322,7 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
   resize_scale_ = config.resize_scale;
+  pub_scale_ = config.published_video_scale;
 
   // if camera information is saved, update the scaled camera parameters
   if (info_received_)
