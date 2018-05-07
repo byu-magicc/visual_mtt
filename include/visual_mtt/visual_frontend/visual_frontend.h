@@ -79,6 +79,7 @@ namespace visual_frontend {
     // Saved frame headers, received at each callback
     std_msgs::Header header_frame_;
     int frame_ = 0;
+    int pub_frame_ = 0;
 
     // R-RANSAC iteration counter
     int iter_num_ = 0;
@@ -93,6 +94,9 @@ namespace visual_frontend {
 
     // only process every `frame_stride_` frames
     unsigned int frame_stride_;
+
+    // only publish every frame_stride_ + publish_frame_stride_ frame
+    unsigned int publish_frame_stride_;
 
     // resize scale
     double resize_scale_;

@@ -8,6 +8,7 @@
 visual_frontend/frame_stride: 2
 visual_frontend/resize_scale: 0.4
 visual_frontend/published_video_scale: 1.0
+visual_frontend/published_frame_stride: 1.0
 visual_frontend/text_scale: 1.0
 
 # feature manager
