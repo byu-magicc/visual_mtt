@@ -218,7 +218,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   publish_tracks(tracks_);
 
   // generate visualization only, but if someone is listening
-  if (pub_tracks_video.getNumSubscribers() > 0) {
+  if (pub_tracks_video.getNumSubscribers() > 0 && (pub_frame_++ % publish_frame_stride_ == 0)) {
     const cv::Mat drawing = draw_tracks(tracks_);
 
     // Publish over ROS network
@@ -322,6 +322,7 @@ void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
   resize_scale_ = config.resize_scale;
+  publish_frame_stride_ = config.published_frame_stride;
   pub_scale_ = config.published_video_scale;
 
   // if camera information is saved, update the scaled camera parameters
