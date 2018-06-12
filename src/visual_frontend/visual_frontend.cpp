@@ -18,7 +18,7 @@ VisualFrontend::VisualFrontend()
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
   // sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
   pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
-  pub_tracks_video = it.advertise("tracks_video", 1);
+  pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
@@ -227,7 +227,7 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       image_msg.encoding = sensor_msgs::image_encodings::BGR8;
       image_msg.image = drawing;
       image_msg.header = header_frame_;
-      pub_tracks_video.publish(image_msg.toImageMsg());
+      pub_tracks_video.publish(image_msg.toImageMsg(), cinfo);
     }
   }
 }

@@ -51,7 +51,7 @@ namespace visual_frontend {
     // ros::Publisher  pub_stats;
 
     ros::Publisher  pub_tracks;
-    image_transport::Publisher pub_tracks_video;
+    image_transport::CameraPublisher pub_tracks_video;
 
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
@@ -111,7 +111,7 @@ namespace visual_frontend {
     void callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
     void callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level);
     void callback_reconfigure_rransac(visual_mtt::rransacConfig& config, uint32_t level);
-    
+
     // R-RANSAC callback
     uint32_t callback_elevation_event(double x, double y);
 
