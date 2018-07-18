@@ -25,6 +25,7 @@
 #include "visual_mtt/Track.h"
 #include "visual_mtt/Tracks.h"
 #include "sensor_msgs/Image.h"
+#include "std_msgs/Float32MultiArray.h"
 
 // key algorithm members
 #include "feature_manager/feature_manager.h"
@@ -52,6 +53,7 @@ namespace visual_frontend {
 
     ros::Publisher  pub_tracks;
     image_transport::CameraPublisher pub_tracks_video;
+    ros::Publisher  pub_homography;
 
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
@@ -120,6 +122,9 @@ namespace visual_frontend {
 
     // Take R-RANSAC Tracker output and publish to ROS (i.e., Good Models)
     void publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
+
+    // Publish homography
+    void publish_homography(const cv::Mat H);
 
     // Draw tracks over original frame
     cv::Mat draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks);
