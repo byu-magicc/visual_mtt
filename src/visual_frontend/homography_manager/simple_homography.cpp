@@ -27,6 +27,12 @@ cv::Mat SimpleHomography::get_homography(const std::vector<cv::Point2f>& prev_fe
   const double reprojection_error = 0.001; // the optimization aims to minimize below this value
   homography = cv::findHomography(prev_features, next_features, CV_RANSAC, reprojection_error, inlier_mask_);
 
+  // check that the homography is not empty
+  if (homography.empty())
+  {
+    homography = cv::Mat::eye(3, 3, CV_32F);
+  }
+
   // baptize the homography
   homography.convertTo(homography, CV_32F);
 
