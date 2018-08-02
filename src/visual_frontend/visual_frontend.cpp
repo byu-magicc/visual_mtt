@@ -16,9 +16,9 @@ VisualFrontend::VisualFrontend()
   // ROS communication
   image_transport::ImageTransport it(nh_);
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
-  // sub_tracks = nh_.subscribe(     "tracks", 1, &VisualFrontend::callback_tracks, this);
   pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
   pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
+  pub_homography   = nh_.advertise<std_msgs::Float32MultiArray>("homography", 1);
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
@@ -214,10 +214,11 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   // Publish results
   //
 
-  // publish the tracks onto ROS network
+  // publish the tracks and homography matrix onto ROS network
   publish_tracks(tracks_);
+  publish_homography(homography_manager_.homography_);
 
-  // generate visualization only, but if someone is listening
+  // generate visualization, but only if someone is listening
   if (pub_tracks_video.getNumSubscribers() > 0 && (pub_frame_++ % publish_frame_stride_ == 0)) {
     const cv::Mat drawing = draw_tracks(tracks_);
 
@@ -391,6 +392,30 @@ void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& 
 
   // ROS publish
   pub_tracks.publish(msg);
+}
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::publish_homography(const cv::Mat H)
+{
+    std_msgs::Float32MultiArray msg;
+
+    msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
+    msg.layout.dim[0].label = "height";
+    msg.layout.dim[0].size = H.rows;
+    msg.layout.dim[0].stride = H.rows*H.cols;
+    msg.layout.dim[1].label = "width";
+    msg.layout.dim[1].size = H.cols;
+    msg.layout.dim[1].stride = H.cols;
+    msg.layout.data_offset = 0;
+    std::vector<float> vec;
+    for (int i = 0; i < H.rows; i++)
+    {
+        vec.insert(vec.end(), H.ptr<float>(i), H.ptr<float>(i)+H.cols);
+    }
+    msg.data = vec;
+    pub_homography.publish(msg);
 }
 
 // ----------------------------------------------------------------------------
