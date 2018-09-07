@@ -18,7 +18,7 @@ To speed up tracking using an NVIDIA CUDA GPGPU, you can build the `visual_mtt` 
 1. OpenCV needs to be built from source with the `-DWITH_CUDA=ON` option (as well as others).
 1. Make ROS play nicely with your custom install of OpenCV (managing catkin dependencies).
 
-See the [MAGICC Wiki](https://magiccvs.byu.edu/wiki/OpenCV_CUDA) for instructions and help with these steps.
+See the [MAGICC Wiki](https://magiccvs.byu.edu/wiki/#!sw_guides/opencv.md) for instructions and help with these steps.
 
 Once you have your CUDA-enabled OpenCV environment setup, you can enable CUDA on `visual_mtt` with the following:
 
