@@ -5,7 +5,9 @@
 
 namespace visual_frontend {
 
-// For 2D measurements
+    /** \class CVPoint2fAccess
+    * \brief Accessor to tell R-RANSAC how to interpret the data.
+    */
 class CVPoint2fAccess : public rransac::BaseAccessType<cv::Point2f>
 {
 private:

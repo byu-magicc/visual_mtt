@@ -8,50 +8,69 @@
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
-// Available Feature Trackers
-#include "feature_tracker.h"
-#include "lkt_tracker.h"
+// Feature Mature base plugin
+#include "feature_base.h"
+
+// Pluginlib
+#include <pluginlib/class_loader.h>
 
 namespace visual_frontend {
 
-  enum FeatureTrackerType { KLT_TRACKER, ORB_BF_MATCHER };
+  /** \class FeatureManager
+  * \breif Manages all of the Feature Matcher Plugins.
+  * \detail This class is responsible for managing all of the Feature Matcher Plugins.
+  * It loads them as indicated by plugin whitelist, sets their 
+  * parameters, and calls them to find matching features between frames.
+  */
 
   class FeatureManager
   {
   public:
     FeatureManager();
+    ~FeatureManager();
 
-    // Using the dynamic reconfigure object created by ROS, update parameters
-    void set_parameters(visual_mtt::visual_frontendConfig& config);
+    /**
+    * \brief Updates dynamic parameters.
+    * \detail ROS rqt_reconfigure allows some parameters to adjust dynamically.
+    * Any parameter that adjusts dynamically is passed into this method
+    * to update the manager's and plugin's dynamic parameters.
+    * This method is called by VisualFrontend.
+    * @param config Struct containing all of the dynamic parameters in cfg/visual_frontend.cfg
+    */
+    void SetParameters(visual_mtt::visual_frontendConfig& config);
 
-    // Give the feature manager the camera matrix and distortion coefficients.
-    // Expect all features generated herein to be returned in normalized
-    // image coordinates, i.e., `prev_matched_` and `next_matched_`.
-    void set_camera(const cv::Mat& K, const cv::Mat& D, cv::Size res);
+    /**
+    * \brief Loads all of the Feature Matcher Plugins indicated by the plugin whitelist.
+    * \detail Once a plugin is loaded, it will call the plugin's initialize method.
+    * This method is called by VisualFrontend
+    * @param plugin_list A List of all the Feature Matcher Plugins to load.
+    * @param params Contains all the parameters in the static parameter yaml file. 
+    * @see FeatureBase::Initialize(const common::Params& params)
+    */
+    void LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params);
 
-    // This method finds correspondences based on the new frame arguments
-    // and the previous frame stored in the FeatureManager's memory.
-    // This method should be called once with every new incoming image.
-    void find_correspondences(cv::Mat& frame);
 
-    // Expose the matched feature correspondences between the previous
-    // frame and this current frame. Updated after a call to `find_correspondences`
-    std::vector<cv::Point2f> prev_matched_;
-    std::vector<cv::Point2f> next_matched_;
+    /**
+    * \brief Calls all of the loaded plugins to find matching distorted features 
+    * between the previous and current frame.
+    * \detail If the called plugin returns good matches, the matches are added;
+    * otherwise they are discarded. 
+    * If good features were found then the Common::System::good_features_
+    * flag is set and the distorted features are undistorted.
+    * If common::System::tuning_ is enabled, the matched features will be drawn.
+    * This method is called by VisualFrontend
+    * @param sys Constains all the data needed for the different managers, plugins, VisualFrontend, and RRANSAC.
+    */
+    void FindCorrespondences(common::System& sys);
 
-    // points representing the undistorted region
-    cv::Mat mask_;
+   private:
 
-  private:
-    // feature detector/tracker
-    std::shared_ptr<FeatureTracker> feature_tracker_;
-    enum FeatureTrackerType feature_tracker_type_;
+    bool plugins_loaded_; /**< Indicates if the plugins have been loaded */
 
-    // camera parameters
-    cv::Mat camera_matrix_;
-    cv::Mat dist_coeff_;
+    
+    pluginlib::ClassLoader<FeatureBase> plugin_loader_; /**< Plugin loader */
+    std::vector<boost::shared_ptr<FeatureBase>> feature_matchers_; /**< Feature Matcher Loaded Plugins */
 
-    void set_tracker(enum FeatureTrackerType type);
   };
 
 }

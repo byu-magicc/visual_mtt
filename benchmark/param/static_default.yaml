@@ -1,0 +1,27 @@
+# The parameters in this file are not Dynamically Reconfigurable and are never
+# touched by ROS. Instead, they are loaded using cpp-yaml library. These 
+# parameters are intended to be used by the plugins, and the naming shceme
+# should be: <plugin_manager_name/plugin_name/variable_name>.
+
+
+###############################################################################
+#### Feature Manager
+
+# lkt_tracker
+feature_manager/lkt_tracker/corner_quality: 0.03
+feature_manager/lkt_tracker/corner_quality_alpha: 0.999
+feature_manager/lkt_tracker/pyramid_size: 21
+
+
+###############################################################################
+#### Transform Manager
+
+
+
+###############################################################################
+#### Source Manager
+
+
+
+###############################################################################
+#### Recognition Manager
