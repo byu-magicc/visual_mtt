@@ -3,8 +3,11 @@
 <launch>
 
   <arg name="params"            default="$(find visual_mtt)/param/default.yaml" />
+  <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
+  <arg name="static_param_filename" default="(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="false" />
   <arg name="imgtopic"          default="/image_raw" />
+  <arg name="launch-prefix"     default=""/>
 
   <!-- params:            path to the yaml file with desired parameter values   -->
   <!-- tuning:            enables dynamic reconfigure and displays measurements -->
@@ -14,10 +17,12 @@
 
   <!-- load the specified parameters -->
   <rosparam command="load" file="$(arg params)" />
+  <rosparam command="load" file="$(arg plugin_whitelist)" />
 
   <!-- start the visual frontend -->
-  <node pkg="visual_mtt" type="visual_frontend" name="visual_frontend" output="screen">
+  <node pkg="visual_mtt" type="visual_frontend" name="visual_frontend" output="screen" launch-prefix="$(arg launch-prefix)">
     <param name="tuning" type="bool" value="$(arg tuning)" />
+    <param name="static_param_filename" value="$(arg static_param_filename)"/>
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 

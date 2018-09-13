@@ -1,0 +1,50 @@
+<!-- For each plugin library you need to add a description telling the ROS framework where the dynamic library is and specific information about every plugin. An example is shown below -->
+
+<!-- <library path="lib/library_name">
+  <class type="plugin_namespace::PluginClassName" base_class_type="plugin_namespace::BasePluginClassName"">
+    <description>Description of plugin.</description>
+  </class>
+  <class type="plugin_namespace::PluginClassName2" base_class_type="plugin_namespace::BasePluginClassName"">
+    <description>Description of plugin2.</description>
+  </class>
+</library> -->
+
+<!-- 
+    library_name: The name of you library as declared in the    CMakeLists prefixed with 'lib'. 
+    plugin_class_name: name of the plugin 'plugin_namespace/PluginName'
+    base_plugin_class_name: name of the base plugin 'plugin_namespace/BasePluginName'
+    -->
+
+
+
+
+
+<!-- Source Measurement Library -->
+
+<library path="lib/libmeasurement_source_plugin">
+  <class type="visual_frontend::DifferenceImage" base_class_type="visual_frontend::MeasurementBase">
+    <description>Creates measurements using differenc imaging.</description>
+  </class>
+  <class type="visual_frontend::FeatureMotion" base_class_type="visual_frontend::MeasurementBase">
+    <description>Creates measurements from aparent motion using the features found by optical flow.</description>
+  </class>
+</library>
+
+
+<!-- Transform Method Library -->
+
+<library path="lib/libtransform_method_plugin">
+  <class type="visual_frontend::SimpleHomography" base_class_type="visual_frontend::TransformBase">
+    <description>Finds the Homography between frames.</description>
+  </class>
+</library>
+
+<!-- Feature Tracker Library -->
+
+<library path="lib/libfeature_tracker_plugin">
+  <class type="visual_frontend::LKTTracker" base_class_type="visual_frontend::FeatureBase">
+    <description>Find matching features between two frames.</description>
+  </class>
+</library>
+
+

@@ -2,83 +2,162 @@
 
 namespace visual_frontend {
 
-LKTTracker::LKTTracker(double corner_quality, double corner_quality_min,
-                       double corner_quality_max, double corner_quality_alpha,
-                       int pyramid_size)
-
-  : corner_quality_(corner_quality), corner_quality_min_(corner_quality_min),
-    corner_quality_max_(corner_quality_max), corner_quality_alpha_(corner_quality_alpha)
+LKTTracker::LKTTracker()
 {
+  name_ = "LKTTracker";
+  enabled_ = "false";
+  drawn_ = false;
+  first_image_ = true;
+}
+
+// ----------------------------------------------------------------------------
+
+LKTTracker::~LKTTracker()
+{
+  DestroyWindows();
+}
+
+// ----------------------------------------------------------------------------
+
+void LKTTracker::Initialize(const common::Params& params) 
+{
+
+  double pyramid_size;
+  params.GetParam("feature_manager/lkt_tracker/corner_quality", corner_quality_, 0.03);
+  params.GetParam("feature_manager/lkt_tracker/corner_quality_alpha", corner_quality_alpha_, 0.03);
+  params.GetParam("feature_manager/lkt_tracker/pyramid_size", pyramid_size, 21.0);
+
+
   // Create a Good Features to Track feature detector
-  gftt_detector_ = init_gftt();
+  gftt_detector_ = InitGftt();
 
   // Termination criteria for the OpenCV LK Optical Flow algorithm
   kltTerm_ = cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 20, 0.03);
 
   // The size of the search window at each pyramid level for LK Optical Flow
   pyramid_size_ = cv::Size(pyramid_size, pyramid_size);
+
 }
 
 // ----------------------------------------------------------------------------
 
-void LKTTracker::find_correspondences(const cv::Mat& img, std::vector<cv::Point2f>& prev_matched, std::vector<cv::Point2f>& next_matched, const cv::Mat& mask)
+void LKTTracker::SetParameters(const visual_mtt::visual_frontendConfig& config) 
 {
+
+
+  // Update max features parameter if it has changed.
+  if (max_features_ != config.lkt_tracker_max_features) {
+    max_features_ = config.lkt_tracker_max_features;
+    SetMaxFeatures(max_features_);
+  }
+
+  // see if the Feature Extractor needs to be reset. 
+  ShouldReset(config.lkt_tracker_enabled);
+
+
+}
+
+// ----------------------------------------------------------------------------
+
+void LKTTracker::DrawFeatures(const common::System& sys)
+{
+
+  // Since LKT_tracker can generate a lot of features, we want to limit the
+  // amount actually drawn by *draw_num*. Also, we want to evenly sample the
+  // features that we draw. This is the purpose of *inc*.
+  int draw_num = 50;
+  int inc = (draw_num < d_prev_matched_.size()) ? round(d_prev_matched_.size()/draw_num) : 1;
+
+  cv::Mat draw = sys.sd_frame_.clone();
+
+  float scale = 1.2;
+
+  // plot measurements
+  for (int j=0; j<d_prev_matched_.size(); j+=inc)
+  {
+    cv::Point2f scaled_point = d_prev_matched_[j] + (d_curr_matched_[j]-d_prev_matched_[j])*scale;
+    cv::arrowedLine(draw, d_prev_matched_[j], scaled_point, cv::Scalar(255, 0, 255), 2, CV_AA);
+  }
+
+  if (!draw.empty())
+  {
+    drawn_ = true;
+    cv::imshow(name_, draw);
+  }
+
+}
+
+// ----------------------------------------------------------------------------
+
+bool LKTTracker::FindCorrespondences(const common::System& sys)
+{
+
+  bool good_features = false;
+
   // Convert to grayscale
   cv::Mat mono;
-  cv::cvtColor(img, mono, CV_RGB2GRAY);
+  cv::cvtColor(sys.sd_frame_, mono, CV_RGB2GRAY);
+
+  // Clear history
+  d_prev_matched_.clear();
+  d_curr_matched_.clear();
 
   //
   // Optical Flow for Feature Correspondences
   //
 
   // Uses previous GFTT features to find next_features in current frame
-  std::vector<cv::Point2f> next_features;
+  std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
-  calculate_flow(mono, next_features, valid);
+  CalculateFlow(mono, d_curr_features, valid);
+
+
 
   // Only keep features that were matched in both frames
   for(int ii = 0; ii < valid.size(); ii++)
     if (valid[ii])
     {
-      prev_matched.push_back(prev_features_[ii]);
-      next_matched.push_back(next_features[ii]);
+      d_prev_matched_.push_back(d_prev_features_[ii]);
+      d_curr_matched_.push_back(d_curr_features[ii]);
     }
 
   //
   // Find a new set of GFTT corners
   //
 
-  // find fresh feature points
-  std::vector<cv::Point2f> features;
-  detect_features(mono, features, mask);
+  d_prev_features_.clear();
+  DetectFeatures(mono, d_prev_features_, sys.undistorted_region_mask_);
 
-  // save features for the next iteration.
-  prev_features_.swap(features);
-}
+  if (d_prev_matched_.size() > 10)
+    good_features = true;
+  else
+    ROS_WARN("LKTTracker: Not enough features matched. Bad features.");
 
-// ----------------------------------------------------------------------------
-
-void LKTTracker::set_max_features(int points_max)
-{
-#ifdef OPENCV_CUDA
-  gftt_detector_ = init_gftt(points_max);
-#else
-  gftt_detector_->setMaxFeatures(points_max);
-#endif
+  return good_features;
 }
 
 // ----------------------------------------------------------------------------
 // Private Methods
 // ---------------------------------------------------------------------------
 
-cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt(int points_max)
+void LKTTracker::Reset()
+{
+  DestroyWindows();
+  drawn_ = false;
+  first_image_ = true;
+
+}
+
+// ---------------------------------------------------------------------------
+
+cv::Ptr<cvFeatureDetector_t> LKTTracker::InitGftt(int max_features)
 {
   const double minDistance = 10;
   const int blockSize = 3;
   const bool useHarrisDetector = false;
 
 #ifdef OPENCV_CUDA
-  return cv::cuda::createGoodFeaturesToTrackDetector(CV_8UC1, points_max, corner_quality_, minDistance, blockSize, useHarrisDetector);
+  return cv::cuda::createGoodFeaturesToTrackDetector(CV_8UC1, max_features, corner_quality_, minDistance, blockSize, useHarrisDetector);
 #else
   return cv::GFTTDetector::create(0, corner_quality_, minDistance, blockSize, useHarrisDetector);
 #endif
@@ -86,7 +165,7 @@ cv::Ptr<cvFeatureDetector_t> LKTTracker::init_gftt(int points_max)
 
 // ---------------------------------------------------------------------------
 
-void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& next_features, std::vector<unsigned char>& valid)
+void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid)
 {
 
 #if OPENCV_CUDA
@@ -96,7 +175,7 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
 #ifndef OPENCV_CUDA
   // Build optical flow pyramids for current image
   std::vector<cv::Mat> current_pyramids;
-  buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
+  cv::buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
 #endif
 
   if (!first_image_)
@@ -110,20 +189,20 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
 
       // Upload previous features to GPU
       cv::cuda::GpuMat gPrevFeatures;
-      common::gpu::upload(prev_features_, gPrevFeatures);
+      common::gpu::upload(d_prev_features_, gPrevFeatures);
 
       // Run LK optical flow on the GPU
       cv::cuda::GpuMat gNextFeatures, gValid;
       gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
 
       // Download from the GPU
-      common::gpu::download(gNextFeatures, next_features);
+      common::gpu::download(gNextFeatures, curr_features);
       common::gpu::download(gValid, valid);
 
 #else
       std::vector<float> err;
       cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
-                               prev_features_, next_features,
+                               d_prev_features_, curr_features,
                                valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
 #endif
     }
@@ -149,7 +228,7 @@ void LKTTracker::calculate_flow(const cv::Mat& mono, std::vector<cv::Point2f>& n
 
 // ---------------------------------------------------------------------------
 
-void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
+void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
 {
   #ifdef OPENCV_CUDA
 
@@ -174,4 +253,28 @@ void LKTTracker::detect_features(const cv::Mat& mono, std::vector<cv::Point2f>& 
   #endif
 }
 
+// ---------------------------------------------------------------------------
+
+void LKTTracker::SetMaxFeatures(int max_features)
+{
+#ifdef OPENCV_CUDA
+  gftt_detector_ = InitGftt(max_features);
+#else
+  gftt_detector_->setMaxFeatures(max_features);
+#endif
+
 }
+
+// ---------------------------------------------------------------------------
+
+void LKTTracker::DestroyWindows()
+{
+  if(drawn_)
+    cv::destroyWindow(name_);
+}
+
+}
+
+// Macro needed to register the class. This macro helps with 
+// name mangling so that it can be imported dynamically.
+PLUGINLIB_EXPORT_CLASS(visual_frontend::LKTTracker, visual_frontend::FeatureBase)

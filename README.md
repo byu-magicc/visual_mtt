@@ -43,3 +43,20 @@ When the `tuning` arg is set true in the main launch file, `visual_mtt.launch`, 
 
 ## Hardware Integration
 Integrating `visual_mtt` with hardware is a matter of connecting the appropriate ROS topics, providing parameters, and disabling the display windows. See the detailed guide [here](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt/wikis/hardware-integration)
+
+## Using Plugins
+Visual MTT uses plugins to perform the core computation. See [Using Plugins](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/using-plugins) to learn how to specify which plugins you want
+to use for your project.
+
+## Benchmarking
+The Visual MTT package includes a basic utilization benchmark. You can use this to check the installation or for other reasons. See [here](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/benchmarking) to learn how to benchmark with Visual MTT.
+
+## Doxygen
+Bisual MTT uses Doxygen to generate html documentation. To generate it, navigate to the root directory of the project and run
+``` bash
+$ doxygen Doxyfile 
+```
+To view it, run `html/index.html` with your favorite web browser. For example
+```bash
+$ google-chrome html/index.html
+```

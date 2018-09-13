@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- This launch file can accomodate various recording configurations. -->
+<!-- See visual_mtt repo wiki for a guide of what needs to be provided! -->
+
+<launch>
+
+    <!-- If true, it will play from a ROS bag, else play from a video file -->
+    <arg name="play_from_bag" default="false"/>
+    <arg name="info_topic"  default="camera/camera_info" />
+
+    <!-- for video -->
+    <arg name="video_path"    default="$(find visual_mtt)/benchmark/video/MOT17-11-SDP.mp4"/>
+    <arg name="fps"         default="30" />
+
+    <!-- for rosbag -->
+    <arg name="bag_path"    default="" />
+    <arg name="bag_topic"   default="camera/image_raw" />
+    <arg name="compressed"  default="false" />
+    <arg name="has_info"    default="false" />
+    <arg name="hide_bag"    default="false" />
+
+    <!-- camera parameters (video or rosbag that didn't record camera_info) -->
+    <arg name="camera_name"     default="camera_sim" />
+    <arg name="camera_info_url" default="file://$(find visual_mtt)/param/$(arg camera_name).yaml" />
+
+    <!-- visual_mtt flags -->
+    <arg name="params"            default="$(find visual_mtt)/benchmark/param/dynamic_default.yaml" />
+    <arg name="plugin_whitelist"  default="$(find visual_mtt)/benchmark/param/plugin_whitelist.yaml" />
+    <arg name="static_param_filename" default="$(find visual_mtt)/benchmark/param/static_default.yaml"/>
+    <arg name="tuning"            default="true" />
+    <arg name="launch-prefix"     default="xterm -e gdb -ex run --args"/>
+
+
+
+
+
+                    <!-- End of arguments -->
+
+
+
+
+    <group if="$(arg play_from_bag)">
+    </group>
+
+    <group unless="$(arg play_from_bag)">    
+            <!-- launch video stream -->
+            <include file="$(find video_stream_opencv)/launch/camera.launch" >
+            <!-- node name and ros graph name -->
+            <arg name="camera_name" value="$(arg camera_name)" />
+            <arg name="video_stream_provider" value="$(arg video_path)" />
+            <arg name="fps" value="$(arg fps)" />
+            <!-- setting frame_id -->
+            <arg name="frame_id" value="camera_sim" />
+            <arg name="camera_info_url" value="$(arg camera_info_url)" />
+            <!-- visualize on an image_view window the stream generated -->
+            <arg name="visualize" value="false" />
+        </include>
+
+          <!-- launch visual_mtt -->
+        <include file="$(find visual_mtt)/launch/visual_mtt.launch">
+            <arg name="params" value="$(arg params)" />
+            <arg name="plugin_whitelist" value="$(arg plugin_whitelist)" />
+            <arg name="static_param_filename" value="$(arg static_param_filename)"/>
+            <arg name="tuning" value="$(arg tuning)" />
+            <arg name="imgtopic" value="$(arg camera_name)/image_raw" />
+            <arg name="launch-prefix" value="$(arg launch-prefix)"/>
+        </include>
+
+    </group>
+
+    <node pkg="visual_mtt" type="benchmark" name="benchmark_node" output="screen">
+        <param name="bench_file_path" value="$(find visual_mtt)/benchmark/results/benchmark1.csv"/>
+        <remap from="tracks" to="/tracks"/>
+    </node>
+
+
+
+</launch>

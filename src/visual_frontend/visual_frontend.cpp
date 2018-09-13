@@ -7,42 +7,68 @@ VisualFrontend::VisualFrontend()
   // create a private node handle for use with param server
   ros::NodeHandle nh_private("~");
 
-  // get parameters from param server that are not dynamically reconfigurable
-  nh_private.param<bool>("tuning", source_manager_.tuning_, 0);
 
-  if (source_manager_.tuning_)
+  // Load static parameters.
+  std::string filename;
+  nh_private.param<std::string>("static_param_filename",filename, "");
+  static_params_.Initialize(filename);
+
+  /////////////////////////////////////////////////////////////////////////
+  // Initialize the managers and plugins
+  std::vector<std::string> measurement_manager_plugin_whitelist, 
+                           transform_manager_plugin_whitelist,
+                           feature_manager_plugin_whitelist;
+
+  // get parameters from param server that are not dynamically reconfigurable
+  nh_private.param<bool>("tuning", sys_.tuning_, 0);
+  nh_private.getParam("measurement_manager/plugins",measurement_manager_plugin_whitelist);
+  nh_private.getParam("transform_manager/plugins",transform_manager_plugin_whitelist);
+  nh_private.getParam("feature_manager/plugins",feature_manager_plugin_whitelist);
+
+  // Load plugins
+  measurement_manager_.LoadPlugins(measurement_manager_plugin_whitelist, static_params_);
+  transform_manager_.LoadPlugins(transform_manager_plugin_whitelist, static_params_);
+  feature_manager_.LoadPlugins(feature_manager_plugin_whitelist, static_params_);
+
+  if (sys_.tuning_)
     ROS_WARN("tuning mode enabled");
+
+  /////////////////////////////////////////////////////////////////////////
+  // Setup ROS topics and dynamic reconfigures
 
   // ROS communication
   image_transport::ImageTransport it(nh_);
-  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::callback_video,  this);
+  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
   pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
   pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
-  pub_homography   = nh_.advertise<std_msgs::Float32MultiArray>("homography", 1);
+  pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
+
+  // establish dynamic reconfigure and load defaults (callback runs once here)
+  auto func1 = std::bind(&VisualFrontend::CallbackReconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func1);
+
+  // establish dynamic reconfigure and load defaults (callback runs once here)
+  ros::NodeHandle nh_private_rransac("rransac");
+  rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
+  auto func2 = std::bind(&VisualFrontend::CallbackReconfigureRransac, this, std::placeholders::_1, std::placeholders::_2);
+  rransac_server_->setCallback(func2);
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
   for (int i = 0; i < 1000; i++)
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 
-  // establish dynamic reconfigure and load defaults (callback runs once here)
-  auto func1 = std::bind(&VisualFrontend::callback_reconfigure, this, std::placeholders::_1, std::placeholders::_2);
-  server_.setCallback(func1);
-
-  // establish dynamic reconfigure and load defaults (callback runs once here)
-  ros::NodeHandle nh_private_rransac("rransac");
-  rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
-  auto func2 = std::bind(&VisualFrontend::callback_reconfigure_rransac, this, std::placeholders::_1, std::placeholders::_2);
-  rransac_server_->setCallback(func2);
 
   // establish librransac good model elevation event callback
-  params_.set_elevation_callback(std::bind(&VisualFrontend::callback_elevation_event, this, std::placeholders::_1, std::placeholders::_2));
+  params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
 }
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
+void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
+
+  auto tic = ros::Time::now();
 
   // save the camera parameters and frame timestamp
   static std_msgs::Header header_frame_last;
@@ -67,46 +93,27 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   if (frame_++ % frame_stride_ != 0)
     return;
 
-  // convert message data into OpenCV type cv::Mat
-  hd_frame_ = cv_bridge::toCvCopy(data, "bgr8")->image;
-
-  // update the target recognition algorithm with the recent frame
-  recognition_manager_.update_image(hd_frame_);
-
   // save camera parameters one time
-  if (!info_received_)
+  if (!sys_.cam_info_received_)
   {
     // camera_matrix_ (K) is 3x3
     // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
-    camera_matrix_ = cv::Mat(              3, 3, CV_64FC1);
-    dist_coeff_    = cv::Mat(cinfo->D.size(), 1, CV_64FC1);
+    cv::Mat camera_matrix(3, 3, CV_64FC1);
+    cv::Mat dist_coeff(cinfo->D.size(), 1, CV_64FC1);
 
     // convert rosmsg vectors to cv::Mat
     for(int i=0; i<9; i++)
-      camera_matrix_.at<double>(i/3, i%3) = cinfo->K[i];
+      camera_matrix.at<double>(i/3, i%3) = cinfo->K[i];
 
     for(int i=0; i<cinfo->D.size(); i++)
-      dist_coeff_.at<double>(i, 0) = cinfo->D[i];
+      dist_coeff.at<double>(i, 0) = cinfo->D[i];
 
-    // scale the entire matrix except the 3,3 element
-    camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
-    camera_matrix_scaled_.at<double>(2,2) = 1;
-
-    // set the high and low definition resolutions
-    hd_res_.width = hd_frame_.cols;
-    hd_res_.height = hd_frame_.rows;
-    sd_res_.width = hd_frame_.cols*resize_scale_;
-    sd_res_.height = hd_frame_.rows*resize_scale_;
-
-    // provide algorithm members with updated camera parameters
-    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_, sd_res_);
-    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-    recognition_manager_.set_camera(camera_matrix_, dist_coeff_);
-
+    sys_.SetCameraParams(camera_matrix, dist_coeff);
+    sys_.SetScaledCameraParams();
 
     // update surveillance region based on normalized image plane
     // corner_.push_back(cv::Point2f(0,0));
-    cv::undistortPoints(corner_, corner_, camera_matrix_, dist_coeff_);
+    cv::undistortPoints(corner_, corner_, sys_.hd_camera_matrix_, sys_.dist_coeff_);
 
     double percentage;
     nh_.param<double>("rransac/surveillance_region", percentage, 0);
@@ -115,62 +122,49 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
     params_.field_max_y = std::abs(corner_[0].y*percentage);
     tracker_.set_parameters(params_);
 
-
-
-    info_received_ = true;
   }
 
   //
   // Initial image processing
   //
 
-  auto tic = ros::Time::now();
+  // convert message data into OpenCV type cv::Mat
+  sys_.SetHDFrame(cv_bridge::toCvCopy(data, "bgr8")->image);
+  sys_.SetSDFrame();  
+  sys_.ClearFlags();
 
-  // resize frame
-#if OPENCV_CUDA
-  cv::cuda::GpuMat hd_frame_cuda, sd_frame_cuda;
-  hd_frame_cuda.upload(hd_frame_);
-  cv::cuda::resize(hd_frame_cuda, sd_frame_cuda, sd_res_, 0, 0, cv::INTER_AREA);
-  sd_frame_cuda.download(sd_frame_);
-#else
-  cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
-#endif
+  // update the target recognition algorithm with the recent frame
+  recognition_manager_.update_image(sys_.hd_frame_);
 
   // use track information (from last iteration) to update target descriptors
-  if (tracks_.size() > 0)
-     recognition_manager_.update_descriptors(tracks_);
+  if (sys_.tracks_.size() > 0)
+     recognition_manager_.update_descriptors(sys_.tracks_);
 
-  //
+  t_other_ += (ros::Time::now() - tic).toSec();
+
+  /////////////////////////////////////////////////////
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
-  // manage features (could be LK, NN, Brute Force)
-  feature_manager_.find_correspondences(sd_frame_);
+  tic = ros::Time::now();
+  feature_manager_.FindCorrespondences(sys_);
   double t_features = (ros::Time::now() - tic).toSec();
 
-  //
-  // Homography Manager
+  ////////////////////////////////////////////////////
+  // Transform Manager
   //
 
-  // calculate the homography
+  // calculate the transform
   tic = ros::Time::now();
-  homography_manager_.calculate_homography(feature_manager_.prev_matched_, feature_manager_.next_matched_);
+  transform_manager_.CalculateTransform(sys_);
   double t_homography = (ros::Time::now() - tic).toSec();
 
-  //
+  /////////////////////////////////////////////////////
   // Measurement Generation from multiple sources
   //
 
   tic = ros::Time::now();
-
-  // call measurement sources execution
-  source_manager_.feed_rransac(tracker_,
-    hd_frame_, sd_frame_,
-    homography_manager_.homography_,
-    homography_manager_.good_transform_,
-    feature_manager_.prev_matched_,
-    feature_manager_.next_matched_);
-
+  measurement_manager_.GenerateMeasurements(sys_);
   double t_measurements = (ros::Time::now() - tic).toSec();
 
   //
@@ -178,22 +172,14 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   tic = ros::Time::now();
-
-  Eigen::Matrix3f HH;
-  cv::cv2eigen(homography_manager_.homography_, HH);
-  Eigen::Projective2d T(HH.cast<double>());
-  tracker_.apply_transformation(T);
-
-  // measurements have already been added by source manager
-
-  // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
-  tracks_ = tracker_.run();
-
+  UpdateRRANSAC();
   double t_rransac = (ros::Time::now() - tic).toSec();
 
   //
   // Calculate utiliization
   //
+  tic = ros::Time::now();
+  util_.number_of_rransac_measurements = sys_.num_of_measurements_;
 
   // Save stride
   double t_available = (1/fps_)*frame_stride_;
@@ -202,10 +188,11 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   alpha = (frame_ < 30) ? 0.95 : 1/(time_constant_/t_available + 1);
 
   util_.time_available          = t_available;
-  util_.feature_manager         = alpha*(t_features/t_available)      + (1-alpha)*util_.feature_manager;
-  util_.homography_manager      = alpha*(t_homography/t_available)    + (1-alpha)*util_.homography_manager;
-  util_.measurement_generation  = alpha*(t_measurements/t_available)  + (1-alpha)*util_.measurement_generation;
-  util_.rransac                 = alpha*(t_rransac/t_available)      + (1-alpha)*util_.rransac;
+  util_.feature_manager         = alpha*(t_features/t_available*100)      + (1-alpha)*util_.feature_manager;
+  util_.homography_manager      = alpha*(t_homography/t_available*100)    + (1-alpha)*util_.homography_manager;
+  util_.measurement_generation  = alpha*(t_measurements/t_available*100)  + (1-alpha)*util_.measurement_generation;
+  util_.other                   = alpha*(t_other_/t_available*100)        + (1-alpha)*util_.other;
+  util_.rransac                 = alpha*(t_rransac/t_available*100)       + (1-alpha)*util_.rransac;
 
   double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
   util_.total = alpha*total + (1-alpha)*util_.total;
@@ -215,12 +202,12 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
   //
 
   // publish the tracks and homography matrix onto ROS network
-  publish_tracks(tracks_);
-  publish_homography(homography_manager_.homography_);
+  PublishTracks(sys_.tracks_);
+  PublishTransform();
 
   // generate visualization, but only if someone is listening
   if (pub_tracks_video.getNumSubscribers() > 0 && (pub_frame_++ % publish_frame_stride_ == 0)) {
-    const cv::Mat drawing = draw_tracks(tracks_);
+    const cv::Mat drawing = DrawTracks(sys_.tracks_);
 
     // Publish over ROS network
     if (!drawing.empty()) {
@@ -231,35 +218,45 @@ void VisualFrontend::callback_video(const sensor_msgs::ImageConstPtr& data, cons
       pub_tracks_video.publish(image_msg.toImageMsg(), cinfo);
     }
   }
+
+  t_other_ = (ros::Time::now() - tic).toSec();
 }
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
+void VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
 {
 
-  int current_num_sources = source_manager_.n_sources_;
+  // int current_num_sources = measurement_manager_.n_sources_;
 
-  // update: frontend, feature_manager_, homography_manager_, source_manager_
-  set_parameters(config);
-  feature_manager_.set_parameters(config);
-  homography_manager_.set_parameters(config);
-  source_manager_.set_parameters(config);
+  // update: frontend, feature_manager_, homography_manager_, measurement_manager_
+  SetParameters(config);
+  feature_manager_.SetParameters(config);
+  transform_manager_.SetParameters(config);
+  measurement_manager_.SetParameters(config);
   recognition_manager_.set_parameters(config);
+
+  /* TODO
+  it should not be reseting every time. 
+  */
 
 
   // Was there a change inthe number of sources?
-  // if (current_num_sources != source_manager_.n_sources_)
+  // if (current_num_sources != measurement_manager_.n_sources_)
   {
     // Clear the existing source information inside R-RANSAC
     params_.reset_sources();
 
+    /* TODO
+    Make sources private, and get information through a method call.
+    */
     // Add each source with the corresponding new parameters
-    for (auto&& src : source_manager_.measurement_sources_)
+    for (auto&& src : measurement_manager_.measurement_sources_)
       params_.add_source(src->id_, src->has_velocity_, src->sigmaR_pos_, src->sigmaR_vel_);
 
     // Send updated parameters to R-RANSAC
     tracker_.set_parameters(params_);
+
   }
 
   ROS_INFO("visual frontend: parameters have been updated");
@@ -267,7 +264,7 @@ void VisualFrontend::callback_reconfigure(visual_mtt::visual_frontendConfig& con
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::callback_reconfigure_rransac(visual_mtt::rransacConfig& config, uint32_t level)
+void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& config, uint32_t level)
 {
 
   // general
@@ -319,40 +316,26 @@ void VisualFrontend::callback_reconfigure_rransac(visual_mtt::rransacConfig& con
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::set_parameters(visual_mtt::visual_frontendConfig& config)
+void VisualFrontend::SetParameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
-  resize_scale_ = config.resize_scale;
   publish_frame_stride_ = config.published_frame_stride;
   pub_scale_ = config.published_video_scale;
 
-  // if camera information is saved, update the scaled camera parameters
-  if (info_received_)
-  {
-    // scale the entire matrix except the 3,3 element
-    camera_matrix_scaled_ = camera_matrix_ * resize_scale_;
-    camera_matrix_scaled_.at<double>(2,2) = 1;
-
-    // update the low definition resolution
-    sd_res_.width = hd_res_.width*resize_scale_;
-    sd_res_.height = hd_res_.height*resize_scale_;
-
-    // provide algorithm members with updated camera parameters
-    feature_manager_.set_camera(camera_matrix_scaled_, dist_coeff_, sd_res_);
-    source_manager_.set_camera(camera_matrix_scaled_, dist_coeff_);
-  }
+  sys_.SetResizeScale(config.resize_scale);
+  sys_.SetScaledCameraParams();
 }
 
 // ----------------------------------------------------------------------------
 
-uint32_t VisualFrontend::callback_elevation_event(double x, double y) {
+uint32_t VisualFrontend::CallbackElevationEvent(double x, double y) {
   uint32_t id = recognition_manager_.identify_target(x, y);
   return id;
 }
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
+void VisualFrontend::PublishTracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
 
   // Create the ROS message we will send
@@ -396,39 +379,41 @@ void VisualFrontend::publish_tracks(const std::vector<rransac::core::ModelPtr>& 
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::publish_homography(const cv::Mat H)
+void VisualFrontend::PublishTransform()
 {
+
+    cv::Mat T = sys_.transform_;
     std_msgs::Float32MultiArray msg;
 
     msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
     msg.layout.dim.push_back(std_msgs::MultiArrayDimension());
     msg.layout.dim[0].label = "height";
-    msg.layout.dim[0].size = H.rows;
-    msg.layout.dim[0].stride = H.rows*H.cols;
+    msg.layout.dim[0].size = T.rows;
+    msg.layout.dim[0].stride = T.rows*T.cols;
     msg.layout.dim[1].label = "width";
-    msg.layout.dim[1].size = H.cols;
-    msg.layout.dim[1].stride = H.cols;
+    msg.layout.dim[1].size = T.cols;
+    msg.layout.dim[1].stride = T.cols;
     msg.layout.data_offset = 0;
     std::vector<float> vec;
-    for (int i = 0; i < H.rows; i++)
+    for (int i = 0; i < T.rows; i++)
     {
-        vec.insert(vec.end(), H.ptr<float>(i), H.ptr<float>(i)+H.cols);
+        vec.insert(vec.end(), T.ptr<float>(i), T.ptr<float>(i)+T.cols);
     }
     msg.data = vec;
-    pub_homography.publish(msg);
+    pub_transform_.publish(msg);
 }
 
 // ----------------------------------------------------------------------------
 
-cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& tracks)
+cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
 
-  if (hd_frame_.empty())
-    return hd_frame_;
+  if (sys_.hd_frame_.empty())
+    return sys_.hd_frame_;
 
   // std::cout << "Tracks: " << tracks.size() << std::endl;
 
-  cv::Mat draw = hd_frame_.clone();
+  cv::Mat draw = sys_.hd_frame_.clone();
 
   static int max_num_tracks = 0;
 
@@ -459,11 +444,11 @@ cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& 
     for (int j=0; j<tracks[i]->CS.size(); j++)
       center_h.push_back(cv::Point3f(tracks[i]->CS[j]->pos(0), tracks[i]->CS[j]->pos(1), 1));
 
-    cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), camera_matrix_, dist_coeff_, center_d);
+    cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys_.hd_camera_matrix_, sys_.dist_coeff_, center_d);
     center = center_d[0];
 
     // draw circle with center at position estimate
-    double radius = params_.tauR * camera_matrix_.at<double>(0,0);
+    double radius = params_.tauR * sys_.hd_camera_matrix_.at<double>(0,0);
     cv::circle(draw, center, (int)radius, color, 2, 8, 0);
 
     // draw red dot at the position estimate
@@ -472,8 +457,8 @@ cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& 
     // draw scaled velocity vector
     cv::Point velocity;
     double velocity_scale = 10; // for visibility
-    velocity.x = tracks[i]->xhat(2) * camera_matrix_.at<double>(0,0) * velocity_scale;
-    velocity.y = tracks[i]->xhat(3) * camera_matrix_.at<double>(0,0) * velocity_scale;
+    velocity.x = tracks[i]->xhat(2) * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
+    velocity.y = tracks[i]->xhat(3) * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
     cv::line(draw, center, center + velocity, color, 1, CV_AA);
 
     // draw model number and inlier ratio
@@ -513,9 +498,9 @@ cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& 
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
   // utilization rectangle background color
-  cv::Scalar background = (util_.total > 0.9) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
+  cv::Scalar background = (util_.total > 90) ? cv::Scalar(0, 0, 255) : cv::Scalar(255, 255, 255);
 
-  sprintf(text, "Utilization: %d%%", (int)(util_.total*100));
+  sprintf(text, "Utilization: %d%%", (int)(util_.total));
   corner += corner_offset;
   cv::rectangle(draw, corner, corner + bl_corner, background, -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
@@ -533,6 +518,30 @@ cv::Mat VisualFrontend::draw_tracks(const std::vector<rransac::core::ModelPtr>& 
 #endif
 
   return resized;
+}
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::UpdateRRANSAC()
+{
+  // Feed rransac measurements
+  for (auto& meas_src : sys_.measurements_)
+  {
+    if(meas_src.has_velocity)
+      tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.meas_vel, meas_src.id);
+    else
+      tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.id);
+
+  }
+
+  // Apply transform
+  Eigen::Matrix3f TT;
+  cv::cv2eigen(sys_.transform_, TT);
+  Eigen::Projective2d T(TT.cast<double>());
+  tracker_.apply_transformation(T);
+
+  // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
+  sys_.tracks_ = tracker_.run();
 }
 
 }

@@ -23,6 +23,8 @@
 
   <!-- visual_mtt flags -->
   <arg name="params"            default="$(find visual_mtt)/param/default.yaml" />
+  <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
+  <arg name="static_param_filename" default="(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="true" />
 
 
@@ -141,6 +143,8 @@
   <!-- launch visual_mtt -->
   <include file="$(find visual_mtt)/launch/visual_mtt.launch">
     <arg name="params" value="$(arg params)" />
+    <arg name="plugin_whitelist" value="$(arg plugin_whitelist)" />
+    <arg name="static_param_filename" value="$(arg static_param_filename)"/>
     <arg name="tuning" value="$(arg tuning)" />
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
   </include>

@@ -20,9 +20,11 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   dynamic_reconfigure
   image_transport
+  pluginlib
   camera_info_manager
 )
 
+find_package(Eigen3)
 find_package(rransac 1.0.4 EXACT REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 3 REQUIRED)
@@ -39,6 +41,11 @@ if(VISUAL_MTT_CUDA)
     message(STATUS "${ESC}[1;31m+++${ESC}[0m" " CUDA-enabled OpenCV not found")
   endif()
 endif()
+
+# yaml-cpp is used to read in a yaml file and retrieve its values 
+find_package(yaml-cpp REQUIRED)
+
+
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -121,7 +128,7 @@ generate_dynamic_reconfigure_options(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS cv_bridge message_runtime
+  CATKIN_DEPENDS cv_bridge message_runtime pluginlib
 #  INCLUDE_DIRS include
 #  LIBRARIES visual_mtt
 #  CATKIN_DEPENDS other_catkin_pkg
@@ -132,9 +139,38 @@ catkin_package(
 ## Build ##
 ###########
 
+message( STATUS "${RRANSAC_INCLUDE_DIRS}")
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(include/visual_mtt ${catkin_INCLUDE_DIRS} ${RRANSAC_INCLUDE_DIRS})
+include_directories(include/visual_mtt 
+  ${catkin_INCLUDE_DIRS}
+  ${RRANSAC_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIR})
+
+## Plugins
+add_library(measurement_source_plugin 
+  src/visual_frontend/measurement_manager/feature_motion.cpp
+  src/visual_frontend/measurement_manager/difference_image.cpp)
+
+add_library(transform_method_plugin 
+  src/visual_frontend/transform_manager/simple_homography.cpp)
+
+add_library(feature_tracker_plugin 
+  src/visual_frontend/feature_manager/lkt_tracker.cpp)
+
+target_link_libraries(measurement_source_plugin
+  ${catkin_LIBRARIES} 
+  ${OpenCV_LIBS})
+
+target_link_libraries(transform_method_plugin
+  ${catkin_LIBRARIES} 
+  ${OpenCV_LIBS})
+
+target_link_libraries(feature_tracker_plugin
+  ${catkin_LIBRARIES} 
+  ${OpenCV_LIBS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -143,25 +179,19 @@ add_executable(${PROJECT_NAME}_visual_frontend
   src/visual_frontend/node.cpp
   src/visual_frontend/visual_frontend.cpp
 
-  # Feature management
+  # Managers
   src/visual_frontend/feature_manager/feature_manager.cpp
-  src/visual_frontend/feature_manager/lkt_tracker.cpp
-
-  # Homography management
-  src/visual_frontend/homography_manager/homography_manager.cpp
-  src/visual_frontend/homography_manager/simple_homography.cpp
-
-  # Measurement sources
-  src/visual_frontend/source_manager/source_manager.cpp
-  src/visual_frontend/source_manager/feature_motion.cpp
-  src/visual_frontend/source_manager/difference_image.cpp
+  src/visual_frontend/transform_manager/transform_manager.cpp
+  src/visual_frontend/measurement_manager/measurement_manager.cpp
 
   # Target recognition
   src/visual_frontend/recognition_manager/recognition_manager.cpp
   src/visual_frontend/recognition_manager/template_matching.cpp
 
   # Common
-  src/common/gpu.cpp)
+  src/common/gpu.cpp
+  src/common/system.cpp)
+
 
 add_executable(${PROJECT_NAME}_camera_sim
   src/camera_sim/node.cpp
@@ -180,7 +210,12 @@ add_dependencies(${PROJECT_NAME}_visual_frontend ${${PROJECT_NAME}_EXPORTED_TARG
 add_dependencies(${PROJECT_NAME}_camera_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_visual_frontend ${catkin_LIBRARIES} ${OpenCV_LIBS} ${RRANSAC_LIBS})
+target_link_libraries(${PROJECT_NAME}_visual_frontend 
+  ${catkin_LIBRARIES} 
+  ${OpenCV_LIBS} 
+  ${RRANSAC_LIBS}
+  ${YAML_CPP_LIBRARIES})
+
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 #############
@@ -218,15 +253,35 @@ target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LI
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
+##################
+## Benchmarking ##
+##################
+option(BUILD_BENCHMARK "Benchmarking for Visual_MTT" OFF)
+
+if(BUILD_BENCHMARK)
+
+add_subdirectory(benchmark)
+
+endif()
+
 #############
 ## Testing ##
 #############
+
+
+option(BUILD_TESTS "Build the Params GTests" OFF)
+if(BUILD_TESTS)
+  add_subdirectory(test)
+endif()
+
 
 ## Add gtest based cpp test target and link libraries
 # catkin_add_gtest(${PROJECT_NAME}-test test/test_visual_mtt.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
+
+
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

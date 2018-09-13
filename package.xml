@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <package>
   <name>visual_mtt</name>
-  <version>1.0.3</version>
+  <version>2.0.0</version>
   <description>A visual measurement frontend for the Recursive-RANSAC Tracker</description>
 
   <maintainer email="jeffrey.d.millard@gmail.com">Jeff Millard</maintainer>
   <maintainer email="parkerclusk@gmail.com">Parker Lusk</maintainer>
+  <maintainer email="markiepetersen@gmail.com">Mark Petersen</maintainer>
 
   <license>BSD</license>
 
@@ -20,7 +21,17 @@
   <run_depend>message_runtime</run_depend>
   <run_depend>image_transport</run_depend>
 
+  <build_depend>pluginlib</build_depend>
+  <run_depend>pluginlib</run_depend>
+  
+
+
 
   <!-- The export tag contains other, unspecified, tags -->
-  <export></export>
+  <export>
+    
+    <!-- Exporting plugins -->
+    <visual_mtt plugin="${prefix}/plugins.xml"/>
+
+  </export>
 </package>
