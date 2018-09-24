@@ -19,8 +19,17 @@ feature_manager/lkt_tracker/pyramid_size: 21
 
 
 ###############################################################################
-#### Source Manager
+#### Measurement Manager
 
+#
+# darknet plugin
+#
+
+# The paths must be relative to the vmtt directory
+measurement_manger/darknet_plugin/labels_filename:  "/darknet_wrapper/yolo_network_config/labels/yolov3-tiny.yaml"
+measurement_manger/darknet_plugin/config_filename:  "/darknet_wrapper/yolo_network_config/cfg/yolov3-tiny.cfg"
+measurement_manger/darknet_plugin/weights_filename: "/darknet_wrapper/yolo_network_config/weights/yolov3-tiny.weights"
+measurement_manger/darknet_plugin/params_filename:  "/darknet_wrapper/params/default.yaml"
 
 
 ###############################################################################
