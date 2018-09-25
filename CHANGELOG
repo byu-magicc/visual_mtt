@@ -1,0 +1,9 @@
+## 2.1.0: SEP-25-2018
+* Added [Darknet Plugin](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/darknet-plugin)
+* Modified param/plugin_whitelist to incude the Darknet Plugin
+* Modified param/static_default.yaml to include parameters for the Darknet Plugin
+* Modified param/default.yaml to include parameters for the Darknet Plugin
+* Modified cfg/visual_frontend.cfg to inclue paramters for the Darknet Plugin
+* Modified plugins.xml to include the Darknet Plugin
+* Modified the CMakeList.txt to include Darknet Plugin
+* Added option to CMakeList.txt of building the plugin or not. 
