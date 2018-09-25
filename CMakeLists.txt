@@ -45,9 +45,6 @@ endif()
 # yaml-cpp is used to read in a yaml file and retrieve its values 
 find_package(yaml-cpp REQUIRED)
 
-add_subdirectory(darknet_wrapper)
-add_definitions( -DVMTT_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
-
 
 
 
@@ -148,9 +145,6 @@ message( STATUS "${RRANSAC_INCLUDE_DIRS}")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(include/visual_mtt 
-  darknet_wrapper/include
-  darknet_wrapper/darknet/include
-  darknet_wrapper/darknet/src
   ${catkin_INCLUDE_DIRS}
   ${RRANSAC_INCLUDE_DIRS}
   ${YAML_CPP_INCLUDE_DIR}
@@ -159,8 +153,7 @@ include_directories(include/visual_mtt
 ## Plugins
 add_library(measurement_source_plugin 
   src/visual_frontend/measurement_manager/feature_motion.cpp
-  src/visual_frontend/measurement_manager/difference_image.cpp
-  src/visual_frontend/measurement_manager/darknet_plugin.cpp)
+  src/visual_frontend/measurement_manager/difference_image.cpp)
 
 add_library(transform_method_plugin 
   src/visual_frontend/transform_manager/simple_homography.cpp)
@@ -170,8 +163,7 @@ add_library(feature_tracker_plugin
 
 target_link_libraries(measurement_source_plugin
   ${catkin_LIBRARIES} 
-  ${OpenCV_LIBS}
-  darknet_wrapper)
+  ${OpenCV_LIBS})
 
 target_link_libraries(transform_method_plugin
   ${catkin_LIBRARIES} 
@@ -180,8 +172,6 @@ target_link_libraries(transform_method_plugin
 target_link_libraries(feature_tracker_plugin
   ${catkin_LIBRARIES} 
   ${OpenCV_LIBS})
-
-add_dependencies(measurement_source_plugin darknet_wrapper)
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -228,6 +218,26 @@ target_link_libraries(${PROJECT_NAME}_visual_frontend
   ${YAML_CPP_LIBRARIES})
 
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+
+############
+# Darknet  #
+############
+option(BUILD_DARKNET "Build the darknet plugin" OFF)
+if(BUILD_DARKNET)
+  add_subdirectory(darknet_wrapper)
+  add_definitions( -DVMTT_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+  include_directories(  
+    darknet_wrapper/include
+    darknet_wrapper/darknet/include
+    darknet_wrapper/darknet/src)
+  target_sources(measurement_source_plugin PUBLIC
+    src/visual_frontend/measurement_manager/darknet_plugin.cpp)
+  add_dependencies(measurement_source_plugin darknet_wrapper)
+
+  target_link_libraries(measurement_source_plugin
+  darknet_wrapper)
+endif()
 
 #############
 ## Install ##
