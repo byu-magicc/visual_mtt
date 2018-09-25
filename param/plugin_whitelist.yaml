@@ -1,7 +1,8 @@
 visual_frontend/measurement_manager:
   plugins:
-    - "visual_frontend::DifferenceImage"
     - "visual_frontend::FeatureMotion"
+    - "visual_frontend::DifferenceImage"
+    - "visual_frontend::DarknetPlugin"
 
 visual_frontend/transform_manager:
   plugins:

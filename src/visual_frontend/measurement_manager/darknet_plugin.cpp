@@ -1,4 +1,4 @@
-#include "visual_frontend/measurement_manager/darknet_plguin.h"
+#include "visual_frontend/measurement_manager/darknet_plugin.h"
 
 namespace visual_frontend {
 
@@ -13,13 +13,13 @@ const std::string kVmttFilePath_ = VMTT_FILE_PATH;
 DarknetPlugin::DarknetPlugin()
 {
 
-    
-    std::string name_ "Darknet";
+    name_  = "Darknet";
     id_ = 2;            
     has_velocity_= false; 
     sigmaR_pos_ = 0.007;
     sigmaR_vel_ = 0; 
     sequence_ = 0;
+    drawn_ = false;
 
 }
 
@@ -34,14 +34,17 @@ DarknetPlugin::~DarknetPlugin()
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::Initialize(const common::Params& params)
+void DarknetPlugin::Initialize(const common::Params& params)
 {
+
+  std::cout << "Darknet initialize" << std::endl;
+
 	std::string labels_file_path, config_file_path, weights_file_path, params_file_path;
 	std::string labels_file_name, config_file_name, weights_file_name, params_file_name;
 	
 	// Get the file names
   params.GetParam("measurement_manger/darknet_plugin/labels_filename", labels_file_name, "");
-  params.GetParam("measurement_manger/darknet_plugin/config_filename", config_file_path, "");
+  params.GetParam("measurement_manger/darknet_plugin/config_filename", config_file_name, "");
   params.GetParam("measurement_manger/darknet_plugin/weights_filename", weights_file_name,"");
   params.GetParam("measurement_manger/darknet_plugin/params_filename", params_file_name, "");
 
@@ -51,27 +54,34 @@ DarknetPlugin::Initialize(const common::Params& params)
   weights_file_path = kVmttFilePath_ + weights_file_name;
   params_file_path =  kVmttFilePath_ + params_file_name;
 
+  std::cout << "labels file path: " <<labels_file_path << std::endl;
+
   // Initialize YOLO
-  yolo = darknet_wrapper::YoloObjectDetector(
+  yolo.Initialize(
     labels_file_path,
     params_file_path,
     config_file_path,
     weights_file_path);
 
+std::cout << "setting up Subscriber" << std::endl;
+
   yolo.Subscriber(&DarknetPlugin::YoloCallback,this);
+
+  std::cout << "Done initialize" << std::endl;
 
 }
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::SetParameters(const visual_mtt::visual_frontendConfig& config)
+void DarknetPlugin::SetParameters(const visual_mtt::visual_frontendConfig& config)
 {
   darknet_wrapper::common::DynamicParams params;
 
   params.threshold = config.darknet_threshold;
   params.frame_stride = config.darknet_frame_stride;
   params.draw_detections = config.darknet_draw_detections;
-  enabled_ = config.darknet_enabled
+  
+  ShouldReset(config.darknet_enabled);
 
   yolo.SetDynamicParams(params);
 
@@ -79,7 +89,7 @@ DarknetPlugin::SetParameters(const visual_mtt::visual_frontendConfig& config)
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::DrawMeasurements(const common::System& sys)
+void DarknetPlugin::DrawMeasurements(const common::System& sys)
 {
 
   if (!drawn_img_.empty())
@@ -92,19 +102,28 @@ DarknetPlugin::DrawMeasurements(const common::System& sys)
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::GenerateMeasurements(const common::System& sys)
+bool DarknetPlugin::GenerateMeasurements(const common::System& sys)
 {
   // Send the next image
-  yolo.ImageCallback(sys.hd_frame_);
+  yolo.ImageCallback(sys.hd_frame_,sequence_);
+  sequence_++;
+
+  meas_pos_.clear();
 
   // Undistort points and project them onto the normalized image plane
-  cv::undistortPoints(d_curr_points_, meas_pos_, sys.hd_camera_matrix_, dist_coeff_);
+  if(d_curr_points_.size() > 0)
+  {
+    std::lock_guard<std::mutex> lock(yolo_callback_mutex_);
+    cv::undistortPoints(d_curr_points_, meas_pos_, sys.hd_camera_matrix_, sys.dist_coeff_);
+  }
+
+  return static_cast<bool>(meas_pos_.size());
 
 }
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::Reset()
+void DarknetPlugin::Reset()
 {
   DestroyWindows();
   drawn_ = false;
@@ -112,7 +131,7 @@ DarknetPlugin::Reset()
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin:: YoloCallback(const cv::Mat& img, const darknet_wrapper::common::BoundingBoxes& boxes, const int& seq)
+void DarknetPlugin::YoloCallback(const cv::Mat& img, const darknet_wrapper::common::BoundingBoxes& boxes, const int& seq)
 {
   drawn_img_ = img;
   boxes_ = boxes;
@@ -122,8 +141,10 @@ DarknetPlugin:: YoloCallback(const cv::Mat& img, const darknet_wrapper::common::
 
   d_curr_points_.clear();
 
-  // Extract the points
-  for (auto& box : boxes)
+  // Extract the points using the lockgaurd to protect another thread from 
+  // accessing it. 
+  std::lock_guard<std::mutex> lock(yolo_callback_mutex_);
+  for (auto& box : boxes.boxes)
   {
     point = cv::Point2f(box.xcent, box.ycent);
     d_curr_points_.push_back(point);
@@ -133,10 +154,16 @@ DarknetPlugin:: YoloCallback(const cv::Mat& img, const darknet_wrapper::common::
 
 // ----------------------------------------------------------------------------
 
-DarknetPlugin::DestroyWindows()
+void DarknetPlugin::DestroyWindows()
 {
   if (drawn_)
     cv::destroyWindow(name_);
 }
 
 }
+
+
+
+// Macro needed to register the class. This macro helps with 
+// name mangling so that it can be imported dynamically.
+PLUGINLIB_EXPORT_CLASS(visual_frontend::DarknetPlugin, visual_frontend::MeasurementBase)

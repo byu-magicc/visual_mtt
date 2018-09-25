@@ -1,7 +1,14 @@
 #pragma once
 
+// std libraries
 #include <iostream>
+#include <thread>
+#include <mutex>
+
+// Opencv
 #include <opencv2/opencv.hpp>
+
+// VMTT
 #include "visual_frontend/measurement_manager/measurement_base.h"
 
 // dynamic reconfig
@@ -97,6 +104,7 @@ namespace visual_frontend {
     bool drawn_;         /**< At least one cv window exists. */
     darknet_wrapper::common::BoundingBoxes boxes_;
     std::vector<cv::Point2f> d_curr_points_;
+    std::mutex yolo_callback_mutex_; /**< d_curr_points_ is touched by two threads. This mutex helps handle r/w access. */
 
 
 

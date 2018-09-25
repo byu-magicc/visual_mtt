@@ -252,7 +252,10 @@ void VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& conf
     */
     // Add each source with the corresponding new parameters
     for (auto&& src : measurement_manager_.measurement_sources_)
+    {
+      std::cout << "src id: " << src->id_ << std::endl;
       params_.add_source(src->id_, src->has_velocity_, src->sigmaR_pos_, src->sigmaR_vel_);
+    }
 
     // Send updated parameters to R-RANSAC
     tracker_.set_parameters(params_);

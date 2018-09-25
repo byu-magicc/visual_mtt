@@ -28,6 +28,9 @@
   <class type="visual_frontend::FeatureMotion" base_class_type="visual_frontend::MeasurementBase">
     <description>Creates measurements from aparent motion using the features found by optical flow.</description>
   </class>
+  <class type="visual_frontend::DarknetPlugin" base_class_type="visual_frontend::MeasurementBase">
+    <description>Creates measurements uses YOLO.</description>
+  </class>
 </library>
 
 
