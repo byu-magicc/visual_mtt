@@ -106,7 +106,7 @@ namespace visual_frontend {
     std::vector<cv::Point2f> d_curr_points_;
     std::mutex yolo_callback_mutex_; /**< d_curr_points_ is touched by two threads. This mutex helps handle r/w access. */
 
-
+    // TODO set darknet_draw_detections to true only if tuning is true.
 
   };
 

@@ -37,7 +37,6 @@ DarknetPlugin::~DarknetPlugin()
 void DarknetPlugin::Initialize(const common::Params& params)
 {
 
-  std::cout << "Darknet initialize" << std::endl;
 
 	std::string labels_file_path, config_file_path, weights_file_path, params_file_path;
 	std::string labels_file_name, config_file_name, weights_file_name, params_file_name;
@@ -54,8 +53,6 @@ void DarknetPlugin::Initialize(const common::Params& params)
   weights_file_path = kVmttFilePath_ + weights_file_name;
   params_file_path =  kVmttFilePath_ + params_file_name;
 
-  std::cout << "labels file path: " <<labels_file_path << std::endl;
-
   // Initialize YOLO
   yolo.Initialize(
     labels_file_path,
@@ -63,11 +60,8 @@ void DarknetPlugin::Initialize(const common::Params& params)
     config_file_path,
     weights_file_path);
 
-std::cout << "setting up Subscriber" << std::endl;
-
+  // Register the subscriber
   yolo.Subscriber(&DarknetPlugin::YoloCallback,this);
-
-  std::cout << "Done initialize" << std::endl;
 
 }
 
@@ -104,6 +98,7 @@ void DarknetPlugin::DrawMeasurements(const common::System& sys)
 
 bool DarknetPlugin::GenerateMeasurements(const common::System& sys)
 {
+
   // Send the next image
   yolo.ImageCallback(sys.hd_frame_,sequence_);
   sequence_++;
