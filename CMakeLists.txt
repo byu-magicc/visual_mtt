@@ -47,6 +47,7 @@ find_package(yaml-cpp REQUIRED)
 
 
 
+
 ################################################
 ## Declare ROS messages, services and actions ##
 ################################################
@@ -217,6 +218,29 @@ target_link_libraries(${PROJECT_NAME}_visual_frontend
   ${YAML_CPP_LIBRARIES})
 
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
+
+
+############
+# Darknet  #
+############
+option(BUILD_DARKNET "Build the darknet plugin" OFF)
+if(BUILD_DARKNET)
+  
+  add_subdirectory(darknet_wrapper)
+
+  add_definitions( -DVMTT_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+  include_directories(  
+    darknet_wrapper/include
+    darknet_wrapper/darknet/include
+    darknet_wrapper/darknet/src)
+  target_sources(measurement_source_plugin PUBLIC
+    src/visual_frontend/measurement_manager/darknet_plugin.cpp)
+  add_dependencies(measurement_source_plugin darknet_wrapper)
+
+  target_link_libraries(measurement_source_plugin
+  darknet_wrapper)
+endif()
+
 
 #############
 ## Install ##

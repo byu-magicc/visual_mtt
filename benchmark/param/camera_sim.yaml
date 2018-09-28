@@ -1,0 +1,21 @@
+# these guessed intrinsic parameters are used when no other data is provided
+image_width: 960
+image_height: 540
+camera_name: camera_sim
+camera_matrix:
+  rows: 3
+  cols: 3
+  data: [712, 0, 480, 0, 712, 270, 0, 0, 1]
+distortion_model: plumb_bob
+distortion_coefficients:
+  rows: 1
+  cols: 5
+  data: [0.0, 0.0, 0.0, 0.0, 0.0]
+rectification_matrix:
+  rows: 3
+  cols: 3
+  data: [1, 0, 0, 0, 1, 0, 0, 0, 1]
+projection_matrix:
+  rows: 3
+  cols: 4
+  data: [718.790283203125, 0, 272.9284657920289, 0, 0, 721.8692626953125, 273.9026163084382, 0, 0, 0, 1, 0]

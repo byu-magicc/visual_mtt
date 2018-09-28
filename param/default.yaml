@@ -34,6 +34,13 @@ visual_frontend/morph_iterations: 2
 visual_frontend/min_complexity: 10
 visual_frontend/max_complexity: 100
 
+
+# Darknet
+visual_frontend/darknet_enabled: false
+visual_frontend/darknet_threshold: 0.3
+visual_frontend/darknet_frame_stride: 3
+visual_frontend/darknet_draw_detections: false
+
 # transform manager
 visual_frontend/simple_homography_enabled: true
 

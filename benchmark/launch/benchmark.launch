@@ -11,7 +11,7 @@
 
     <!-- for video -->
     <arg name="video_path"    default="$(find visual_mtt)/benchmark/video/MOT17-11-SDP.mp4"/>
-    <arg name="fps"         default="30" />
+    <arg name="fps"         default="15" />
 
     <!-- for rosbag -->
     <arg name="bag_path"    default="" />
@@ -22,7 +22,7 @@
 
     <!-- camera parameters (video or rosbag that didn't record camera_info) -->
     <arg name="camera_name"     default="camera_sim" />
-    <arg name="camera_info_url" default="file://$(find visual_mtt)/param/$(arg camera_name).yaml" />
+    <arg name="camera_info_url" default="file://$(find visual_mtt)/benchmark/param/$(arg camera_name).yaml" />
 
     <!-- visual_mtt flags -->
     <arg name="params"            default="$(find visual_mtt)/benchmark/param/dynamic_default.yaml" />
@@ -69,7 +69,7 @@
 
     </group>
 
-    <node pkg="visual_mtt" type="benchmark" name="benchmark_node" output="screen">
+    <node pkg="visual_mtt" type="visual_mtt_benchmark" name="benchmark_node" output="screen">
         <param name="bench_file_path" value="$(find visual_mtt)/benchmark/results/benchmark1.csv"/>
         <remap from="tracks" to="/tracks"/>
     </node>

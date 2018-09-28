@@ -1,0 +1,3 @@
+[submodule "darknet_wrapper"]
+	path = darknet_wrapper
+	url = git@magiccvs.byu.edu:darknet/darknet_wrapper.git

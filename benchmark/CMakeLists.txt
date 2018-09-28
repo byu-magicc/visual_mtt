@@ -24,7 +24,7 @@ add_executable(${PROJECT_NAME}_benchmark
   src/benchmark.cpp 
   src/benchmark_node.cpp)
 
-set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES OUTPUT_NAME benchmark PREFIX "")
+# set_target_properties(${PROJECT_NAME}_benchmark PROPERTIES OUTPUT_NAME benchmark PREFIX "")
 add_dependencies(${PROJECT_NAME}_benchmark ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(${PROJECT_NAME}_benchmark ${catkin_LIBRARIES})
 
