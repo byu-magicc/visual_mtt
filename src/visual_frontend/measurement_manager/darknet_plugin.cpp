@@ -100,6 +100,7 @@ bool DarknetPlugin::GenerateMeasurements(const common::System& sys)
 {
 
   // Send the next image
+  std::cout << "frame empty: " << sys.hd_frame_.empty() << " : " << sys.hd_frame_.size() << std::endl;
   yolo.ImageCallback(sys.hd_frame_,sequence_);
   sequence_++;
 

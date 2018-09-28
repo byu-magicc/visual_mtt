@@ -225,7 +225,9 @@ target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LI
 ############
 option(BUILD_DARKNET "Build the darknet plugin" OFF)
 if(BUILD_DARKNET)
+  
   add_subdirectory(darknet_wrapper)
+
   add_definitions( -DVMTT_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
   include_directories(  
     darknet_wrapper/include
@@ -238,6 +240,7 @@ if(BUILD_DARKNET)
   target_link_libraries(measurement_source_plugin
   darknet_wrapper)
 endif()
+
 
 #############
 ## Install ##
