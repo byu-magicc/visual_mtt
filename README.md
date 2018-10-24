@@ -52,7 +52,7 @@ to use for your project.
 The Visual MTT package includes a basic utilization benchmark. You can use this to check the installation or for other reasons. See [here](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/benchmarking) to learn how to benchmark with Visual MTT.
 
 ## Doxygen
-Bisual MTT uses Doxygen to generate html documentation. To generate it, navigate to the root directory of the project and run
+Visual MTT uses Doxygen to generate html documentation. To generate it, navigate to the root directory of the project and run
 ``` bash
 $ doxygen Doxyfile 
 ```
