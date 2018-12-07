@@ -260,7 +260,7 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
   if (meas_pos_.size() > 0)
     good_measurements = true;
   else
-    ROS_WARN("DifferenceImage: No measurements found!");
+    ROS_DEBUG("DifferenceImage: No measurements found!");
 
   return good_measurements;
 

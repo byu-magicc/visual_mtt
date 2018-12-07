@@ -12,10 +12,6 @@ System::System()
   cam_info_received_ = false;
   tuning_ = false;
 
-  // Private
-  first_ = true;
-
-
 }
 
 // --------------------------------------------------------------------------------------
@@ -27,13 +23,6 @@ System::~System() {}
 void System::SetHDFrame(const cv::Mat& hd_frame) 
 {
 	hd_frame_ = hd_frame;
-
-  if (first_)
-  {
-    SetResizeScale(resize_scale_);
-    first_ = false;
-  }
-
 }
 
 // --------------------------------------------------------------------------------------
@@ -41,8 +30,6 @@ void System::SetHDFrame(const cv::Mat& hd_frame)
 void System::SetResizeScale(const double resize_scale)
 {
 	resize_scale_ = resize_scale;
-  sd_res_.width = hd_frame_.size().width*resize_scale_;
-  sd_res_.height = hd_frame_.size().height*resize_scale_;
 }
 
 // --------------------------------------------------------------------------------------
@@ -77,9 +64,12 @@ void System::SetScaledCameraParams()
 
   if (cam_info_received_)
   {
+
     // scale the entire matrix except the 3,3 element
     sd_camera_matrix_ = hd_camera_matrix_ * resize_scale_;
     sd_camera_matrix_.at<double>(2,2) = 1;
+    sd_res_.width = hd_frame_.size().width*resize_scale_;
+    sd_res_.height = hd_frame_.size().height*resize_scale_;
 
     // Sets the new undistorted region mask according to the
     // new size of sd_frame_.
@@ -109,7 +99,7 @@ void System::SetUndistortedRegionMask()
   // move points to the normalized image plane (original frame and undistorted
   // frame have the same camera matrix)
   cv::Mat dist_coeff; // we started with the theoretical undistorted image
-  cv::undistortPoints(boundary, boundary, sd_camera_matrix_, dist_coeff_);
+  cv::undistortPoints(boundary, boundary, sd_camera_matrix_,cv::Mat());
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
@@ -118,14 +108,22 @@ void System::SetUndistortedRegionMask()
   std::vector<cv::Point2f> boundary_d; // distorted
   cv::convertPointsToHomogeneous(boundary, boundary_h);
   cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sd_camera_matrix_, dist_coeff_, boundary_d);
+  // cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), cv::Mat::eye(3,3,CV_64FC1), dist_coeff_, boundary_d);
+
+  std::cout << "boundary: " << boundary << std::endl;
+  std::cout << "boundary_d: " << boundary_d << std::endl;
 
   // boundary_d is a polygon in the original sd frame, put in matrix form
   cv::Mat boundary_mat(boundary_d);
 
   // build the mask
   boundary_mat.convertTo(boundary_mat, CV_32SC1);
-  undistorted_region_mask_ = cv::Mat(sd_frame_.size(), CV_8UC1, cv::Scalar(0));
+  undistorted_region_mask_ = cv::Mat(sd_res_, CV_8UC1, cv::Scalar(0));
   cv::fillConvexPoly(undistorted_region_mask_, boundary_mat, cv::Scalar(255));
+
+  // std::cout << "undistorted region mask" << std::endl;
+  // std::cout << "sd res: " << sd_res_ << std::endl << undistorted_region_mask_ << std::endl;
+  // std::cout << "distortion mask: " << dist_coeff_ << std::endl;
 }
 
 // --------------------------------------------------------------------------------------

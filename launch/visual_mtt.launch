@@ -4,7 +4,7 @@
 
   <arg name="params"            default="$(find visual_mtt)/param/default.yaml" />
   <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
-  <arg name="static_param_filename" default="(find visual_mtt)/param/static_default.yaml"/>
+  <arg name="static_param_filename" default="$(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="false" />
   <arg name="imgtopic"          default="/image_raw" />
   <arg name="launch-prefix"     default=""/>

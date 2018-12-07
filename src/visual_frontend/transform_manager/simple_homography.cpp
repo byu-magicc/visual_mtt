@@ -26,7 +26,6 @@ void SimpleHomography::Initialize(const common::Params& params){}
 
 void SimpleHomography::SetParameters(const visual_mtt::visual_frontendConfig& config) 
 {
-  std::cout << "simple homography: " << config.simple_homography_enabled << std::endl;
   ShouldReset(config.simple_homography_enabled);
 }
 
@@ -76,9 +75,11 @@ void SimpleHomography::DrawTransform(const common::System& sys){
 
   #if OPENCV_CUDA
     cv::Mat frame_difference(frame_difference_);
-    cv::imshow(name_, frame_difference);
+    // cv::imshow(name_, frame_difference);
+    cv::imshow(name_, frame_u);
   #else
-    cv::imshow(name_, frame_difference_);
+    // cv::imshow(name_, frame_difference_);
+    cv::imshow(name_, frame_u);
   #endif
   }
 

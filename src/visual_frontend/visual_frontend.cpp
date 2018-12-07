@@ -93,6 +93,10 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   if (frame_++ % frame_stride_ != 0)
     return;
 
+
+  // convert message data into OpenCV type cv::Mat
+  sys_.SetHDFrame(cv_bridge::toCvCopy(data, "bgr8")->image);
+
   // save camera parameters one time
   if (!sys_.cam_info_received_)
   {
@@ -128,8 +132,6 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Initial image processing
   //
 
-  // convert message data into OpenCV type cv::Mat
-  sys_.SetHDFrame(cv_bridge::toCvCopy(data, "bgr8")->image);
   sys_.SetSDFrame();  
   sys_.ClearFlags();
 
