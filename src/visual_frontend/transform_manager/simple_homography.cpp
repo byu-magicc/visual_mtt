@@ -75,11 +75,9 @@ void SimpleHomography::DrawTransform(const common::System& sys){
 
   #if OPENCV_CUDA
     cv::Mat frame_difference(frame_difference_);
-    // cv::imshow(name_, frame_difference);
-    cv::imshow(name_, frame_u);
+    cv::imshow(name_, frame_difference);
   #else
-    // cv::imshow(name_, frame_difference_);
-    cv::imshow(name_, frame_u);
+    cv::imshow(name_, frame_difference_);
   #endif
   }
 
