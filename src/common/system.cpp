@@ -116,9 +116,6 @@ void System::SetUndistortedRegionMask()
   cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sd_camera_matrix_, dist_coeff_, boundary_d);
   // cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), cv::Mat::eye(3,3,CV_64FC1), dist_coeff_, boundary_d);
 
-  std::cout << "boundary: " << boundary << std::endl;
-  std::cout << "boundary_d: " << boundary_d << std::endl;
-
   // boundary_d is a polygon in the original sd frame, put in matrix form
   cv::Mat boundary_mat(boundary_d);
 
