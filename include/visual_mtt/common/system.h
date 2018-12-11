@@ -274,8 +274,6 @@ class System {
 
   private:
 
-  bool first_;                               /**< Flag used to indicate if common::System::sd_res_ has been initialized. */
-
 };
 
 

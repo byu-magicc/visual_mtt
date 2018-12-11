@@ -26,7 +26,6 @@ void SimpleHomography::Initialize(const common::Params& params){}
 
 void SimpleHomography::SetParameters(const visual_mtt::visual_frontendConfig& config) 
 {
-  std::cout << "simple homography: " << config.simple_homography_enabled << std::endl;
   ShouldReset(config.simple_homography_enabled);
 }
 
