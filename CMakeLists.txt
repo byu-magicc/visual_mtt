@@ -40,6 +40,30 @@ if(VISUAL_MTT_CUDA)
     string(ASCII 27 ESC)
     message(STATUS "${ESC}[1;31m+++${ESC}[0m" " CUDA-enabled OpenCV not found")
   endif()
+
+  # If you are using visual_MTT_CUDA, you cannot be using the opencv libraries
+  # installed with ROS since they are not build with CUDA support.
+  # These libraries can be added to the list ${catkin_LIBRARIES}
+  # if you are using the cv_bridge package installed with ROS since
+  # this package is linked to the opencv libraries installed by ROS.
+  # To avoid this problem, you need to build your own cv_package
+  # with the proper opencv libraries in the same workspace as visual_mtt.
+  #
+  # This loop makes sure you are not using the opencv libraries installed
+  # with ROS if you are building with CUDA support. 
+  foreach(loop_var ${catkin_LIBRARIES})
+    string(REGEX MATCHALL "libopencv" OPENCV_LIB ${loop_var})
+    if( ${OPENCV_LIB} STREQUAL ${OPENCV_LIB} )
+      string(REGEX MATCHALL "ros" ROS_CHECK ${loop_var})
+        if(${ROS_CHECK} STREQUAL ${ROS_CHECK})
+          message(SEND_ERROR "Using ROS installed OpenCV libraries which do not have CUDA support. Ensure that you are not using the ROS installed cv_bridge package. See README.md for more information.")
+        endif()
+      # set(cv_libs ${cv_libs} ${loop_var})
+      LIST(REMOVE_ITEM catkin_LIBRARIES ${loop_var} )
+    endif()
+  endforeach()
+
+
 endif()
 
 # yaml-cpp is used to read in a yaml file and retrieve its values 

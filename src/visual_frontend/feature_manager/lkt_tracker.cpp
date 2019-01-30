@@ -109,7 +109,7 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // Uses previous GFTT features to find next_features in current frame
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
-  CalculateFlow(mono, d_curr_features, valid);
+  CalculateFlow(mono, d_curr_features, valid,sys);
 
 
 
@@ -131,7 +131,7 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   if (d_prev_matched_.size() > 10)
     good_features = true;
   else
-    ROS_WARN("LKTTracker: Not enough features matched. Bad features.");
+    ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"LKTTracker: Not enough features matched. Bad features.");
 
   return good_features;
 }
@@ -165,7 +165,7 @@ cv::Ptr<cvFeatureDetector_t> LKTTracker::InitGftt(int max_features)
 
 // ---------------------------------------------------------------------------
 
-void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid)
+void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
 
 #if OPENCV_CUDA
@@ -209,7 +209,7 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
     catch (...)
     {
       valid.clear();
-      ROS_WARN("lkt tracker: pyramid mismatch, skipping this iteration");
+      ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"lkt tracker: pyramid mismatch, skipping this iteration");
     }
   }
   else

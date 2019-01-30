@@ -13,6 +13,11 @@ VisualFrontend::VisualFrontend()
   nh_private.param<std::string>("static_param_filename",filename, "");
   static_params_.Initialize(filename);
 
+  // ROS Messages Throttle
+  static_params_.GetParam("visual_frontend/message_output_period", sys_.message_output_period_, 60);
+  ROS_INFO_STREAM("ROS messages will be printed to the scrren with a minimum period of " << sys_.message_output_period_ << " seconds");
+
+
   /////////////////////////////////////////////////////////////////////////
   // Initialize the managers and plugins
   std::vector<std::string> measurement_manager_plugin_whitelist, 
@@ -124,9 +129,6 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
     params_.field_max_x = std::abs(corner_[0].x*percentage);
     params_.field_max_y = std::abs(corner_[0].y*percentage);
-    std::cout << "params_.field_max_x: " << params_.field_max_x << std::endl;
-    std::cout << "params_.field_max_y: " << params_.field_max_y << std::endl;
-    std::cout << "img size: " <<cv_bridge::toCvCopy(data, "bgr8")->image.size() <<std::endl;
     tracker_.set_parameters(params_);
 
   }
@@ -258,7 +260,6 @@ void VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& conf
     // Add each source with the corresponding new parameters
     for (auto&& src : measurement_manager_.measurement_sources_)
     {
-      std::cout << "src id: " << src->id_ << std::endl;
       params_.add_source(src->id_, src->has_velocity_, src->sigmaR_pos_, src->sigmaR_vel_);
     }
 
@@ -419,8 +420,6 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
   if (sys_.hd_frame_.empty())
     return sys_.hd_frame_;
 
-  // std::cout << "Tracks: " << tracks.size() << std::endl;
-
   cv::Mat draw = sys_.hd_frame_.clone();
 
   static int max_num_tracks = 0;
@@ -535,16 +534,10 @@ void VisualFrontend::UpdateRRANSAC()
   // Feed rransac measurements
   for (auto& meas_src : sys_.measurements_)
   {
-    std::cout << "size: " << meas_src.meas_pos.size() << std::endl;
-    for (int i = 0; i < meas_src.meas_pos.size(); i++)
-    {
-       std::cout << "measured position: " << meas_src.meas_pos[i] << std::endl;
-    }
     if(meas_src.has_velocity)
       tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.meas_vel, meas_src.id);
     else
       tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.id);
-
   }
 
   // Apply transform

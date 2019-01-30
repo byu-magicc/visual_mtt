@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/gpu.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
 #include <rransac/tracker.h>
@@ -268,9 +269,10 @@ class System {
   double resize_scale_;                      /**< common::System::hd_frame_ is resized by this parameter to make common::System::sd_frame_. */ 
   bool cam_info_received_;                   /**< Flag used to indicate if camera information has been recieved. The camera information is used
                                                   to create common::System::hd_camera_matrix_ and common::System::dist_coeff_*/
-
   
   bool tuning_;                              /**< Flag used to indicate if the plugins should generate images to help with debuggin or tunning. */
+
+  int message_output_period_;                   /**< Print a ROS message at most once per "text_output_period_" */
 
   private:
 

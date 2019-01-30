@@ -4,6 +4,9 @@
 # should be: <plugin_manager_name/plugin_name/variable_name>.
 
 
+visual_frontend/message_output_period: 6
+
+
 ###############################################################################
 #### Feature Manager
 

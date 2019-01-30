@@ -79,11 +79,6 @@ void MeasurementManager::GenerateMeasurements(common::System& sys)
       bool good = src->GenerateMeasurements(sys);
       if (good)
       {
-        // std::cout << "number of points: " << src->meas_pos_.size() << std::endl;
-        // for (int i = 0; i < src->meas_pos_.size(); i++)
-        // {
-        //   std::cout << src->meas_pos_[i];
-        // }
 
         sys.AddMeasurements(src->id_, src->has_velocity_, src->meas_pos_, src->meas_vel_);
       }
