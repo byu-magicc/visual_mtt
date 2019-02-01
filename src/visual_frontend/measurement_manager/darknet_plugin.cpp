@@ -88,8 +88,15 @@ void DarknetPlugin::DrawMeasurements(const common::System& sys)
 
   if (!drawn_img_.empty())
   {
+
+    if(drawn_ == false)
+    {
+      cv::namedWindow(name_,CV_WINDOW_NORMAL);
+    }
     drawn_= true;
     cv::imshow(name_,drawn_img_);
+    cv::resizeWindow(name_,sys.sd_res_.width,sys.sd_res_.height);
+
   }
 
 }

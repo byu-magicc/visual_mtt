@@ -88,7 +88,7 @@ namespace visual_frontend {
     * @param valid Indicates which curr_features are valid.
     * @see LKTTracker::FindCorrespondences(const common::System& sys)
     */
-    void CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid);
+    void CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
     
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image.

@@ -123,7 +123,7 @@ bool SimpleHomography::GetTransform(const common::System& sys)
     // TODO: should this (20) be a % of the pairs rather than a set value?
     if (inlier_count < 20)
     {
-      ROS_WARN_STREAM("(" << "#" << ") " << "homography calculator: few homography inliers (" << inlier_count << ")");
+      ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"(" << "#" << ") " << "homography calculator: few homography inliers (" << inlier_count << ")");
       // TODO: replace # with frame number
     }
     else
