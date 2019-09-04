@@ -29,7 +29,10 @@
     <description>Creates measurements from aparent motion using the features found by optical flow.</description>
   </class>
   <class type="visual_frontend::DarknetPlugin" base_class_type="visual_frontend::MeasurementBase">
-    <description>Creates measurements uses YOLO.</description>
+    <description>Creates measurements using YOLO.</description>
+  </class>
+  <class type="visual_frontend::ColorDetector" base_class_type="visual_frontend::MeasurementBase">
+    <description>Represents color shade blobs as point measurements</description>
   </class>
 </library>
 

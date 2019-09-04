@@ -34,12 +34,24 @@ visual_frontend/morph_iterations: 2
 visual_frontend/min_complexity: 10
 visual_frontend/max_complexity: 100
 
-
 # Darknet
 visual_frontend/darknet_enabled: false
 visual_frontend/darknet_threshold: 0.3
 visual_frontend/darknet_frame_stride: 3
 visual_frontend/darknet_draw_detections: false
+
+# Color Detector
+visual_frontend/color_detector_enabled: false
+visual_frontend/color_detector_min_hue: 1
+visual_frontend/color_detector_max_hue: 179
+visual_frontend/color_detector_min_sat: 1
+visual_frontend/color_detector_max_sat: 255
+visual_frontend/color_detector_min_val: 1
+visual_frontend/color_detector_max_val: 255
+visual_frontend/color_detector_morph_iterations: 1
+visual_frontend/color_detector_morph_kernel: 5
+visual_frontend/color_detector_min_blob_size: 200
+visual_frontend/color_detector_max_blob_size: 1000
 
 # transform manager
 visual_frontend/simple_homography_enabled: true

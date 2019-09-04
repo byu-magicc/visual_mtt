@@ -9,6 +9,8 @@ FeatureMotion::FeatureMotion()
   id_ = 0;
   has_velocity_ = true;
   drawn_ = false;
+  sigmaR_pos_ = 0.01;
+  sigmaR_vel_=0.01;
 
   first_image_ = true;
   velocity_floor_ = 0.002;

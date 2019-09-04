@@ -180,13 +180,20 @@ include_directories(include/visual_mtt
 ## Plugins
 add_library(measurement_source_plugin 
   src/visual_frontend/measurement_manager/feature_motion.cpp
-  src/visual_frontend/measurement_manager/difference_image.cpp)
+  src/visual_frontend/measurement_manager/difference_image.cpp
+  src/visual_frontend/measurement_manager/color_detector.cpp)
 
 add_library(transform_method_plugin 
   src/visual_frontend/transform_manager/simple_homography.cpp)
 
 add_library(feature_tracker_plugin 
   src/visual_frontend/feature_manager/lkt_tracker.cpp)
+
+add_dependencies(measurement_source_plugin ${PROJECT_NAME}_gencfg)
+add_dependencies(transform_method_plugin ${PROJECT_NAME}_gencfg)
+add_dependencies(feature_tracker_plugin ${PROJECT_NAME}_gencfg)
+
+
 
 target_link_libraries(measurement_source_plugin
   ${catkin_LIBRARIES} 
