@@ -73,7 +73,7 @@ VisualFrontend::VisualFrontend()
 void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo)
 {
 
-  auto tic = ros::Time::now();
+  auto tic = ros::WallTime::now();
 
   // save the camera parameters and frame timestamp
   static std_msgs::Header header_frame_last;
@@ -147,45 +147,45 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   if (sys_.tracks_.size() > 0)
      recognition_manager_.update_descriptors(sys_.tracks_);
 
-  t_other_ += (ros::Time::now() - tic).toSec();
+  t_other_ += (ros::WallTime::now() - tic).toSec();
 
   /////////////////////////////////////////////////////
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
-  tic = ros::Time::now();
+  tic = ros::WallTime::now();
   feature_manager_.FindCorrespondences(sys_);
-  double t_features = (ros::Time::now() - tic).toSec();
+  double t_features = (ros::WallTime::now() - tic).toSec();
 
   ////////////////////////////////////////////////////
   // Transform Manager
   //
 
   // calculate the transform
-  tic = ros::Time::now();
+  tic = ros::WallTime::now();
   transform_manager_.CalculateTransform(sys_);
-  double t_homography = (ros::Time::now() - tic).toSec();
+  double t_homography = (ros::WallTime::now() - tic).toSec();
 
   /////////////////////////////////////////////////////
   // Measurement Generation from multiple sources
   //
 
-  tic = ros::Time::now();
+  tic = ros::WallTime::now();
   measurement_manager_.GenerateMeasurements(sys_);
-  double t_measurements = (ros::Time::now() - tic).toSec();
+  double t_measurements = (ros::WallTime::now() - tic).toSec();
 
   //
   // R-RANSAC Tracker
   //
 
-  tic = ros::Time::now();
+  tic = ros::WallTime::now();
   UpdateRRANSAC();
-  double t_rransac = (ros::Time::now() - tic).toSec();
+  double t_rransac = (ros::WallTime::now() - tic).toSec();
 
   //
   // Calculate utiliization
   //
-  tic = ros::Time::now();
+  tic = ros::WallTime::now();
   util_.number_of_rransac_measurements = sys_.num_of_measurements_;
 
   // Save stride
@@ -226,7 +226,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     }
   }
 
-  t_other_ = (ros::Time::now() - tic).toSec();
+  t_other_ = (ros::WallTime::now() - tic).toSec();
 }
 
 // ----------------------------------------------------------------------------
