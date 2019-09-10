@@ -7,7 +7,7 @@
 # general processing
 visual_frontend/frame_stride: 1
 visual_frontend/resize_scale: 0.5
-visual_frontend/published_video_scale: 1.0
+visual_frontend/published_video_scale: 0.25
 visual_frontend/published_frame_stride: 1.0
 visual_frontend/text_scale: 1.0
 
@@ -39,7 +39,7 @@ visual_frontend/max_complexity: 100
 visual_frontend/darknet_enabled: false
 visual_frontend/darknet_threshold: 0.3
 visual_frontend/darknet_frame_stride: 1
-visual_frontend/darknet_draw_detections: true
+visual_frontend/darknet_draw_detections: false
 
 # transform manager
 visual_frontend/simple_homography_enabled: true

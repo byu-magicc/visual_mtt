@@ -94,13 +94,21 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
 
   bool good_features = false;
 
+  auto tic5 = ros::WallTime::now();
+
   // Convert to grayscale
   cv::Mat mono;
   cv::cvtColor(sys.sd_frame_, mono, CV_RGB2GRAY);
 
+  std::cout << "t_features_2_1_1: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
+  tic5 = ros::WallTime::now();
+
   // Clear history
   d_prev_matched_.clear();
   d_curr_matched_.clear();
+
+  std::cout << "t_features_2_1_2: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
+  tic5 = ros::WallTime::now();
 
   //
   // Optical Flow for Feature Correspondences
@@ -111,7 +119,8 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   std::vector<unsigned char> valid;
   CalculateFlow(mono, d_curr_features, valid,sys);
 
-
+  std::cout << "t_features_2_1_3: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
+  tic5 = ros::WallTime::now();
 
   // Only keep features that were matched in both frames
   for(int ii = 0; ii < valid.size(); ii++)
@@ -120,6 +129,9 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
       d_prev_matched_.push_back(d_prev_features_[ii]);
       d_curr_matched_.push_back(d_curr_features[ii]);
     }
+  
+  std::cout << "t_features_2_1_4: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
+  tic5 = ros::WallTime::now();
 
   //
   // Find a new set of GFTT corners
@@ -128,10 +140,15 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   d_prev_features_.clear();
   DetectFeatures(mono, d_prev_features_, sys.undistorted_region_mask_);
 
+  std::cout << "t_features_2_1_5: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
+  tic5 = ros::WallTime::now();
+
   if (d_prev_matched_.size() > 10)
     good_features = true;
   else
     ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"LKTTracker: Not enough features matched. Bad features.");
+
+  std::cout << "t_features_2_1_6: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
 
   return good_features;
 }

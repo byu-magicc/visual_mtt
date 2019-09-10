@@ -74,15 +74,20 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 {
 
   auto tic = ros::WallTime::now();
+  auto tic1 = ros::WallTime::now();
 
   // save the camera parameters and frame timestamp
   static std_msgs::Header header_frame_last;
   header_frame_last = header_frame_;
   header_frame_ = data->header;
+  std::cout << "t_other_b1: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
 
   //
   // Estimate FPS
   //
+
+
+  tic1 = ros::WallTime::now();
 
   // LPF alpha: Converge quickly at first
   double alpha = (frame_ < 30) ? 0.95 : alpha_;
@@ -92,7 +97,9 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   if (!(elapsed.toSec()<=0 || elapsed.toSec()>1))
     fps_ = alpha*(1/elapsed.toSec()) + (1-alpha)*fps_;
 
-
+  std::cout << "time elapsed: " << elapsed.toSec() << std::endl;
+  std::cout << "t_other_b2: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
 
   // Only process every Nth frame
   if (frame_++ % frame_stride_ != 0)
@@ -100,7 +107,10 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
 
   // convert message data into OpenCV type cv::Mat
-  sys_.SetHDFrame(cv_bridge::toCvCopy(data, "bgr8")->image);
+  sys_.SetHDFrame(cv_bridge::toCvShare(data, "bgr8")->image);
+
+  std::cout << "t_other_b3: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
 
   // save camera parameters one time
   if (!sys_.cam_info_received_)
@@ -132,21 +142,38 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     tracker_.set_parameters(params_);
 
   }
+  std::cout << "t_other_b4: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
 
   //
   // Initial image processing
   //
 
-  sys_.SetSDFrame();  
+  sys_.SetSDFrame(); 
+
+  std::cout << "t_other_b5a: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+
   sys_.ClearFlags();
 
-  // update the target recognition algorithm with the recent frame
-  recognition_manager_.update_image(sys_.hd_frame_);
+  std::cout << "t_other_b5b: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
 
-  // use track information (from last iteration) to update target descriptors
-  if (sys_.tracks_.size() > 0)
-     recognition_manager_.update_descriptors(sys_.tracks_);
+  // // update the target recognition algorithm with the recent frame
+  // recognition_manager_.update_image(sys_.hd_frame_);
 
+  std::cout << "t_other_b6: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+
+  // // use track information (from last iteration) to update target descriptors
+  // if (sys_.tracks_.size() > 0)
+  //    recognition_manager_.update_descriptors(sys_.tracks_);
+
+  std::cout << "t_other_b7: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+
+  std::cout << "t_other_begin: " << (ros::WallTime::now() - tic).toSec() << std::endl;
+  std::cout << "t_other_end: " << t_other_ << std::endl;
   t_other_ += (ros::WallTime::now() - tic).toSec();
 
   /////////////////////////////////////////////////////
@@ -186,6 +213,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Calculate utiliization
   //
   tic = ros::WallTime::now();
+  tic1 = ros::WallTime::now();
   util_.number_of_rransac_measurements = sys_.num_of_measurements_;
 
   // Save stride
@@ -204,13 +232,34 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
   util_.total = alpha*total + (1-alpha)*util_.total;
 
+  std::cout << "fps_: " << fps_ << std::endl;
+  std::cout << "frame_stride_: " << frame_stride_ << std::endl;
+  std::cout << "t_available: " << t_available << std::endl;
+  std::cout << "t_features: " << t_features << std::endl;
+  std::cout << "t_homography: " << t_homography << std::endl;
+  std::cout << "t_measurements: " << t_measurements << std::endl;
+  std::cout << "t_other_: " << t_other_ << std::endl;
+  std::cout << "t_rransac: " << t_rransac << std::endl;
+  std::cout << "total: " << t_features+t_homography+t_measurements+t_other_+t_rransac << "\n" << std::endl;
+
+  std::cout << "t_other_e1: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+  
   //
   // Publish results
   //
 
   // publish the tracks and homography matrix onto ROS network
   PublishTracks(sys_.tracks_);
+
+  std::cout << "t_other_e2: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+
   PublishTransform();
+
+  std::cout << "t_other_e3: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
+  tic1 = ros::WallTime::now();
+  auto tic2 = ros::WallTime::now();
 
   // generate visualization, but only if someone is listening
   if (pub_tracks_video.getNumSubscribers() > 0 && (pub_frame_++ % publish_frame_stride_ == 0)) {
@@ -218,13 +267,19 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
     // Publish over ROS network
     if (!drawing.empty()) {
+      std::cout << "t_other_e42: " << (ros::WallTime::now() - tic2).toSec() << std::endl;
+      tic2 = ros::WallTime::now();
       cv_bridge::CvImage image_msg;
       image_msg.encoding = sensor_msgs::image_encodings::BGR8;
       image_msg.image = drawing;
       image_msg.header = header_frame_;
+      std::cout << "t_other_e43: " << (ros::WallTime::now() - tic2).toSec() << std::endl;
+      tic2 = ros::WallTime::now();
       pub_tracks_video.publish(image_msg.toImageMsg(), cinfo);
+      std::cout << "t_other_e44: " << (ros::WallTime::now() - tic2).toSec() << std::endl;
     }
   }
+  std::cout << "t_other_e4: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
 
   t_other_ = (ros::WallTime::now() - tic).toSec();
 }
