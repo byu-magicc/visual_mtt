@@ -27,8 +27,11 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3)
 find_package(rransac 1.0.4 EXACT REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
-find_package(OpenCV 3 REQUIRED)
+find_package(OpenCV 4 REQUIRED)
 message(STATUS "OpenCV Version: ${OpenCV_VERSION} (${OpenCV_DIR})")
+if(OpenCV_VERSION VERSION_LESS 3.0.0)
+  message(FATAL_ERROR "OpenCV version must be at least 3")
+endif()
 
 option(VISUAL_MTT_CUDA "Enable CUDA support for the R-RANSAC visual measurement frontend" OFF)
 if(VISUAL_MTT_CUDA)

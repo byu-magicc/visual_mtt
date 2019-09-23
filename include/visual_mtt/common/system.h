@@ -5,6 +5,8 @@
 #include <Eigen/Dense>
 #include <rransac/tracker.h>
 
+#include <common/opencv_compat.h>
+
 namespace common {
 
 
