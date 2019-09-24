@@ -10,6 +10,10 @@ int main(int argc, char** argv)
 
   // Grab the install path of OpenCV
   int s = cv::getBuildInformation().find("Install path:");
+  if(s == -1)
+  {
+    s = cv::getBuildInformation().find("Install to:");
+  }
   int e = cv::getBuildInformation().find('\n', s);
   ROS_INFO(BLUE "OpenCV %s", cv::getBuildInformation().substr(s, e-s).c_str());
 #if OPENCV_CUDA
