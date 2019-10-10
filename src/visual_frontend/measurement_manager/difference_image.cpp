@@ -139,7 +139,7 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
 
   if (!size_known_)
   {
-    size_ = sys.sd_frame_.size();
+    size_ = sys.sd_frame_cuda_.size();
     corners_.clear();
     corners_.push_back(cv::Point2f(border_,             border_));
     corners_.push_back(cv::Point2f(size_.width-border_, border_));
@@ -150,6 +150,13 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
 
   // undisort the low resolution image
   cv::Mat frame_u;
+  // sys.sd_frame_.release();
+  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
+#if OPENCV_CUDA
+  // sys.GetSDFrame();
+  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
+  // sys.sd_frame_cuda_.download(sys.sd_frame_);
+#endif
   cv::undistort(sys.sd_frame_, frame_u, sys.sd_camera_matrix_, sys.dist_coeff_);
 
 #if OPENCV_CUDA

@@ -37,21 +37,34 @@ void System::SetResizeScale(const double resize_scale)
 void System::SetSDFrame()
 {
   // resize frame
+  #if OPENCV_CUDA
   if (resize_scale_ != 1)
   {
-  #if OPENCV_CUDA
-    cv::cuda::GpuMat hd_frame_cuda, sd_frame_cuda;
+    cv::cuda::GpuMat hd_frame_cuda;
     hd_frame_cuda.upload(hd_frame_);
-    cv::cuda::resize(hd_frame_cuda, sd_frame_cuda, sd_res_, 0, 0, cv::INTER_AREA);
-    sd_frame_cuda.download(sd_frame_);
-  #else
-    cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
-  #endif
+    cv::cuda::resize(hd_frame_cuda, sd_frame_cuda_, sd_res_, 0, 0, cv::INTER_AREA);
   }
   else {
     sd_frame_ = hd_frame_.clone();
   }
+  #else
+  if (resize_scale_ != 1)
+  {
+    cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
+  }
+  else {
+    sd_frame_ = hd_frame_.clone();
+  }
+  #endif
 
+
+}
+
+// --------------------------------------------------------------------------------------
+
+void System::GetSDFrame()
+{
+  sd_frame_cuda_.download(sd_frame_);
 }
 
 // --------------------------------------------------------------------------------------

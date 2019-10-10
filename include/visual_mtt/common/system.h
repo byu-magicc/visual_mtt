@@ -66,6 +66,12 @@ class System {
   void SetSDFrame();
 
   /**
+  * \breif Gets System::sd_frame_ from System::sd_frame_cuda_.
+  * @see System::sd_frame_cuda_
+  */
+  void GetSDFrame();
+
+  /**
   * \breif Sets System::hd_camera_matrix_ and System::dist_coeff_.
   * @param K is the camera matrix.
   * @param D is the distortion coefficients.
@@ -260,6 +266,7 @@ class System {
   // Images, camera info, and mask
   cv::Mat hd_frame_;                         /**< The unaltered image of the current frame. */ 
   cv::Mat sd_frame_;                         /**< Resized common::System::hd_frame_ image by common::System::resize_scale_. */
+  cv::cuda::GpuMat sd_frame_cuda_;           /**< Resized common::System::hd_frame_cuda image by common::System::resize_scale_. */
   cv::Size sd_res_;                          /**< The image size of common::System::sd_frame_. */
   cv::Mat hd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::hd_frame_. */
   cv::Mat sd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::sd_frame_. */

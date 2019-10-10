@@ -91,6 +91,16 @@ namespace visual_frontend {
     void CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
     
     /**
+    * \detail Wrapper methods to calculate LK optical flow and to detect features on GPU.
+    * This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
+    * @param gMono Grayscale image of common::System::sd_frame_cuda
+    * @param curr_features Features found in the current mono frame using opitical flow.
+    * @param valid Indicates which curr_features are valid.
+    * @see LKTTracker::FindCorrespondences(const common::System& sys)
+    */
+    void CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
+    
+    /**
     * \brief Uses OpenCV's good features to track to extract features from the image.
     * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
     * @param mono Grayscale image of common::System::sd_frame_
@@ -99,7 +109,18 @@ namespace visual_frontend {
     * @see LKTTracker::FindCorrespondences(const common::System& sys)
     */
     void DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
-    
+
+    /**
+    * \brief Uses OpenCV's good features to track to extract features from the image on the GPU.
+    * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
+    * @param gMono Grayscale image of common::System::sd_frame_cuda
+    * @param features Extracted features from the current mono frame
+    * @param mask The common::System::undistorted_region_mask_.
+    * @see LKTTracker::FindCorrespondences(const common::System& sys)
+    */
+    void DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
+
+
     /**
     * \brief Sets the maximum number of features the cv::Ptr<cvFeatureDetector_t> should find.
     * \detail This is called by LKTTracker::SetParameters(const visual_mtt::visual_frontendConfig& config)
@@ -128,6 +149,7 @@ namespace visual_frontend {
     // Optical Flow
     std::vector<cv::Mat> last_pyramids_;  /**< Optical Flow: Primarily for non-CUDA */
     cv::Mat last_mono_;                   /**< Optical Flow: Primarily for CUDA */
+    cv::cuda::GpuMat gLastMono;                   /**< Optical Flow: Primarily for CUDA */
     cv::Size pyramid_size_;    
     cv::TermCriteria kltTerm_;            /**< Optical Flow: Termination criteria */
   };

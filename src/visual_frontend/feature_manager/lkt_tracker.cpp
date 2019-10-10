@@ -97,8 +97,14 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   auto tic5 = ros::WallTime::now();
 
   // Convert to grayscale
-  cv::Mat mono;
-  cv::cvtColor(sys.sd_frame_, mono, CV_RGB2GRAY);
+  #if OPENCV_CUDA
+    cv::cuda::GpuMat mono_cuda;
+    cv::cuda::cvtColor(sys.sd_frame_cuda_, mono_cuda, CV_RGB2GRAY);
+
+  #else
+    cv::Mat mono;
+    cv::cvtColor(sys.sd_frame_, mono, CV_RGB2GRAY);
+  #endif
 
   std::cout << "t_features_2_1_1: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
   tic5 = ros::WallTime::now();
@@ -117,7 +123,12 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // Uses previous GFTT features to find next_features in current frame
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
-  CalculateFlow(mono, d_curr_features, valid,sys);
+  #if OPENCV_CUDA
+    CalculateFlow(mono_cuda, d_curr_features, valid, sys);
+  #else
+    CalculateFlow(mono, d_curr_features, valid, sys);
+  #endif
+  
 
   std::cout << "t_features_2_1_3: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
   tic5 = ros::WallTime::now();
@@ -136,9 +147,13 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   //
   // Find a new set of GFTT corners
   //
-
+  
   d_prev_features_.clear();
-  DetectFeatures(mono, d_prev_features_, sys.undistorted_region_mask_);
+  #if OPENCV_CUDA
+    DetectFeatures(mono_cuda, d_prev_features_, sys.undistorted_region_mask_);
+  #else
+    DetectFeatures(mono, d_prev_features_, sys.undistorted_region_mask_);
+  #endif
 
   std::cout << "t_features_2_1_5: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
   tic5 = ros::WallTime::now();
@@ -184,26 +199,42 @@ cv::Ptr<cvFeatureDetector_t> LKTTracker::InitGftt(int max_features)
 
 void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
-
-#if OPENCV_CUDA
-  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20);
-#endif
-
-#ifndef OPENCV_CUDA
   // Build optical flow pyramids for current image
   std::vector<cv::Mat> current_pyramids;
   cv::buildOpticalFlowPyramid(mono, current_pyramids, pyramid_size_, 2);
-#endif
 
   if (!first_image_)
   {
     try
     {
-#ifdef OPENCV_CUDA
-      // Upload images to GPU
-      cv::cuda::GpuMat gLastMono(last_mono_);
-      cv::cuda::GpuMat gMono(mono);
+      std::vector<float> err;
+      cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
+                               d_prev_features_, curr_features,
+                               valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
+    }
+    catch (...)
+    {
+      valid.clear();
+      ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"lkt tracker: pyramid mismatch, skipping this iteration");
+    }
+  }
+  else
+  {
+    first_image_ = false;
+  }
+  // save pyramids for the next iteration.
+  last_pyramids_ = current_pyramids;
 
+}
+
+void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
+{
+  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20);
+
+  if (!first_image_)
+  {
+    try
+    {
       // Upload previous features to GPU
       cv::cuda::GpuMat gPrevFeatures;
       common::gpu::upload(d_prev_features_, gPrevFeatures);
@@ -215,13 +246,6 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
       // Download from the GPU
       common::gpu::download(gNextFeatures, curr_features);
       common::gpu::download(gValid, valid);
-
-#else
-      std::vector<float> err;
-      cv::calcOpticalFlowPyrLK(last_pyramids_, current_pyramids,
-                               d_prev_features_, curr_features,
-                               valid, err, pyramid_size_, 3, kltTerm_, 0, 1e-4);
-#endif
     }
     catch (...)
     {
@@ -234,31 +258,15 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
     first_image_ = false;
   }
 
-#ifdef OPENCV_CUDA
   // save mono for the next iteration
-  last_mono_ = mono.clone();
-#else
-  // save pyramids for the next iteration.
-  last_pyramids_ = current_pyramids;
-#endif
+  gLastMono = gMono.clone();
 }
 
 // ---------------------------------------------------------------------------
 
 void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
-{
-  #ifdef OPENCV_CUDA
-
-    cv::cuda::GpuMat gMono(mono);
-    cv::cuda::GpuMat gMask(mask);
-    cv::cuda::GpuMat gFeatures;
-    gftt_detector_->detect(gMono, gFeatures, gMask);
-
-    // Download
-    common::gpu::download(gFeatures, features);
-
-  #else
-
+{   
+  #ifndef OPENCV_CUDA
     std::vector<cv::KeyPoint> keypoints;
     gftt_detector_->detect(mono, keypoints, mask);
 
@@ -266,8 +274,34 @@ void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& f
     features.resize(keypoints.size());
     for (auto&& key : keypoints)
       features.push_back(key.pt);
-
   #endif
+}
+
+void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
+{
+    auto tic6 = ros::WallTime::now();
+    std::cout << "t_features_2_1_5_1: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
+    tic6 = ros::WallTime::now();
+
+    cv::cuda::GpuMat gMask(mask);
+
+    std::cout << "t_features_2_1_5_2: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
+    tic6 = ros::WallTime::now();
+
+    cv::cuda::GpuMat gFeatures;
+
+    std::cout << "t_features_2_1_5_3: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
+    tic6 = ros::WallTime::now();
+
+    gftt_detector_->detect(gMono, gFeatures, gMask);
+
+    std::cout << "t_features_2_1_5_4: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
+    tic6 = ros::WallTime::now();
+
+    // Download
+    common::gpu::download(gFeatures, features);
+
+    std::cout << "t_features_2_1_5_5: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
 }
 
 // ---------------------------------------------------------------------------
