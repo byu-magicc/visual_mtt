@@ -6,8 +6,8 @@
 
 # general processing
 visual_frontend/frame_stride: 1
-visual_frontend/resize_scale: 0.5
-visual_frontend/published_video_scale: 0.25
+visual_frontend/resize_scale: 0.999999
+visual_frontend/published_video_scale: 0.5
 visual_frontend/published_frame_stride: 1.0
 visual_frontend/text_scale: 1.0
 
@@ -19,7 +19,7 @@ visual_frontend/lkt_tracker_max_features:      600
 visual_frontend/feature_motion_enabled: true
 visual_frontend/feature_motion_sigmaR_pos: 0.007
 visual_frontend/feature_motion_sigmaR_vel: 0.00014
-visual_frontend/minimum_feature_velocity: 0.0006
+visual_frontend/minimum_feature_velocity: 0.0003
 visual_frontend/maximum_feature_velocity: 0.01
 
 # difference image
@@ -82,7 +82,7 @@ rransac/tau_ypos_abs_diff: 0.07
 
 # model pruning parameters
 rransac/surveillance_region: 0.99
-rransac/tau_CMD_prune: 10
+rransac/tau_CMD_prune: 20
 
 # track (i.e., good model) parameters
 rransac/tau_rho: 0.6
