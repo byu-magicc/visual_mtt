@@ -180,6 +180,11 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
 
+  if (sys_.tuning_)
+  {
+    sys_.sd_frame_cuda_.download(sys_.sd_frame_);
+  }
+
   tic = ros::WallTime::now();
   feature_manager_.FindCorrespondences(sys_);
   double t_features = (ros::WallTime::now() - tic).toSec();
