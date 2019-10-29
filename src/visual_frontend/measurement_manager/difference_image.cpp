@@ -139,29 +139,43 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
 
   if (!size_known_)
   {
+#if OPENCV_CUDA
     size_ = sys.sd_frame_cuda_.size();
+#else
+    size_ = sys.sd_frame_.size();
+#endif
     corners_.clear();
     corners_.push_back(cv::Point2f(border_,             border_));
     corners_.push_back(cv::Point2f(size_.width-border_, border_));
     corners_.push_back(cv::Point2f(size_.width-border_, size_.height-border_));
     corners_.push_back(cv::Point2f(border_,             size_.height-border_));
     size_known_ = true;
+#if OPENCV_CUDA
+  cv::Mat map1, map2; //OutputArray map1 //OutputArray map2 
+  cv::initUndistortRectifyMap(sys.sd_camera_matrix_, sys.dist_coeff_,
+                              cv::Mat(), sys.sd_camera_matrix_, size_,
+                              CV_32F, map1, map2);
+  undistort_map_x_.upload(map1);
+  undistort_map_y_.upload(map2);
+#endif
   }
 
   // undisort the low resolution image
   cv::Mat frame_u;
   // sys.sd_frame_.release();
   // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
-#if OPENCV_CUDA
-  // sys.GetSDFrame();
-  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
-  // sys.sd_frame_cuda_.download(sys.sd_frame_);
-#endif
-  cv::undistort(sys.sd_frame_, frame_u, sys.sd_camera_matrix_, sys.dist_coeff_);
 
 #if OPENCV_CUDA
-  frame_u_.upload(frame_u);
+  cv::cuda::remap(sys.sd_frame_cuda_, frame_u_, undistort_map_x_, undistort_map_y_, cv::INTER_LINEAR);
+  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
+  // sys.sd_frame_cuda_.download(sys.sd_frame_);
 #else
+  cv::undistort(sys.sd_frame_, frame_u, sys.sd_camera_matrix_, sys.dist_coeff_);
+#endif
+
+#if !(OPENCV_CUDA)
+//   frame_u_.upload(frame_u);
+// #else
   frame_u_ = frame_u;
 #endif
 

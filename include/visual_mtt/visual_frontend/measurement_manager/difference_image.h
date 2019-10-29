@@ -109,6 +109,8 @@ namespace visual_frontend {
     cv::cuda::GpuMat frame_normalized_;  /**< Normalized DifferenceImage::frame_normalized_. */
     cv::cuda::GpuMat frame_threshold_;   /**< Threshold DifferenceImage::frame_blur_ by DifferenceImage::threshold_ */
     cv::cuda::GpuMat frame_open_;        /**< Erroded and Dilated DifferenceImage::frame_threshold_. */
+    cv::cuda::GpuMat undistort_map_x_;
+    cv::cuda::GpuMat undistort_map_y_;
 #else
     // saved undistorted frames
     cv::Mat frame_u_;

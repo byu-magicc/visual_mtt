@@ -66,12 +66,6 @@ class System {
   void SetSDFrame();
 
   /**
-  * \breif Gets System::sd_frame_ from System::sd_frame_cuda_.
-  * @see System::sd_frame_cuda_
-  */
-  void GetSDFrame();
-
-  /**
   * \breif Sets System::hd_camera_matrix_ and System::dist_coeff_.
   * @param K is the camera matrix.
   * @param D is the distortion coefficients.
