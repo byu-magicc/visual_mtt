@@ -107,8 +107,8 @@ bool DarknetPlugin::GenerateMeasurements(const common::System& sys)
 {
 
   // Send the next image
-  std::cout << "frame empty: " << sys.hd_frame_.empty() << " : " << sys.hd_frame_.size() << std::endl;
-  yolo.ImageCallback(sys.hd_frame_,sequence_);
+  std::cout << "frame empty: " << sys.GetFrame(common::HD).empty() << " : " << sys.GetFrame(common::HD).size() << std::endl;
+  yolo.ImageCallback(sys.GetFrame(common::HD),sequence_);
   sequence_++;
 
   meas_pos_.clear();

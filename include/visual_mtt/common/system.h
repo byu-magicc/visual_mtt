@@ -27,6 +27,14 @@ struct Measurements {
 
 };
 
+const int num_frame_types_ = 5;
+typedef std::array<bool, num_frame_types_> FrameRefVector;
+
+enum frame_type_ {HD, SD, MONO, UNDIST, HSV};
+#if OPENCV_CUDA
+enum frame_type_cuda_ {HD_CUDA, SD_CUDA, MONO_CUDA, UNDIST_CUDA, HSV_CUDA};
+#endif
+
 /** \class System
  * \brief Handles all the data needed for the different managers, plugins, visual_frontend::VisualFrontend, and RRANSAC.
  * \detail Handles all the data needed for the different managers and plugins and provides basic methods to 
@@ -56,14 +64,6 @@ class System {
   * @see System::resize_scale_
   */
   void SetResizeScale(const double resize_scale);
-
-  /**
-  * \breif Sets System::sd_frame_.
-  * Resizes common::System::hd_frame_ System::resize_scale_.
-  * @see System::resize_scale_
-  * @see System::hd_frame_
-  */
-  void SetSDFrame();
 
   /**
   * \breif Sets System::hd_camera_matrix_ and System::dist_coeff_.
@@ -234,6 +234,20 @@ class System {
   */
   void SetMeasurementFlag(const bool& good_measurements);
 
+  cv::Mat GetFrame(frame_type_ frame_type) const;
+
+  cv::cuda::GpuMat GetCUDAFrame(frame_type_cuda_ frame_type) const;
+  
+  void SetFrames();
+
+  void SetCUDAFrames();
+
+  void RegisterPluginFrames(FrameRefVector& plugin_frames);
+
+  void RegisterPluginCUDAFrames(FrameRefVector& plugin_frames_cuda);
+
+  void ResetFrames();
+
 /**< */
 
   // Feature Manager
@@ -260,7 +274,9 @@ class System {
   // Images, camera info, and mask
   cv::Mat hd_frame_;                         /**< The unaltered image of the current frame. */ 
   cv::Mat sd_frame_;                         /**< Resized common::System::hd_frame_ image by common::System::resize_scale_. */
-  cv::cuda::GpuMat sd_frame_cuda_;           /**< Resized common::System::hd_frame_cuda image by common::System::resize_scale_. */
+  cv::Mat mono_frame_;
+  cv::Mat undist_frame_;
+  cv::Mat hsv_frame_;
   cv::Size sd_res_;                          /**< The image size of common::System::sd_frame_. */
   cv::Mat hd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::hd_frame_. */
   cv::Mat sd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::sd_frame_. */
@@ -269,6 +285,22 @@ class System {
                                                   image is undistorted, parts of the image's border are removed if they extend beyond the original
                                                   size of the image. This mask indicates the region of the distorted image that will not be removed
                                                   when undistorted. */  
+  FrameRefVector frames_required_;
+  FrameRefVector frame_exists_;
+
+#if OPENCV_CUDA
+  cv::cuda::GpuMat sd_frame_cuda_;           /**< Resized common::System::sd_frame_cuda image by common::System::resize_scale_. */
+  cv::cuda::GpuMat hd_frame_cuda_;           /**< Resized common::System::hd_frame_cuda image by common::System::resize_scale_. */
+  cv::cuda::GpuMat mono_frame_cuda_;
+  cv::cuda::GpuMat undist_frame_cuda_;
+  cv::cuda::GpuMat hsv_frame_cuda_;
+  cv::cuda::GpuMat undistort_map_x_;
+  cv::cuda::GpuMat undistort_map_y_;
+  int num_cuda_frame_types_ = 5;
+  FrameRefVector cuda_frames_required_;
+  FrameRefVector cuda_frame_exists_;
+#endif
+
   double resize_scale_;                      /**< common::System::hd_frame_ is resized by this parameter to make common::System::sd_frame_. */ 
   bool cam_info_received_;                   /**< Flag used to indicate if camera information has been recieved. The camera information is used
                                                   to create common::System::hd_camera_matrix_ and common::System::dist_coeff_*/
@@ -276,7 +308,7 @@ class System {
   bool tuning_;                              /**< Flag used to indicate if the plugins should generate images to help with debuggin or tunning. */
 
   int message_output_period_;                   /**< Print a ROS message at most once per "text_output_period_" */
-
+  
   private:
 
 };

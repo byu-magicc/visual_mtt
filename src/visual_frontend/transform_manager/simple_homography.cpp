@@ -33,18 +33,7 @@ void SimpleHomography::SetParameters(const visual_mtt::visual_frontendConfig& co
 
 void SimpleHomography::DrawTransform(const common::System& sys){
 
-  cv::Size frame_size = sys.sd_frame_.size();
-
-  // undistort the low resolution image
-  cv::Mat frame_u;
-  cv::undistort(sys.sd_frame_, frame_u, sys.sd_camera_matrix_, sys.dist_coeff_);
-
-#if OPENCV_CUDA
-  frame_u_.upload(frame_u);
-#else
-  frame_u_ = frame_u;
-#endif
-
+  cv::Size frame_size = sys.GetFrame(common::SD).size();
 
   if (!frame_u_last_.empty())
   {
@@ -61,7 +50,7 @@ void SimpleHomography::DrawTransform(const common::System& sys){
     cv::cuda::warpPerspective(frame_u_last_, frame_u_last_warped, transform_pixel, frame_size);
 
     // raw difference
-    cv::cuda::absdiff(frame_u_, frame_u_last_warped, frame_difference_);
+    cv::cuda::absdiff(sys.GetCUDAFrame(common::UNDIST_CUDA), frame_u_last_warped, frame_difference_);
 
   #else
 
@@ -69,7 +58,7 @@ void SimpleHomography::DrawTransform(const common::System& sys){
     cv::warpPerspective(frame_u_last_, frame_u_last_, transform_pixel, frame_size);
 
     // raw difference
-    cv::absdiff(frame_u_, frame_u_last_, frame_difference_);
+    cv::absdiff(sys.GetFrame(common::UNDIST), frame_u_last_, frame_difference_);
 
   #endif
 
@@ -84,7 +73,11 @@ void SimpleHomography::DrawTransform(const common::System& sys){
   drawn_ = true;
 
   // bump undistorted image (save, overwriting the old one)
-  frame_u_last_ = frame_u_.clone();
+#if OPENCV_CUDA
+  frame_u_last_ = sys.GetCUDAFrame(common::UNDIST_CUDA).clone();
+#else
+  frame_u_last_ = sys.GetFrame(common::UNDIST)
+#endif
 
 
 }

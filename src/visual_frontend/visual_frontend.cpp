@@ -66,6 +66,33 @@ VisualFrontend::VisualFrontend()
 
   // establish librransac good model elevation event callback
   params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
+  
+  common::FrameRefVector testvec;
+  testvec[0] = true;
+  testvec[1] = false;
+  testvec[2] = false;
+  testvec[3] = false;
+  testvec[4] = false;
+
+  common::FrameRefVector vec2;
+  vec2[0] = false;
+  vec2[1] = false;
+  vec2[2] = false;
+  vec2[3] = false;
+  vec2[4] = false;
+
+  common::FrameRefVector cudatestvec;
+  cudatestvec[0] = true;
+  cudatestvec[1] = true;
+  cudatestvec[2] = true;
+  cudatestvec[3] = true;
+  cudatestvec[4] = true;
+
+  sys_.RegisterPluginFrames(testvec);
+  sys_.RegisterPluginFrames(vec2);
+#if OPENCV_CUDA
+  sys_.RegisterPluginCUDAFrames(cudatestvec);
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -149,7 +176,10 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Initial image processing
   //
 
-  sys_.SetSDFrame(); 
+#if OPENCV_CUDA
+  sys_.SetCUDAFrames();
+#endif
+  sys_.SetFrames();
 
   std::cout << "t_other_b5a: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
   tic1 = ros::WallTime::now();
@@ -179,11 +209,6 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   /////////////////////////////////////////////////////
   // Feature Manager: LKT Tracker, ORB-BN, etc
   //
-
-  if (sys_.tuning_)
-  {
-    sys_.sd_frame_cuda_.download(sys_.sd_frame_);
-  }
 
   tic = ros::WallTime::now();
   feature_manager_.FindCorrespondences(sys_);
@@ -287,6 +312,8 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   std::cout << "t_other_e4: " << (ros::WallTime::now() - tic1).toSec() << std::endl;
 
   t_other_ = (ros::WallTime::now() - tic).toSec();
+
+  sys_.ResetFrames();
 }
 
 // ----------------------------------------------------------------------------
@@ -477,10 +504,10 @@ void VisualFrontend::PublishTransform()
 cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& tracks)
 {
 
-  if (sys_.hd_frame_.empty())
-    return sys_.hd_frame_;
+  if (sys_.GetFrame(common::HD).empty())
+    return sys_.GetFrame(common::HD);
 
-  cv::Mat draw = sys_.hd_frame_.clone();
+  cv::Mat draw = sys_.GetFrame(common::HD).clone();
 
   static int max_num_tracks = 0;
 

@@ -68,7 +68,7 @@ void LKTTracker::DrawFeatures(const common::System& sys)
   int draw_num = 50;
   int inc = (draw_num < d_prev_matched_.size()) ? round(d_prev_matched_.size()/draw_num) : 1;
 
-  cv::Mat draw = sys.sd_frame_.clone();
+  cv::Mat draw = (sys.GetFrame(common::SD)).clone();
 
   float scale = 1.2;
 
@@ -96,16 +96,6 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
 
   auto tic5 = ros::WallTime::now();
 
-  // Convert to grayscale
-  #if OPENCV_CUDA
-    cv::cuda::GpuMat mono_cuda;
-    cv::cuda::cvtColor(sys.sd_frame_cuda_, mono_cuda, CV_RGB2GRAY);
-
-  #else
-    cv::Mat mono;
-    cv::cvtColor(sys.sd_frame_, mono, CV_RGB2GRAY);
-  #endif
-
   std::cout << "t_features_2_1_1: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
   tic5 = ros::WallTime::now();
 
@@ -124,9 +114,9 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
   #if OPENCV_CUDA
-    CalculateFlow(mono_cuda, d_curr_features, valid, sys);
+    CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
   #else
-    CalculateFlow(mono, d_curr_features, valid, sys);
+    CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
   #endif
   
 
@@ -150,9 +140,9 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   
   d_prev_features_.clear();
   #if OPENCV_CUDA
-    DetectFeatures(mono_cuda, d_prev_features_, sys.undistorted_region_mask_);
+    DetectFeatures(sys.GetCUDAFrame(common::MONO_CUDA), d_prev_features_, sys.undistorted_region_mask_);
   #else
-    DetectFeatures(mono, d_prev_features_, sys.undistorted_region_mask_);
+    DetectFeatures(sys.GetFrame(common::MONO), d_prev_features_, sys.undistorted_region_mask_);
   #endif
 
   std::cout << "t_features_2_1_5: " << (ros::WallTime::now() - tic5).toSec() << std::endl;

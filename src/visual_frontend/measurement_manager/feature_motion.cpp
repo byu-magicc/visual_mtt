@@ -45,7 +45,7 @@ void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& confi
 
 void FeatureMotion::DrawMeasurements(const common::System& sys)
 {
-  cv::Mat draw = sys.sd_frame_.clone();
+  cv::Mat draw = sys.GetFrame(common::SD).clone();
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.

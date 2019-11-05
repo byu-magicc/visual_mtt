@@ -101,7 +101,6 @@ namespace visual_frontend {
 
 #if OPENCV_CUDA
     // saved undistorted frames
-    cv::cuda::GpuMat frame_u_;           /**< Current undistorted common::System::sd_frame_ */
     cv::cuda::GpuMat frame_u_last_;      /**< Previous undistorted common::System::sd_frame_ */
     // intermediate steps
     cv::cuda::GpuMat frame_difference_;  /**< Difference image between DifferenceImage::frame_u_ and  DifferenceImage::frame_u_last_*/
@@ -109,11 +108,8 @@ namespace visual_frontend {
     cv::cuda::GpuMat frame_normalized_;  /**< Normalized DifferenceImage::frame_normalized_. */
     cv::cuda::GpuMat frame_threshold_;   /**< Threshold DifferenceImage::frame_blur_ by DifferenceImage::threshold_ */
     cv::cuda::GpuMat frame_open_;        /**< Erroded and Dilated DifferenceImage::frame_threshold_. */
-    cv::cuda::GpuMat undistort_map_x_;
-    cv::cuda::GpuMat undistort_map_y_;
 #else
     // saved undistorted frames
-    cv::Mat frame_u_;
     cv::Mat frame_u_last_;
     // intermediate steps
     cv::Mat frame_difference_;

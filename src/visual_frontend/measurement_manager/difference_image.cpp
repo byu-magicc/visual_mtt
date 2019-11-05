@@ -99,7 +99,7 @@ void DifferenceImage::DrawMeasurements(const common::System& sys)
     cv::imshow("(7) filtered contours", frame_points_);
   }
 
-  cv::Mat draw = sys.sd_frame_.clone();
+  cv::Mat draw = sys.GetFrame(common::SD).clone();
 
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
@@ -140,9 +140,9 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
   if (!size_known_)
   {
 #if OPENCV_CUDA
-    size_ = sys.sd_frame_cuda_.size();
+    size_ = sys.GetCUDAFrame(common::SD_CUDA).size();
 #else
-    size_ = sys.sd_frame_.size();
+    size_ = sys.GetFrame(common::SD).size();
 #endif
     corners_.clear();
     corners_.push_back(cv::Point2f(border_,             border_));
@@ -150,34 +150,7 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
     corners_.push_back(cv::Point2f(size_.width-border_, size_.height-border_));
     corners_.push_back(cv::Point2f(border_,             size_.height-border_));
     size_known_ = true;
-#if OPENCV_CUDA
-  cv::Mat map1, map2; //OutputArray map1 //OutputArray map2 
-  cv::initUndistortRectifyMap(sys.sd_camera_matrix_, sys.dist_coeff_,
-                              cv::Mat(), sys.sd_camera_matrix_, size_,
-                              CV_32F, map1, map2);
-  undistort_map_x_.upload(map1);
-  undistort_map_y_.upload(map2);
-#endif
   }
-
-  // undisort the low resolution image
-  cv::Mat frame_u;
-  // sys.sd_frame_.release();
-  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
-
-#if OPENCV_CUDA
-  cv::cuda::remap(sys.sd_frame_cuda_, frame_u_, undistort_map_x_, undistort_map_y_, cv::INTER_LINEAR);
-  // std::cout << "FRAME SIZE: " << sys.sd_frame_.size() << std::endl;
-  // sys.sd_frame_cuda_.download(sys.sd_frame_);
-#else
-  cv::undistort(sys.sd_frame_, frame_u, sys.sd_camera_matrix_, sys.dist_coeff_);
-#endif
-
-#if !(OPENCV_CUDA)
-//   frame_u_.upload(frame_u);
-// #else
-  frame_u_ = frame_u;
-#endif
 
   if (!first_image_ && sys.good_transform_)
   {
@@ -192,7 +165,7 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
     cv::cuda::warpPerspective(frame_u_last_, frame_u_last_warped, transform_pixel, size_);
 
     // raw difference
-    cv::cuda::absdiff(frame_u_, frame_u_last_warped, frame_difference_);
+    cv::cuda::absdiff(sys.GetCUDAFrame(common::UNDIST_CUDA), frame_u_last_warped, frame_difference_);
 
     // mask the artifact edges
     MaskEdges(frame_difference_, frame_blur_, transform_pixel);
@@ -219,7 +192,7 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
     cv::warpPerspective(frame_u_last_, frame_u_last_, transform_pixel, size_);
 
     // raw difference
-    cv::absdiff(frame_u_, frame_u_last_, frame_difference_);
+    cv::absdiff(sys.GetFrame(common::UNDIST), frame_u_last_, frame_difference_);
 
     // mask the artifact edges
     MaskEdges(frame_difference_, frame_blur_, transform_pixel);
@@ -276,7 +249,11 @@ bool DifferenceImage::GenerateMeasurements(const common::System& sys)
   }
 
   // bump undistorted image (save, overwriting the old one)
-  frame_u_last_ = frame_u_.clone();
+#if OPENCV_CUDA
+  frame_u_last_ = sys.GetCUDAFrame(common::UNDIST_CUDA).clone();
+#else
+  frame_u_last_ = sys.GetFrame(common::UNDIST).clone();
+#endif
 
   if (meas_pos_.size() > 0)
     good_measurements = true;
