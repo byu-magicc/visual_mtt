@@ -49,6 +49,7 @@ VisualFrontend::VisualFrontend()
 
   if (sys_.tuning_)
     ROS_WARN("tuning mode enabled");
+    sys_.RegisterFrame(common::SD);
 
   /////////////////////////////////////////////////////////////////////////
   // Setup ROS topics and dynamic reconfigures

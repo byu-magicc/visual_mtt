@@ -470,6 +470,54 @@ void System::RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda)
   }
 }
 
+void System::RegisterFrame(frame_type_ frame_type)
+{
+  // register requested frame type
+  frames_required_[frame_type] = true;
+  switch(frame_type)
+  {
+    case HD:
+      std::cout << "IMAGE REQUESTED: HD" << std::endl;
+      break;
+    case SD:
+      std::cout << "IMAGE REQUESTED: SD" << std::endl;
+      break;
+    case MONO:
+      std::cout << "IMAGE REQUESTED: MONO" << std::endl;
+      break;
+    case UNDIST:
+      std::cout << "IMAGE REQUESTED: UNDIST" << std::endl;
+      break;
+    case HSV:
+      std::cout << "IMAGE REQUESTED: HSV" << std::endl;
+      break;
+  }
+}
+
+void System::RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda)
+{
+  // register requested CUDA frame type
+  cuda_frames_required_[frame_type_cuda] = true;
+  switch(frame_type_cuda)
+  {
+    case HD_CUDA:
+      std::cout << "CUDA IMAGE REQUESTED: HD_CUDA" << std::endl;
+      break;
+    case SD_CUDA:
+      std::cout << "CUDA IMAGE REQUESTED: SD_CUDA" << std::endl;
+      break;
+    case MONO_CUDA:
+      std::cout << "CUDA IMAGE REQUESTED: MONO_CUDA" << std::endl;
+      break;
+    case UNDIST_CUDA:
+      std::cout << "CUDA IMAGE REQUESTED: UNDIST_CUDA" << std::endl;
+      break;
+    case HSV_CUDA:
+      std::cout << "CUDA IMAGE REQUESTED: HSV_CUDA" << std::endl;
+      break;
+  }
+}
+
 void System::ResetFrames()
 {
   for(int i = 0; i < num_frame_types_; i++) 

@@ -326,6 +326,24 @@ class System {
 
   /**
   * 
+  * \detail This method is called by visual_frontend::VisualFrontend to add 
+  * the provided frame type to common::System::frames_required_
+  * @param frame_type The requested frame type.
+  * @see common::System::frames_required_
+  */
+  void RegisterFrame(frame_type_ frame_type);
+
+  /**
+  * 
+  * \detail This method is called by visual_frontend::VisualFrontend to add 
+  * the provided frame type to common::System::cuda_frames_required_
+  * @param frame_type_cuda_ The requested CUDA frame type.
+  * @see common::System::cuda_frames_required_
+  */
+  void RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda);
+
+  /**
+  * 
   * \detail Resets all flags in common::System::frame_exists_ and common::System::cuda_frame_exists_ to false
   * to indicate to system that frames must be updated at next iteration before requesting frames.
   * @see common::System::frame_exists_
