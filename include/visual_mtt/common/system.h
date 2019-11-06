@@ -27,13 +27,15 @@ struct Measurements {
 
 };
 
-const int num_frame_types_ = 5;
-typedef std::array<bool, num_frame_types_> FrameRefVector;
-
-enum frame_type_ {HD, SD, MONO, UNDIST, HSV};
+const int num_frame_types_ = 5;               /**< The total number of possible frames types available for request. */
+enum frame_type_ {HD, SD, MONO, UNDIST, HSV}; /**< All frames type names available for request. */
 #if OPENCV_CUDA
-enum frame_type_cuda_ {HD_CUDA, SD_CUDA, MONO_CUDA, UNDIST_CUDA, HSV_CUDA};
+const int num_cuda_frame_types_ = 5;                                        /**< The total number of possible CUDA frames types available for request. */
+enum frame_type_cuda_ {HD_CUDA, SD_CUDA, MONO_CUDA, UNDIST_CUDA, HSV_CUDA}; /**< All CUDA frames type names available for request. */
 #endif
+
+typedef std::array<bool, num_frame_types_> FrameRefVector;          /**< Data type defining boolean references to associated frame types. Used for frame requests and existence checks. */
+typedef std::array<bool, num_cuda_frame_types_> CUDAFrameRefVector; /**< Data type defining boolean references to associated CUDA frame types. Used for frame requests and existence checks. */
 
 /** \class System
  * \brief Handles all the data needed for the different managers, plugins, visual_frontend::VisualFrontend, and RRANSAC.
@@ -234,18 +236,101 @@ class System {
   */
   void SetMeasurementFlag(const bool& good_measurements);
 
+  /**
+  * 
+  * \detail This method acts as a generic getter function for any available frame type 
+  * requested by the frame_type argument. Returns error message if frame has not been 
+  * created at current iteration as indicated by common::System::frame_exists_.
+  * @param frame_type The requested frame type.
+  * @see common::frame_type_
+  * @see common::System::frame_exists_
+  */
   cv::Mat GetFrame(frame_type_ frame_type) const;
 
-  cv::cuda::GpuMat GetCUDAFrame(frame_type_cuda_ frame_type) const;
+  /**
+  * 
+  * \detail This method acts as a generic getter function for any available CUDA frame 
+  * type requested by the frame_type_cuda argument. Returns error message if frame has 
+  * not been created at current iteration as indicated by common::System::cuda_frame_exists_.
+  * @param frame_type_cuda_ The requested CUDA frame type.
+  * @see common::frame_type_cuda_
+  * @see common::System::cuda_frame_exists_
+  */
+  cv::cuda::GpuMat GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const;
   
+  /**
+  * 
+  * \detail This method is called in the visual_frontend::VisualFrontend constructor to generate/update
+  * all frames defined as required by common::System::frames_required_. The method will
+  * set appropriate frame flags on common::System::frame_exists_ to indicate frame is 
+  * available for access by common::System::GetFrame(frame_type_ frame_type).
+  * @see common::System::frames_required_
+  * @see common::System::frame_exists_
+  * @see common::System::GetFrame(frame_type_ frame_type)
+  * @see visual_frontend::VisualFrontend()
+  */
   void SetFrames();
 
+  /**
+  * 
+  * \detail This method is called in the visual_frontend::VisualFrontend constructor to generate/update
+  * all frames defined as required by common::System::cuda_frames_required_. The method will
+  * set appropriate frame flags on common::System::cuda_frame_exists_ to indicate frame is 
+  * available for access by common::System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda).
+  * @see common::System::cuda_frames_required_
+  * @see common::System::cuda_frame_exists_
+  * @see common::System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda)
+  * @see visual_frontend::VisualFrontend()
+  */
   void SetCUDAFrames();
 
+  /**
+  * 
+  * \detail This method is called by visual_frontend::MeasurementManager, 
+  * visual_frontend::TransformManager, and visual_frontend::FeatureManager to add 
+  * visual_frontend::MeasurementManager::frames_required_, 
+  * visual_frontend::TransformManager::frames_required_, and
+  * visual_frontend::FeatureManager::frames_required_ to common::System::frames_required_
+  * indicating to common::System::SetFrames() which frames should be created at each iteration.
+  * @param FrameRefVector& The requested frame set to be registered into common::System::frames_required_.
+  * @see visual_frontend::MeasurementManager::frames_required_
+  * @see visual_frontend::TransformManager::frames_required_
+  * @see visual_frontend::FeatureManager::frames_required_
+  * @see common::System::frames_required_
+  * @see common::System::SetFrames()
+  * @see visual_frontend::MeasurementManager
+  * @see visual_frontend::TransformManager
+  * @see visual_frontend::FeatureManager
+  */
   void RegisterPluginFrames(FrameRefVector& plugin_frames);
 
-  void RegisterPluginCUDAFrames(FrameRefVector& plugin_frames_cuda);
+  /**
+  * 
+  * \detail This method is called by visual_frontend::MeasurementManager, 
+  * visual_frontend::TransformManager, and visual_frontend::FeatureManager to add 
+  * visual_frontend::MeasurementManager::cuda_frames_required_, 
+  * visual_frontend::TransformManager::cuda_frames_required_, and
+  * visual_frontend::FeatureManager::cuda_frames_required_ to common::System::cuda_frames_required_
+  * indicating to common::System::SetCUDAFrames() which frames should be created at each iteration.
+  * @param FrameRefVector& The requested frame set to be registered into common::System::cuda_frames_required_.
+  * @see visual_frontend::MeasurementManager::cuda_frames_required_
+  * @see visual_frontend::TransformManager::cuda_frames_required_
+  * @see visual_frontend::FeatureManager::cuda_frames_required_
+  * @see common::System::cuda_frames_required_
+  * @see common::System::SetCUDAFrames()
+  * @see visual_frontend::MeasurementManager
+  * @see visual_frontend::TransformManager
+  * @see visual_frontend::FeatureManager
+  */
+  void RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda);
 
+  /**
+  * 
+  * \detail Resets all flags in common::System::frame_exists_ and common::System::cuda_frame_exists_ to false
+  * to indicate to system that frames must be updated at next iteration before requesting frames.
+  * @see common::System::frame_exists_
+  * @see common::System::cuda_frame_exists_
+  */
   void ResetFrames();
 
 /**< */
@@ -274,9 +359,9 @@ class System {
   // Images, camera info, and mask
   cv::Mat hd_frame_;                         /**< The unaltered image of the current frame. */ 
   cv::Mat sd_frame_;                         /**< Resized common::System::hd_frame_ image by common::System::resize_scale_. */
-  cv::Mat mono_frame_;
-  cv::Mat undist_frame_;
-  cv::Mat hsv_frame_;
+  cv::Mat mono_frame_;                       /**< Converted common::System::sd_frame_ image as greyscale image using CV_RGB2GRAY. */
+  cv::Mat undist_frame_;                     /**< Converted common::System::sd_frame_ image as undistorted image using cv::undistort. */
+  cv::Mat hsv_frame_;                        /**< Converted common::System::sd_frame_ image as HSV image using CV_BGR2HSV. */
   cv::Size sd_res_;                          /**< The image size of common::System::sd_frame_. */
   cv::Mat hd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::hd_frame_. */
   cv::Mat sd_camera_matrix_;                 /**< The intrinsic camera parameter's of common::System::sd_frame_. */
@@ -285,20 +370,21 @@ class System {
                                                   image is undistorted, parts of the image's border are removed if they extend beyond the original
                                                   size of the image. This mask indicates the region of the distorted image that will not be removed
                                                   when undistorted. */  
-  FrameRefVector frames_required_;
-  FrameRefVector frame_exists_;
+  FrameRefVector frames_required_;           /**< Boolean array defining which frames are required during runtime. */
+  FrameRefVector default_frames_required_;   /**< Boolean array defining which frames are required by default during runtime. */
+  FrameRefVector frame_exists_;              /**< Boolean array defining which frames currently exist during a given iteration. */
 
 #if OPENCV_CUDA
-  cv::cuda::GpuMat sd_frame_cuda_;           /**< Resized common::System::sd_frame_cuda image by common::System::resize_scale_. */
-  cv::cuda::GpuMat hd_frame_cuda_;           /**< Resized common::System::hd_frame_cuda image by common::System::resize_scale_. */
-  cv::cuda::GpuMat mono_frame_cuda_;
-  cv::cuda::GpuMat undist_frame_cuda_;
-  cv::cuda::GpuMat hsv_frame_cuda_;
-  cv::cuda::GpuMat undistort_map_x_;
-  cv::cuda::GpuMat undistort_map_y_;
-  int num_cuda_frame_types_ = 5;
-  FrameRefVector cuda_frames_required_;
-  FrameRefVector cuda_frame_exists_;
+  cv::cuda::GpuMat hd_frame_cuda_;           /**< The unaltered image of the current frame uploaded to the GPU. */
+  cv::cuda::GpuMat sd_frame_cuda_;           /**< Resized common::System::hd_frame_cuda image by common::System::resize_scale_. */
+  cv::cuda::GpuMat mono_frame_cuda_;         /**< Converted common::System::sd_frame_cuda_ image as greyscale image using CV_RGB2GRAY. */
+  cv::cuda::GpuMat undist_frame_cuda_;       /**< Converted common::System::sd_frame_cuda_ image as undistorted image using cv::undistort. */
+  cv::cuda::GpuMat hsv_frame_cuda_;          /**< Converted common::System::sd_frame_cuda_ image as HSV image using CV_BGR2HSV. */
+  cv::cuda::GpuMat undistort_map_x_;         /**< Distortion map for x pixel coordinates used for producing undistorted CUDA frame. */
+  cv::cuda::GpuMat undistort_map_y_;         /**< Distortion map for y pixel coordinates used for producing undistorted CUDA frame. */
+  CUDAFrameRefVector cuda_frames_required_;  /**< Boolean array defining which CUDA frames are required during runtime. */
+  CUDAFrameRefVector default_cuda_frames_required_;  /**< Boolean array defining which CUDA frames are required by default during runtime. */
+  CUDAFrameRefVector cuda_frame_exists_;     /**< Boolean array defining which CUDA frames currently exist during a given iteration. */
 #endif
 
   double resize_scale_;                      /**< common::System::hd_frame_ is resized by this parameter to make common::System::sd_frame_. */ 
@@ -307,7 +393,7 @@ class System {
   
   bool tuning_;                              /**< Flag used to indicate if the plugins should generate images to help with debuggin or tunning. */
 
-  int message_output_period_;                   /**< Print a ROS message at most once per "text_output_period_" */
+  int message_output_period_;                /**< Print a ROS message at most once per "text_output_period_" */
   
   private:
 

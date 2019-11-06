@@ -95,6 +95,9 @@ namespace visual_frontend {
 
     cv::Mat transform_; /**< Transform calculated from the Transform Method Plugin. */
 
+    common::FrameRefVector frames_required_;
+    common::CUDAFrameRefVector cuda_frames_required_;
+
   protected:
 
     /**

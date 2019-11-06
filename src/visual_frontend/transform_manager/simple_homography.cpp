@@ -9,6 +9,14 @@ SimpleHomography::SimpleHomography()
   enabled_ = false;
   drawn_ = false;
   name_ = "Simple Homography";
+
+#if OPENCV_CUDA
+  frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, true, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#else
+  frames_required_ = {false, false, false, true, false};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#endif
 }
 
 // ----------------------------------------------------------------------------

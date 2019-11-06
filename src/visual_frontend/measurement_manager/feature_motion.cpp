@@ -14,6 +14,13 @@ FeatureMotion::FeatureMotion()
   velocity_floor_ = 0.002;
   velocity_ceiling_ = 0.02;
 
+#if OPENCV_CUDA
+  frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#else
+  frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#endif
 }
 
 // ----------------------------------------------------------------------------

@@ -10,8 +10,15 @@ namespace visual_frontend {
 FeatureManager::FeatureManager() :
   plugin_loader_("visual_mtt", "visual_frontend::FeatureBase")
 {
-
   plugins_loaded_ = false;
+  for(int i = 0; i < common::num_frame_types_; i++)
+    {
+      frames_required_[i] = false;
+    }
+    for(int i = 0; i < common::num_cuda_frame_types_; i++)
+    {
+      cuda_frames_required_[i] = false;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -65,7 +72,17 @@ void FeatureManager::LoadPlugins(const std::vector<std::string>& plugin_list,con
 
   // Initialize plugins
   for (auto&& src : feature_matchers_) 
-  src->Initialize(params);  
+  {
+    src->Initialize(params);  
+    for(int i = 0; i < common::num_frame_types_; i++)
+    {
+      frames_required_[i] = frames_required_[i] | src->frames_required_[i];
+    }
+    for(int i = 0; i < common::num_cuda_frame_types_; i++)
+    {
+      cuda_frames_required_[i] = cuda_frames_required_[i] | src->cuda_frames_required_[i];
+    }
+  }
 
 }
 

@@ -74,7 +74,6 @@ namespace visual_frontend {
     * @see TransformBase::GenerateMeasurements(const common::System& sys)
     */
     bool GenerateMeasurements(const common::System& sys) override;
-    
 
   private:
 

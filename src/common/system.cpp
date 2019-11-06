@@ -12,15 +12,23 @@ System::System()
   cam_info_received_ = false;
   tuning_ = false;
 
+  // Required default frames
+  default_frames_required_ = {true, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
+#if OPENCV_CUDA
+  default_cuda_frames_required_ = {true, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#endif
+
+  // Initialize all required frames as false
   for(int i = 0; i < num_frame_types_; i++)
   {
     frames_required_[i] = false;
   }
-
+#if OPENCV_CUDA
   for(int i = 0; i < num_cuda_frame_types_; i++)
   {
     cuda_frames_required_[i] = false;
   }
+#endif
 
 }
 
@@ -98,7 +106,6 @@ void System::SetUndistortedRegionMask()
   std::vector<cv::Point2f> boundary_d; // distorted
   cv::convertPointsToHomogeneous(boundary, boundary_h);
   cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sd_camera_matrix_, dist_coeff_, boundary_d);
-  // cv::projectPoints(boundary_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), cv::Mat::eye(3,3,CV_64FC1), dist_coeff_, boundary_d);
 
   // boundary_d is a polygon in the original sd frame, put in matrix form
   cv::Mat boundary_mat(boundary_d);
@@ -108,9 +115,6 @@ void System::SetUndistortedRegionMask()
   undistorted_region_mask_ = cv::Mat(sd_res_, CV_8UC1, cv::Scalar(0));
   cv::fillConvexPoly(undistorted_region_mask_, boundary_mat, cv::Scalar(255));
 
-  // std::cout << "undistorted region mask" << std::endl;
-  // std::cout << "sd res: " << sd_res_ << std::endl << undistorted_region_mask_ << std::endl;
-  // std::cout << "distortion mask: " << dist_coeff_ << std::endl;
 
 #if OPENCV_CUDA
   cv::Mat map1, map2;
@@ -157,7 +161,7 @@ void System::AddMatchedFeatures(const std::vector<cv::Point2f>& d_prev_matched, 
 
 void System::UndistortMatchedFeatures()
 {
-    // compensate for lens distortion and project onto normalized image plane
+  // compensate for lens distortion and project onto normalized image plane
   if (d_prev_matched_.size() > 0 && d_curr_matched_.size() > 0)
   {
     cv::undistortPoints(d_prev_matched_, ud_prev_matched_, sd_camera_matrix_, dist_coeff_);
@@ -234,34 +238,35 @@ void System::SetMeasurementFlag(const bool& good_measurements)
 
 cv::Mat System::GetFrame(frame_type_ frame_type) const
 {
+  // return requested frame type or error message if it hasn't been set at iteration
   switch(frame_type)
   {
     case HD:
-      if(hd_frame_.empty())
+      if(!frame_exists_[HD])
       {
         std::cerr << "ERROR: HD frame has not been set" << std::endl;
       }
       return hd_frame_;
     case SD:
-      if(sd_frame_.empty())
+      if(!frame_exists_[SD])
       {
         std::cerr << "ERROR: SD frame has not been set" << std::endl;
       }
       return sd_frame_;
     case MONO:
-      if(mono_frame_.empty())
+      if(!frame_exists_[MONO])
       {
         std::cerr << "ERROR: Mono frame has not been set" << std::endl;
       }
       return mono_frame_;
     case UNDIST:
-      if(undist_frame_.empty())
+      if(!frame_exists_[UNDIST])
       {
         std::cerr << "ERROR: Undistorted frame has not been set" << std::endl;
       }
       return undist_frame_;
     case HSV:
-      if(hsv_frame_.empty())
+      if(!frame_exists_[HSV])
       {
         std::cerr << "ERROR: HSV frame has not been set" << std::endl;
       }
@@ -271,34 +276,35 @@ cv::Mat System::GetFrame(frame_type_ frame_type) const
 
 cv::cuda::GpuMat System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const
 {
+  // return requested CUDA frame type or error message if it hasn't been set at iteration
   switch(frame_type_cuda)
   {
     case HD_CUDA:
-      if(hd_frame_cuda_.empty())
+      if(!cuda_frame_exists_[HD_CUDA])
       {
         std::cerr << "ERROR: HD CUDA frame has not been set" << std::endl;
       }
       return hd_frame_cuda_;
     case SD_CUDA:
-      if(sd_frame_cuda_.empty())
+      if(!cuda_frame_exists_[SD_CUDA])
       {
         std::cerr << "ERROR: SD CUDA frame has not been set" << std::endl;
       }
       return sd_frame_cuda_;
     case MONO_CUDA:
-      if(mono_frame_cuda_.empty())
+      if(!cuda_frame_exists_[MONO_CUDA])
       {
         std::cerr << "ERROR: Mono CUDA frame has not been set" << std::endl;
       }
       return mono_frame_cuda_;
     case UNDIST_CUDA:
-      if(undist_frame_cuda_.empty())
+      if(!cuda_frame_exists_[UNDIST_CUDA])
       {
         std::cerr << "ERROR: Undistorted CUDA frame has not been set" << std::endl;
       }
       return undist_frame_cuda_;
     case HSV_CUDA:
-      if(hsv_frame_cuda_.empty())
+      if(!cuda_frame_exists_[HSV_CUDA])
       {
         std::cerr << "ERROR: HSV CUDA frame has not been set" << std::endl;
       }
@@ -308,6 +314,7 @@ cv::cuda::GpuMat System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const
 
 void System::SetFrames()
 {
+  // HD frame must exist or sends error message
   if(frames_required_[HD])
   {
     if(!frame_exists_[HD])
@@ -318,6 +325,7 @@ void System::SetFrames()
   if(frames_required_[SD])
   {
 #if OPENCV_CUDA
+    // download sd_frame from GPU if available, otherwise resize hd_frame
     if(cuda_frame_exists_[SD_CUDA]) 
     {
       sd_frame_cuda_.download(sd_frame_);
@@ -334,6 +342,7 @@ void System::SetFrames()
       }
     }
 #else
+    // copy hd_frame if no resize, otherwise resize hd_frame
     if (resize_scale_ != 1) 
     {
       cv::resize(hd_frame_, sd_frame_, sd_res_, 0, 0, cv::INTER_AREA);
@@ -371,6 +380,7 @@ void System::SetCUDAFrames()
   }
   if(cuda_frames_required_[SD_CUDA])
   {
+    // copy hd_frame_cuda_ on GPU if no resize, otherwise resize hd_frame_cuda_ on GPU
     if (resize_scale_ != 1)
     {
       cv::cuda::resize(hd_frame_cuda_, sd_frame_cuda_, sd_res_, 0, 0, cv::INTER_AREA);
@@ -402,61 +412,61 @@ void System::RegisterPluginFrames(FrameRefVector& plugin_frames)
 {
   for(int i = 0; i < num_frame_types_; i++)
   {
-    if(frames_required_[i] != true && plugin_frames[i] == true)
+    // print frame types requested
+    if(plugin_frames[i] && !(frames_required_[i]) && i == 0)
     {
-      frames_required_[i] = plugin_frames[i];
-      if(frames_required_[i] == true && i == 0)
-      {
-        std::cout << "IMAGE ENABLED: HD" << std::endl;
-      }
-      else if(frames_required_[i] == true && i == 1)
-      {
-        std::cout << "IMAGE ENABLED: SD" << std::endl;
-      }
-      else if(frames_required_[i] == true && i == 2)
-      {
-        std::cout << "IMAGE ENABLED: MONO" << std::endl;
-      }
-      else if(frames_required_[i] == true && i == 3)
-      {
-        std::cout << "IMAGE ENABLED: UNDIST" << std::endl;
-      }
-      else if(frames_required_[i] == true && i == 4)
-      {
-        std::cout << "IMAGE ENABLED: HSV" << std::endl;
-      }
+      std::cout << "IMAGE REQUESTED: HD" << std::endl;
     }
+    else if(plugin_frames[i] && !(frames_required_[i]) && i == 1)
+    {
+      std::cout << "IMAGE REQUESTED: SD" << std::endl;
+    }
+    else if(plugin_frames[i] && !(frames_required_[i]) && i == 2)
+    {
+      std::cout << "IMAGE REQUESTED: MONO" << std::endl;
+    }
+    else if(plugin_frames[i] && !(frames_required_[i]) && i == 3)
+    {
+      std::cout << "IMAGE REQUESTED: UNDIST" << std::endl;
+    }
+    else if(plugin_frames[i] && !(frames_required_[i]) && i == 4)
+    {
+      std::cout << "IMAGE REQUESTED: HSV" << std::endl;
+    }
+    
+    // integrate requested frames into previously requested frames
+    frames_required_[i] = frames_required_[i] | plugin_frames[i];
   }
 }
 
-void System::RegisterPluginCUDAFrames(FrameRefVector& plugin_frames_cuda)
+void System::RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda)
 {
+  // print CUDA frame types requested
   for(int i = 0; i < num_cuda_frame_types_; i++)
   {
-    if(cuda_frames_required_[i] != true && plugin_frames_cuda[i] == true)
+    if(plugin_frames_cuda[i] && !(cuda_frames_required_[i]) && i == 0)
     {
-      cuda_frames_required_[i] = plugin_frames_cuda[i];
-      if(cuda_frames_required_[i] == true && i == 0)
-      {
-        std::cout << "CUDA IMAGE ENABLED: HD CUDA" << std::endl;
-      }
-      else if(cuda_frames_required_[i] == true && i == 1)
-      {
-        std::cout << "CUDA IMAGE ENABLED: SD CUDA" << std::endl;
-      }
-      else if(cuda_frames_required_[i] == true && i == 2)
-      {
-        std::cout << "CUDA IMAGE ENABLED: MONO CUDA" << std::endl;
-      }
-      else if(cuda_frames_required_[i] == true && i == 3)
-      {
-        std::cout << "CUDA IMAGE ENABLED: UNDIST CUDA" << std::endl;
-      }
-      else if(cuda_frames_required_[i] == true && i == 4)
-      {
-        std::cout << "CUDA IMAGE ENABLED: HSV CUDA" << std::endl;
-      }
+      std::cout << "CUDA IMAGE REQUESTED: HD CUDA" << std::endl;
     }
+    else if(plugin_frames_cuda[i] && !(cuda_frames_required_[i]) && i == 1)
+    {
+      std::cout << "CUDA IMAGE REQUESTED: SD CUDA" << std::endl;
+    }
+    else if(plugin_frames_cuda[i] && !(cuda_frames_required_[i]) && i == 2)
+    {
+      std::cout << "CUDA IMAGE REQUESTED: MONO CUDA" << std::endl;
+    }
+    else if(plugin_frames_cuda[i] && !(cuda_frames_required_[i]) && i == 3)
+    {
+      std::cout << "CUDA IMAGE REQUESTED: UNDIST CUDA" << std::endl;
+    }
+    else if(plugin_frames_cuda[i] && !(cuda_frames_required_[i]) && i == 4)
+    {
+      std::cout << "CUDA IMAGE REQUESTED: HSV CUDA" << std::endl;
+    }
+    
+    // integrate requested CUDA frames into previously requested CUDA frames
+    cuda_frames_required_[i] = cuda_frames_required_[i] | plugin_frames_cuda[i];
   }
 }
 

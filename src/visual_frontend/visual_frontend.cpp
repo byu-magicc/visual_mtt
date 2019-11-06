@@ -1,5 +1,5 @@
 #include "visual_frontend/visual_frontend.h"
-
+#include <typeinfo>
 namespace visual_frontend {
 
 VisualFrontend::VisualFrontend()
@@ -35,6 +35,18 @@ VisualFrontend::VisualFrontend()
   transform_manager_.LoadPlugins(transform_manager_plugin_whitelist, static_params_);
   feature_manager_.LoadPlugins(feature_manager_plugin_whitelist, static_params_);
 
+  // Update required plugin frames
+  sys_.RegisterPluginFrames(sys_.default_frames_required_);
+  sys_.RegisterPluginFrames(measurement_manager_.frames_required_);
+  sys_.RegisterPluginFrames(transform_manager_.frames_required_);
+  sys_.RegisterPluginFrames(feature_manager_.frames_required_);
+#if OPENCV_CUDA
+  sys_.RegisterPluginCUDAFrames(sys_.default_cuda_frames_required_);
+  sys_.RegisterPluginCUDAFrames(measurement_manager_.cuda_frames_required_);
+  sys_.RegisterPluginCUDAFrames(transform_manager_.cuda_frames_required_);
+  sys_.RegisterPluginCUDAFrames(feature_manager_.cuda_frames_required_);
+#endif
+
   if (sys_.tuning_)
     ROS_WARN("tuning mode enabled");
 
@@ -67,32 +79,6 @@ VisualFrontend::VisualFrontend()
   // establish librransac good model elevation event callback
   params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
   
-  common::FrameRefVector testvec;
-  testvec[0] = true;
-  testvec[1] = false;
-  testvec[2] = false;
-  testvec[3] = false;
-  testvec[4] = false;
-
-  common::FrameRefVector vec2;
-  vec2[0] = false;
-  vec2[1] = false;
-  vec2[2] = false;
-  vec2[3] = false;
-  vec2[4] = false;
-
-  common::FrameRefVector cudatestvec;
-  cudatestvec[0] = true;
-  cudatestvec[1] = true;
-  cudatestvec[2] = true;
-  cudatestvec[3] = true;
-  cudatestvec[4] = true;
-
-  sys_.RegisterPluginFrames(testvec);
-  sys_.RegisterPluginFrames(vec2);
-#if OPENCV_CUDA
-  sys_.RegisterPluginCUDAFrames(cudatestvec);
-#endif
 }
 
 // ----------------------------------------------------------------------------

@@ -7,6 +7,14 @@ MeasurementManager::MeasurementManager() :
 
 {
   plugins_loaded_ = false;
+  for(int i = 0; i < common::num_frame_types_; i++)
+  {
+    frames_required_[i] = false;
+  }
+  for(int i = 0; i < common::num_cuda_frame_types_; i++)
+  {
+    cuda_frames_required_[i] = false;
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -59,7 +67,17 @@ void MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list
 
   // Initialize plugins
   for (auto&& src : measurement_sources_) 
+  {
     src->Initialize(params); 
+    for(int i = 0; i < common::num_frame_types_; i++)
+    {
+      frames_required_[i] = frames_required_[i] | src->frames_required_[i];
+    }
+    for(int i = 0; i < common::num_cuda_frame_types_; i++)
+    {
+      cuda_frames_required_[i] = cuda_frames_required_[i] | src->cuda_frames_required_[i];
+    }
+  }
 }
 
 // ----------------------------------------------------------------------------

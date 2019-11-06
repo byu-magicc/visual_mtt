@@ -63,6 +63,9 @@ namespace visual_frontend {
     */
     void FindCorrespondences(common::System& sys);
 
+    common::FrameRefVector frames_required_;
+    common::CUDAFrameRefVector cuda_frames_required_;
+
    private:
 
     bool plugins_loaded_; /**< Indicates if the plugins have been loaded */
