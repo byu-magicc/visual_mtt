@@ -63,8 +63,8 @@ namespace visual_frontend {
     */
     void FindCorrespondences(common::System& sys);
 
-    common::FrameRefVector frames_required_;
-    common::CUDAFrameRefVector cuda_frames_required_;
+    common::FrameRefVector frames_required_;            /**< Boolean array defining which frames are required by all feature plugins during runtime. */
+    common::CUDAFrameRefVector cuda_frames_required_;   /**< Boolean array defining which CUDA frames are required by all feature plugins during runtime. */
 
    private:
 

@@ -10,6 +10,7 @@ SimpleHomography::SimpleHomography()
   drawn_ = false;
   name_ = "Simple Homography";
 
+// Required frames for plugin
 #if OPENCV_CUDA
   frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
   cuda_frames_required_ = {false, false, true, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
@@ -80,7 +81,7 @@ void SimpleHomography::DrawTransform(const common::System& sys){
 
   drawn_ = true;
 
-  // bump undistorted image (save, overwriting the old one)
+  // age undistorted image (save, overwriting the old one)
 #if OPENCV_CUDA
   frame_u_last_ = sys.GetCUDAFrame(common::UNDIST_CUDA).clone();
 #else

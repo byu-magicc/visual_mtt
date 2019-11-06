@@ -11,6 +11,7 @@ FeatureManager::FeatureManager() :
   plugin_loader_("visual_mtt", "visual_frontend::FeatureBase")
 {
   plugins_loaded_ = false;
+  // Set initial required feature frames and CUDA frames to false
   for(int i = 0; i < common::num_frame_types_; i++)
     {
       frames_required_[i] = false;
@@ -25,7 +26,7 @@ FeatureManager::FeatureManager() :
 
 FeatureManager::~FeatureManager()
 {
-  // destroy the plugins.
+  // Destroy the plugins.
   feature_matchers_.clear();
 }
 
@@ -74,6 +75,7 @@ void FeatureManager::LoadPlugins(const std::vector<std::string>& plugin_list,con
   for (auto&& src : feature_matchers_) 
   {
     src->Initialize(params);  
+    // Incorporate required frames from each feature plugin
     for(int i = 0; i < common::num_frame_types_; i++)
     {
       frames_required_[i] = frames_required_[i] | src->frames_required_[i];

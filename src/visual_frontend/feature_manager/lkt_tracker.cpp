@@ -9,6 +9,7 @@ LKTTracker::LKTTracker()
   drawn_ = false;
   first_image_ = true;
 
+// Required frames for plugin
 #if OPENCV_CUDA
   frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
   cuda_frames_required_ = {false, false, true, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
@@ -121,6 +122,7 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // Uses previous GFTT features to find next_features in current frame
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
+
   #if OPENCV_CUDA
     CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
   #else

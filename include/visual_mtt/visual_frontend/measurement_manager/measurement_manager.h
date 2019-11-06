@@ -66,8 +66,8 @@ namespace visual_frontend {
     // TODO make this private. See visual_frontend::callback_reconfigure
     std::vector<boost::shared_ptr<MeasurementBase>> measurement_sources_; /**< Measurement Source Loaded Plugins */
 
-    common::FrameRefVector frames_required_;
-    common::CUDAFrameRefVector cuda_frames_required_;
+    common::FrameRefVector frames_required_;            /**< Boolean array defining which frames are required by all measurement plugins during runtime. */
+    common::CUDAFrameRefVector cuda_frames_required_;   /**< Boolean array defining which CUDA frames are required by all measurement plugins during runtime. */
 
   private:
 

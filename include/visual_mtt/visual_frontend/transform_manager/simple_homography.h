@@ -84,7 +84,6 @@ namespace visual_frontend {
 
   #if OPENCV_CUDA
     // saved undistorted frames
-    cv::cuda::GpuMat frame_u_;        /**< Undistorted current common::System::sd_frame_ */
     cv::cuda::GpuMat frame_u_last_;   /**< Undistorted previous common::System::sd_frame_ */
 
     // difference image
@@ -92,7 +91,6 @@ namespace visual_frontend {
   #else
 
     // saved undistorted frames
-    cv::Mat frame_u_;                /**< Undistorted current common::System::sd_frame_ */
     cv::Mat frame_u_last_;           /**< Undistorted previous common::System::sd_frame_ */
 
     // difference image

@@ -6,6 +6,7 @@ TransformManager::TransformManager() :
     plugin_loader_("visual_mtt", "visual_frontend::TransformBase")
 {
   plugins_loaded_ = false;
+  // Set initial required transform frames and CUDA frames to false
   for(int i = 0; i < common::num_frame_types_; i++)
     {
       frames_required_[i] = false;
@@ -68,6 +69,7 @@ void TransformManager::LoadPlugins(const std::vector<std::string>& plugin_list, 
   for (auto&& src : transform_methods_) 
   {
     src->Initialize(params); 
+    // Incorporate required frames from each transform plugin
     for(int i = 0; i < common::num_frame_types_; i++)
     {
       frames_required_[i] = frames_required_[i] | src->frames_required_[i];

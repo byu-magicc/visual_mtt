@@ -7,6 +7,7 @@ MeasurementManager::MeasurementManager() :
 
 {
   plugins_loaded_ = false;
+  // Set initial required measurement frames and CUDA frames to false
   for(int i = 0; i < common::num_frame_types_; i++)
   {
     frames_required_[i] = false;
@@ -69,6 +70,7 @@ void MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list
   for (auto&& src : measurement_sources_) 
   {
     src->Initialize(params); 
+    // Incorporate required frames from each measurement plugin
     for(int i = 0; i < common::num_frame_types_; i++)
     {
       frames_required_[i] = frames_required_[i] | src->frames_required_[i];
