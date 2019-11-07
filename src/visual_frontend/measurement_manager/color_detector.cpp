@@ -29,6 +29,15 @@ ColorDetector::ColorDetector()
   params_.maxThreshold = 255;             // I don't know what this does yet
   params_.thresholdStep = 50;           // I don't know what this does yet
 
+// Required frames for plugin
+#if OPENCV_CUDA
+  frames_required_ = {false, true, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#else
+  frames_required_ = {false, true, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
+  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+#endif
+
 }
 
 
@@ -72,7 +81,7 @@ void ColorDetector::SetParameters(const visual_mtt::visual_frontendConfig& confi
 
 void ColorDetector::DrawMeasurements(const common::System& sys)
 {
-  cv::Mat draw = sys.sd_frame_.clone();
+  cv::Mat draw = sys.GetFrame(common::SD).clone();
 
   drawKeypoints(draw,keypoints_,draw, cv::Scalar(0,0,255),cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
@@ -81,7 +90,7 @@ void ColorDetector::DrawMeasurements(const common::System& sys)
     cv::namedWindow(name_);
     cv::namedWindow(cv_window_name_);
     // cv::namedWindow("temp");
-    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
+    // cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
   }
 
   if (!draw.empty())
@@ -91,7 +100,7 @@ void ColorDetector::DrawMeasurements(const common::System& sys)
     cv::imshow(name_, draw);
     cv::imshow(cv_window_name_, thresholded_img_);
     
-    pic_params_.img = draw.clone();
+    // pic_params_.img = draw.clone();
   }
 }
 
@@ -113,10 +122,8 @@ bool ColorDetector::GenerateMeasurements(const common::System& sys)
   meas_pos_.clear();
   d_meas_pos_.clear();
 
-  cv::cvtColor(sys.sd_frame_, HSV_img_, cv::COLOR_BGR2HSV);
-
   // If the pixel falue is within this range, set it to 255 (white) else set it to 0 (black)
-  cv:: inRange(HSV_img_, cv::Scalar(min_hue_, min_sat_, min_val_), cv::Scalar(max_hue_, max_sat_, max_val_), thresholded_img_);
+  cv:: inRange(sys.GetFrame(common::HSV), cv::Scalar(min_hue_, min_sat_, min_val_), cv::Scalar(max_hue_, max_sat_, max_val_), thresholded_img_);
 
 
   //morphological opening (remove small objects from the foreground)
