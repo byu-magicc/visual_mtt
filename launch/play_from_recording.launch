@@ -25,7 +25,7 @@
   <arg name="params"            default="$(find visual_mtt)/param/default_small_object.yaml" />
   <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
   <arg name="static_param_filename" default="$(find visual_mtt)/param/static_default.yaml"/>
-  <arg name="tuning"            default="true" />
+  <arg name="tuning"            default="false" />
 
 
   <!-- video_path:      path to video file          (video only)              -->

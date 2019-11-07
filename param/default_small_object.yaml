@@ -38,7 +38,7 @@ visual_frontend/max_complexity: 100
 # Darknet
 visual_frontend/darknet_enabled: false
 visual_frontend/darknet_threshold: 0.3
-visual_frontend/darknet_frame_stride: 1
+visual_frontend/darknet_frame_stride: 3
 visual_frontend/darknet_draw_detections: false
 
 # transform manager

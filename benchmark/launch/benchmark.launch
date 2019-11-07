@@ -25,7 +25,7 @@
     <arg name="camera_info_url" default="file://$(find visual_mtt)/benchmark/param/$(arg camera_name).yaml" />
 
     <!-- visual_mtt flags -->
-    <arg name="params"            default="$(find visual_mtt)/benchmark/param/dynamic_small_object.yaml" />
+    <arg name="params"            default="$(find visual_mtt)/benchmark/param/dynamic_default.yaml" />
     <arg name="plugin_whitelist"  default="$(find visual_mtt)/benchmark/param/plugin_whitelist.yaml" />
     <arg name="static_param_filename" default="$(find visual_mtt)/benchmark/param/static_default.yaml"/>
     <arg name="tuning"            default="false" />
