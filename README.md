@@ -26,7 +26,7 @@ Once you have your CUDA-enabled OpenCV environment setup, you can enable CUDA on
 $ catkin_make -DOpenCV_DIR=/usr/local/share/OpenCV -DVISUAL_MTT_CUDA=ON
 ```
 
-This tells `CMake` to look at *your* installation of OpenCV instead of the one at `/opt/ros/kinetic/share/OpenCV-3.2.0-dev`. Pay attention to the catkin_make process and you should see it tell you whether or not it found a CUDA-enabled OpenCV. Also, once you run the `visual_mtt` node, you should see it tell you how many CUDA devices it found.
+This tells `CMake` to look at *your* installation of OpenCV instead of the one at `/opt/ros/<release>/share/OpenCV-<version>-dev`. Pay attention to the catkin_make process and you should see it tell you whether or not it found a CUDA-enabled OpenCV. Also, once you run the `visual_mtt` node, you should see it tell you how many CUDA devices it found.
 
 ## Quick Start
 
@@ -35,6 +35,17 @@ To play a video file, use the following `roslaunch` command:
 ```bash
 $ roslaunch visual_mtt play_from_recording.launch video_path:=/path/to/video.mp4 fps:=30
 ```
+
+To play a ROS bag, use the following `roslaunch` command:
+
+```bash
+$ roslaunch visual_mtt play_from_recording.launch bag_path:="/path/to/rosbag.bag" bag_topic:="<rostopic_name>"
+```
+or if your rosbag does not have a "camera_info" image transport topic:
+```bash
+$ roslaunch visual_mtt play_from_recording.launch bag_path:="/path/to/rosbag.bag" bag_topic:="<rostopic_name>" has_info:="false"
+```
+Note: the statement `small_object_tracking:="true"` can be appended to the above roslaunch commands to use a parameter set for small object detection.
 
 See the [Play From Recording](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/videos-and-rosbags) wiki page for a guide to using the `play_from_recording.launch` file for rosbags and videos.
 
