@@ -1,3 +1,18 @@
+## 3.0.0: NOV-8-2019
+* Modified visual_frontend to optimize performance with CUDA
+* Temporarily removed Parallax compensation (gnsac) libraries/updates due to Ubuntu 18.04 root lib reference issues
+* Added backward compatibility for OpenCV4 updates
+* Updated visual_frontend and all plugin architectures to use new frame management system
+* Added param/default_small_object.yaml for better tracking of small, slow moving objects
+* Modified play_from_recording.launch to have argument toggle for small object tracking parameters
+
+## 2.2.0: FEB-06-2019
+* Added [Parallax Compensationi](https://magiccvs.byu.edu/gitlab/mark_petersen/parallax_cpp)
+* On Tuning mode, the tracks image will be viewed on an OpenCV window
+* On Tuning mode, the user can save images by double clicking on an OpenCV window
+* ROS Messages are now throttled 
+* Camera Sim video can now be paused by user
+
 ## 2.1.0: SEP-25-2018
 * Added [Darknet Plugin](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/darknet-plugin)
 * Modified param/plugin_whitelist to incude the Darknet Plugin

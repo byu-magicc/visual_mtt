@@ -22,7 +22,9 @@
   <arg name="camera_info_url" default="file://$(find visual_mtt)/param/$(arg camera_name).yaml" />
 
   <!-- visual_mtt flags -->
-  <arg name="params"            default="$(find visual_mtt)/param/default_small_object.yaml" />
+  <arg name="small_object_tracking"   default="false" />
+  <arg if="$(arg small_object_tracking)" name="params"  value="$(find visual_mtt)/param/default_small_object.yaml" />
+  <arg name="params"  value="$(find visual_mtt)/param/default.yaml" unless="$(arg small_object_tracking)"/>
   <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
   <arg name="static_param_filename" default="$(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="false" />

@@ -3,7 +3,7 @@ visual_frontend/measurement_manager:
     - "visual_frontend::FeatureMotion"
     - "visual_frontend::DifferenceImage"
     # - "visual_frontend::DarknetPlugin"
-    - "visual_frontend::ColorDetector"
+    # - "visual_frontend::ColorDetector"
 
 visual_frontend/transform_manager:
   plugins:
