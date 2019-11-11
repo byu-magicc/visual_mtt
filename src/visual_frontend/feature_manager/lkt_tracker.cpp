@@ -103,17 +103,9 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
 
   bool good_features = false;
 
-  auto tic5 = ros::WallTime::now();
-
-  std::cout << "t_features_2_1_1: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
-  tic5 = ros::WallTime::now();
-
   // Clear history
   d_prev_matched_.clear();
   d_curr_matched_.clear();
-
-  std::cout << "t_features_2_1_2: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
-  tic5 = ros::WallTime::now();
 
   //
   // Optical Flow for Feature Correspondences
@@ -128,10 +120,6 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   #else
     CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
   #endif
-  
-
-  std::cout << "t_features_2_1_3: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
-  tic5 = ros::WallTime::now();
 
   // Only keep features that were matched in both frames
   for(int ii = 0; ii < valid.size(); ii++)
@@ -140,9 +128,6 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
       d_prev_matched_.push_back(d_prev_features_[ii]);
       d_curr_matched_.push_back(d_curr_features[ii]);
     }
-  
-  std::cout << "t_features_2_1_4: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
-  tic5 = ros::WallTime::now();
 
   //
   // Find a new set of GFTT corners
@@ -155,15 +140,10 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
     DetectFeatures(sys.GetFrame(common::MONO), d_prev_features_, sys.undistorted_region_mask_);
   #endif
 
-  std::cout << "t_features_2_1_5: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
-  tic5 = ros::WallTime::now();
-
   if (d_prev_matched_.size() > 10)
     good_features = true;
   else
     ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"LKTTracker: Not enough features matched. Bad features.");
-
-  std::cout << "t_features_2_1_6: " << (ros::WallTime::now() - tic5).toSec() << std::endl;
 
   return good_features;
 }
@@ -279,29 +259,12 @@ void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& f
 
 void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
 {
-    auto tic6 = ros::WallTime::now();
-    std::cout << "t_features_2_1_5_1: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
-    tic6 = ros::WallTime::now();
-
     cv::cuda::GpuMat gMask(mask);
-
-    std::cout << "t_features_2_1_5_2: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
-    tic6 = ros::WallTime::now();
-
     cv::cuda::GpuMat gFeatures;
-
-    std::cout << "t_features_2_1_5_3: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
-    tic6 = ros::WallTime::now();
-
     gftt_detector_->detect(gMono, gFeatures, gMask);
-
-    std::cout << "t_features_2_1_5_4: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
-    tic6 = ros::WallTime::now();
 
     // Download
     common::gpu::download(gFeatures, features);
-
-    std::cout << "t_features_2_1_5_5: " << (ros::WallTime::now() - tic6).toSec() << std::endl;
 }
 
 // ---------------------------------------------------------------------------

@@ -45,7 +45,9 @@ or if your rosbag does not have a "camera_info" image transport topic:
 ```bash
 $ roslaunch visual_mtt play_from_recording.launch bag_path:="/path/to/rosbag.bag" bag_topic:="<rostopic_name>" has_info:="false"
 ```
-Note: the statement `small_object_tracking:="true"` can be appended to the above roslaunch commands to use a parameter set for small object detection.
+Notes: 
+- If using image transport, the `bag_topic` argument `<rostopic_name>` should NOT include the suffix `/image_raw`
+- The statement `small_object_tracking:="true"` can be appended to the above roslaunch commands to use a parameter set for small object detection.
 
 See the [Play From Recording](https://magiccvs.byu.edu/gitlab/robust_tracking/visual_mtt2/wikis/videos-and-rosbags) wiki page for a guide to using the `play_from_recording.launch` file for rosbags and videos.
 

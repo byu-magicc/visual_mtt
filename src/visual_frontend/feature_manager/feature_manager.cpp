@@ -92,48 +92,28 @@ void FeatureManager::LoadPlugins(const std::vector<std::string>& plugin_list,con
 
 void FeatureManager::FindCorrespondences(common::System& sys)
 {
-  auto tic3 = ros::WallTime::now();
   // clear history
   sys.ClearMatchedFeatures();
-  std::cout << "t_features_1: " << (ros::WallTime::now() - tic3).toSec() << std::endl;
-  tic3 = ros::WallTime::now();
-
 
   bool good_features = false;
 
   for (auto&& src : feature_matchers_)
   {
     if (src->enabled_) {
-
-      auto tic4 = ros::WallTime::now();
       // generate measurements for this source
       bool good = src->FindCorrespondences(sys);
-      std::cout << "t_features_2_1: " << (ros::WallTime::now() - tic4).toSec() << std::endl;
-      tic4 = ros::WallTime::now();
       if (good)
         sys.AddMatchedFeatures(src->d_prev_matched_, src->d_curr_matched_);
-      std::cout << "t_features_2_2: " << (ros::WallTime::now() - tic4).toSec() << std::endl;
-      tic4 = ros::WallTime::now();
       good_features = (good || good_features);
-      std::cout << "t_features_2_3: " << (ros::WallTime::now() - tic4).toSec() << std::endl;
-      tic4 = ros::WallTime::now();
-
+      
       // draw measurements for this source
       if (sys.tuning_) src->DrawFeatures(sys);
-      std::cout << "t_features_2_4: " << (ros::WallTime::now() - tic4).toSec() << std::endl;
     }
   }
-  std::cout << "t_features_2: " << (ros::WallTime::now() - tic3).toSec() << std::endl;
-  tic3 = ros::WallTime::now();
 
   sys.SetFeatureFlag(good_features);
 
-  std::cout << "t_features_3: " << (ros::WallTime::now() - tic3).toSec() << std::endl;
-  tic3 = ros::WallTime::now();
-
   sys.UndistortMatchedFeatures();
-
-  std::cout << "t_features_4: " << (ros::WallTime::now() - tic3).toSec() << std::endl;
 
   if (sys.tuning_)
     char keyboard = cv::waitKey(1);
