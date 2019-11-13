@@ -23,7 +23,7 @@ See the [MAGICC Wiki](https://magiccvs.byu.edu/wiki/#!sw_guides/opencv.md) for i
 Once you have your CUDA-enabled OpenCV environment setup, you can enable CUDA on `visual_mtt` with the following:
 
 ```bash
-$ catkin_make -DOpenCV_DIR=/usr/local/share/OpenCV -DVISUAL_MTT_CUDA=ON
+$ catkin_make -DOpenCV_DIR=/usr/local/opencv -DVISUAL_MTT_CUDA=ON
 ```
 
 This tells `CMake` to look at *your* installation of OpenCV instead of the one at `/opt/ros/<release>/share/OpenCV-<version>-dev`. Pay attention to the catkin_make process and you should see it tell you whether or not it found a CUDA-enabled OpenCV. Also, once you run the `visual_mtt` node, you should see it tell you how many CUDA devices it found.
