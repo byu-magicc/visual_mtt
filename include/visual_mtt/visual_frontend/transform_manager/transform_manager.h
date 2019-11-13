@@ -64,8 +64,9 @@ namespace visual_frontend {
     void CalculateTransform(common::System& sys);
 
     common::FrameRefVector frames_required_;            /**< Boolean array defining which frames are required by all transform plugins during runtime. */
+#if OPENCV_CUDA
     common::CUDAFrameRefVector cuda_frames_required_;   /**< Boolean array defining which CUDA frames are required by all transform plugins during runtime. */
-
+#endif
   private:
 
     bool plugins_loaded_; /**< Indicates if the plugins have been loaded */

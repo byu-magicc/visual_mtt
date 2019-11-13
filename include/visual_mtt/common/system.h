@@ -32,10 +32,10 @@ enum frame_type_ {HD, SD, MONO, UNDIST, HSV}; /**< All frames type names availab
 #if OPENCV_CUDA
 const int num_cuda_frame_types_ = 5;                                        /**< The total number of possible CUDA frames types available for request. */
 enum frame_type_cuda_ {HD_CUDA, SD_CUDA, MONO_CUDA, UNDIST_CUDA, HSV_CUDA}; /**< All CUDA frames type names available for request. */
+typedef std::array<bool, num_cuda_frame_types_> CUDAFrameRefVector; /**< Data type defining boolean references to associated CUDA frame types. Used for frame requests and existence checks. */
 #endif
 
 typedef std::array<bool, num_frame_types_> FrameRefVector;          /**< Data type defining boolean references to associated frame types. Used for frame requests and existence checks. */
-typedef std::array<bool, num_cuda_frame_types_> CUDAFrameRefVector; /**< Data type defining boolean references to associated CUDA frame types. Used for frame requests and existence checks. */
 
 /** \class System
  * \brief Handles all the data needed for the different managers, plugins, visual_frontend::VisualFrontend, and RRANSAC.
@@ -247,6 +247,7 @@ class System {
   */
   cv::Mat GetFrame(frame_type_ frame_type) const;
 
+#if OPENCV_CUDA
   /**
   * 
   * \detail This method acts as a generic getter function for any available CUDA frame 
@@ -257,7 +258,8 @@ class System {
   * @see common::System::cuda_frame_exists_
   */
   cv::cuda::GpuMat GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const;
-  
+#endif
+
   /**
   * 
   * \detail This method is called in the visual_frontend::VisualFrontend constructor to generate/update
@@ -271,6 +273,7 @@ class System {
   */
   void SetFrames();
 
+#if OPENCV_CUDA
   /**
   * 
   * \detail This method is called in the visual_frontend::VisualFrontend constructor to generate/update
@@ -283,6 +286,7 @@ class System {
   * @see visual_frontend::VisualFrontend()
   */
   void SetCUDAFrames();
+#endif
 
   /**
   * 
@@ -304,6 +308,7 @@ class System {
   */
   void RegisterPluginFrames(FrameRefVector& plugin_frames);
 
+#if OPENCV_CUDA
   /**
   * 
   * \detail This method is called by visual_frontend::MeasurementManager, 
@@ -323,6 +328,7 @@ class System {
   * @see visual_frontend::FeatureManager
   */
   void RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda);
+#endif
 
   /**
   * 
@@ -333,6 +339,7 @@ class System {
   */
   void RegisterFrame(frame_type_ frame_type);
 
+#if OPENCV_CUDA
   /**
   * 
   * \detail This method is called by visual_frontend::VisualFrontend to add 
@@ -341,6 +348,7 @@ class System {
   * @see common::System::cuda_frames_required_
   */
   void RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda);
+#endif
 
   /**
   * 

@@ -109,8 +109,9 @@ namespace visual_frontend {
     std::vector<cv::Point2f> d_curr_matched_; /**< The distorted matched features from the current image. */
 
     common::FrameRefVector frames_required_;           /**< Boolean array defining which frames are required by a feature plugin during runtime. */
+#if OPENCV_CUDA
     common::CUDAFrameRefVector cuda_frames_required_;  /**< Boolean array defining which CUDA frames are required by a feature plugin during runtime. */
-
+#endif
   protected:
 
 

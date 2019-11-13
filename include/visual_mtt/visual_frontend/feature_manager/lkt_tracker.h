@@ -90,6 +90,7 @@ namespace visual_frontend {
     */
     void CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
     
+#if OPENCV_CUDA
     /**
     * \detail Wrapper methods to calculate LK optical flow and to detect features on GPU.
     * This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
@@ -99,7 +100,8 @@ namespace visual_frontend {
     * @see LKTTracker::FindCorrespondences(const common::System& sys)
     */
     void CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
-    
+#endif
+
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image.
     * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
@@ -110,6 +112,7 @@ namespace visual_frontend {
     */
     void DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
 
+#if OPENCV_CUDA
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image on the GPU.
     * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
@@ -119,7 +122,7 @@ namespace visual_frontend {
     * @see LKTTracker::FindCorrespondences(const common::System& sys)
     */
     void DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
-
+#endif
 
     /**
     * \brief Sets the maximum number of features the cv::Ptr<cvFeatureDetector_t> should find.
@@ -149,7 +152,9 @@ namespace visual_frontend {
     // Optical Flow
     std::vector<cv::Mat> last_pyramids_;  /**< Optical Flow: Primarily for non-CUDA */
     cv::Mat last_mono_;                   /**< Optical Flow: Primarily for CUDA */
+#if OPENCV_CUDA
     cv::cuda::GpuMat gLastMono;                   /**< Optical Flow: Primarily for CUDA */
+#endif
     cv::Size pyramid_size_;    
     cv::TermCriteria kltTerm_;            /**< Optical Flow: Termination criteria */
   };

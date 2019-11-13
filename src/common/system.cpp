@@ -274,6 +274,7 @@ cv::Mat System::GetFrame(frame_type_ frame_type) const
   }
 }
 
+#if OPENCV_CUDA
 cv::cuda::GpuMat System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const
 {
   // return requested CUDA frame type or error message if it hasn't been set at iteration
@@ -311,6 +312,7 @@ cv::cuda::GpuMat System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const
       return hsv_frame_cuda_;
   }
 }
+#endif
 
 void System::SetFrames()
 {
@@ -371,6 +373,7 @@ void System::SetFrames()
   }
 }
 
+#if OPENCV_CUDA
 void System::SetCUDAFrames()
 {
   if(cuda_frames_required_[HD_CUDA])
@@ -407,6 +410,7 @@ void System::SetCUDAFrames()
     cuda_frame_exists_[HSV_CUDA] = true;
   }
 }
+#endif
 
 void System::RegisterPluginFrames(FrameRefVector& plugin_frames)
 {
@@ -439,6 +443,7 @@ void System::RegisterPluginFrames(FrameRefVector& plugin_frames)
   }
 }
 
+#if OPENCV_CUDA
 void System::RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda)
 {
   // print CUDA frame types requested
@@ -469,6 +474,7 @@ void System::RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda)
     cuda_frames_required_[i] = cuda_frames_required_[i] | plugin_frames_cuda[i];
   }
 }
+#endif
 
 void System::RegisterFrame(frame_type_ frame_type)
 {
@@ -494,6 +500,7 @@ void System::RegisterFrame(frame_type_ frame_type)
   }
 }
 
+#if OPENCV_CUDA
 void System::RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda)
 {
   // register requested CUDA frame type
@@ -517,6 +524,7 @@ void System::RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda)
       break;
   }
 }
+#endif
 
 void System::ResetFrames()
 {
@@ -525,11 +533,12 @@ void System::ResetFrames()
     frame_exists_[i] = false;
   }
 
+#if OPENCV_CUDA
   for(int i = 0; i < num_cuda_frame_types_; i++) 
   {
     cuda_frame_exists_[i] = false;
   }
-
+#endif
 }
   
 }  //end namespace common

@@ -107,8 +107,9 @@ namespace visual_frontend {
     std::vector<cv::Point2f> meas_vel_; /**< Possible object's velocity in the image frame. */
 
     common::FrameRefVector frames_required_;            /**< Boolean array defining which frames are required by a measurement plugin during runtime. */
+#if OPENCV_CUDA
     common::CUDAFrameRefVector cuda_frames_required_;   /**< Boolean array defining which CUDA frames are required by a measurement plugin during runtime. */
-
+#endif
   protected:
 
     /**

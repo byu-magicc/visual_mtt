@@ -15,7 +15,6 @@ LKTTracker::LKTTracker()
   cuda_frames_required_ = {false, false, true, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
 #else
   frames_required_ = {false, false, true, false, false};  // {HD, SD, MONO, UNDIST, HSV}
-  cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
 #endif
 }
 
@@ -207,6 +206,7 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
 
 }
 
+#if OPENCV_CUDA
 void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
   static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20);
@@ -241,7 +241,7 @@ void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Po
   // save mono for the next iteration
   gLastMono = gMono.clone();
 }
-
+#endif
 // ---------------------------------------------------------------------------
 
 void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
@@ -257,6 +257,7 @@ void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& f
   #endif
 }
 
+#if OPENCV_CUDA
 void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
 {
     cv::cuda::GpuMat gMask(mask);
@@ -266,6 +267,7 @@ void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::P
     // Download
     common::gpu::download(gFeatures, features);
 }
+#endif
 
 // ---------------------------------------------------------------------------
 

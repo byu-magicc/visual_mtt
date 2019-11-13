@@ -67,8 +67,9 @@ namespace visual_frontend {
     std::vector<boost::shared_ptr<MeasurementBase>> measurement_sources_; /**< Measurement Source Loaded Plugins */
 
     common::FrameRefVector frames_required_;            /**< Boolean array defining which frames are required by all measurement plugins during runtime. */
+#if OPENCV_CUDA
     common::CUDAFrameRefVector cuda_frames_required_;   /**< Boolean array defining which CUDA frames are required by all measurement plugins during runtime. */
-
+#endif
   private:
 
     bool plugins_loaded_; /**< Indicates if the plugins have been loaded */

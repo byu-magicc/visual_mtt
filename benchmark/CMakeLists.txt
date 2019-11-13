@@ -9,7 +9,7 @@ if(NOT ${video_stream_opencv_FOUND})
   message(WARNING "You will need to install ros-$ENV{ROS_DISTRO}-video-stream-opencv")
 endif()
 
-# Download test video file from MOT website. 
+# Download darknet test video file from MOT website. 
 set(PATH "${CMAKE_CURRENT_SOURCE_DIR}/video")
 set(FILE "${PATH}/MOT17-11-SDP.mp4")
 message(STATUS "Checking and downloading MOT17-11-SDP.mp4 if needed ...")
