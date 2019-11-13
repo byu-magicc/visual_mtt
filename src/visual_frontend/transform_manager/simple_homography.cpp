@@ -84,7 +84,7 @@ void SimpleHomography::DrawTransform(const common::System& sys){
 #if OPENCV_CUDA
   frame_u_last_ = sys.GetCUDAFrame(common::UNDIST_CUDA).clone();
 #else
-  frame_u_last_ = sys.GetFrame(common::UNDIST)
+  frame_u_last_ = sys.GetFrame(common::UNDIST);
 #endif
 
 
