@@ -216,7 +216,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   util_.other                   = alpha*(t_other_/t_available*100)        + (1-alpha)*util_.other;
   util_.rransac                 = alpha*(t_rransac/t_available*100)       + (1-alpha)*util_.rransac;
 
-  double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac;
+  double total = util_.feature_manager + util_.homography_manager + util_.measurement_generation + util_.rransac + util_.other ;
   util_.total = alpha*total + (1-alpha)*util_.total;
 
   //
