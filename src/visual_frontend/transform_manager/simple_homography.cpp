@@ -13,7 +13,7 @@ SimpleHomography::SimpleHomography()
 // Required frames for plugin
 #if OPENCV_CUDA
   frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
-  cuda_frames_required_ = {false, false, true, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
+  cuda_frames_required_ = {false, false, false, true, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, UNDIST_CUDA, HSV_CUDA}
 #else
   frames_required_ = {false, false, false, true, false};  // {HD, SD, MONO, UNDIST, HSV}
 #endif
@@ -63,10 +63,11 @@ void SimpleHomography::DrawTransform(const common::System& sys){
   #else
 
     // transform previous image using new homography
-    cv::warpPerspective(frame_u_last_, frame_u_last_, transform_pixel, frame_size);
+    cv::Mat frame_u_last_warped;
+    cv::warpPerspective(frame_u_last_, frame_u_last_warped, transform_pixel, frame_size);
 
     // raw difference
-    cv::absdiff(sys.GetFrame(common::UNDIST), frame_u_last_, frame_difference_);
+    cv::absdiff(sys.GetFrame(common::UNDIST), frame_u_last_warped, frame_difference_);
 
   #endif
 
@@ -84,7 +85,7 @@ void SimpleHomography::DrawTransform(const common::System& sys){
 #if OPENCV_CUDA
   frame_u_last_ = sys.GetCUDAFrame(common::UNDIST_CUDA).clone();
 #else
-  frame_u_last_ = sys.GetFrame(common::UNDIST);
+  frame_u_last_ = sys.GetFrame(common::UNDIST).clone();
 #endif
 
 
