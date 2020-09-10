@@ -6,6 +6,7 @@ This ROS package, known as `visual_mtt`, includes a visual measurement frontend 
 ## Installation
 
 1. Install the R-RANSAC Tracker (`librransac`) from [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac).
+1. Install the Parallax Compensation library from [here](https://magiccvs.byu.edu/gitlab/robust_tracking/parallax_cpp).
 1. Clone repo into `src` of a catkin workspace.
 1. `catkin_make` in the root of your catkin workspace.
 
