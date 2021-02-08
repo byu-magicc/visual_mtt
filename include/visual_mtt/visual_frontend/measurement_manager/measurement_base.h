@@ -120,6 +120,12 @@ namespace visual_frontend {
     virtual void Reset() = 0;
 
 
+    /**
+    * < Struct containing the necessary information to save an image.
+    * @see common::PictureParams
+    */
+    common::PictureParams pic_params_;
+
   };
 }
 

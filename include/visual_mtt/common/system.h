@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
 #include <rransac/tracker.h>
+#include <ros/console.h>
 
 #include <common/opencv_compat.h>
 
@@ -24,6 +25,22 @@ struct Measurements {
   int id;                            /**< The measurement source id. See visual_frontend::MeasurementBase for more information. */
   bool has_velocity;                 /**< Indicates if the measurement source also measures velocity. */
   int num_of_measurements;           /**< Number of measurements generated from a measurement source in one iteration. */
+
+};
+
+/** \struct Measurements
+* \brief Parameters needed to save an image
+* \detail When a user double clicks on an OpenCV window under tuning mode,
+*         an image will be saved according to the name given.
+* @see System::picture_file_path_
+* @see System::TakePicture
+*/
+struct PictureParams
+{
+
+  cv::Mat img;            /**< The image that will be saved */
+  std::string file_name;       /**< The name of the image, not the filepath. */
+  unsigned pic_num = 0;   /**< The Picture number. Used for naming. Ex: name_<pic_num>.png */
 
 };
 
@@ -231,10 +248,29 @@ class System {
   * \detail This method is called by visual_frontend::MeasurementManager 
   * to indicate if any measurements were generated. This method
   * sets the flag System::good_measurements_ 
-  * @see System::good_measurements_
+  * @param System::good_measurements_
   * @see visual_frontend::MeasurementManager::GenerateMeasurements(common::System& sys)
   */
   void SetMeasurementFlag(const bool& good_measurements);
+
+  /**
+  * 
+  * \detail Sets the file path member variable, and the flag picture_file_path_set_.
+  * @param  picture_file_path The file path to the directory where the images will be saved.
+  */
+  static void SetPictureFilepath(const std::string& picture_file_path);
+
+
+  /**
+  * 
+  * \detail Callback for setMouseCallback. It is used to save pictures when the user
+  *          double clicks an OpenCV image.
+  * @param event Mouse event
+  * @param x x position of the click
+  * @param y y position of the click
+  * @param void, contains the image and the name.
+  */
+  static void TakePicture(int event, int x, int y, int, void* param);
 
   /**
   * 
@@ -372,6 +408,8 @@ class System {
   cv::Mat transform_;                        /**< The transformation between the previous image and the current image. @see visual_frontend::TransformManager.*/
   bool good_transform_;                      /**< Flag used to indicate that the tranformation is good. @see visual_frontend::TransformManager.*/
 
+  std::vector<bool> moving_parallax_;         /**< Flag indicating whether the point is moving perpendicular to epipolar lines (ie. whether it is an outlier to the Essential Matrix).*/
+  
   // Measurement Manager
   std::vector<Measurements> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
   int num_of_measurements_;                  /**< Total number of measurements produced by all of the measurement sources in one iteration. @see visual_frontend::MeasurementManager.*/
@@ -421,6 +459,9 @@ class System {
 
   int message_output_period_;                /**< Print a ROS message at most once per "text_output_period_" */
   
+  static std::string picture_file_path_;     /**< File Path where the pictures will be saved. */
+  static bool picture_file_path_set_;        /**< If True, the picture file path has been set but no garuntee that its a valid file path. */
+
   private:
 
 };

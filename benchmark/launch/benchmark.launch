@@ -29,6 +29,8 @@
     <arg name="plugin_whitelist"  default="$(find visual_mtt)/benchmark/param/plugin_whitelist.yaml" />
     <arg name="static_param_filename" default="$(find visual_mtt)/benchmark/param/static_default.yaml"/>
     <arg name="tuning"            default="false" />
+    <arg name="gnsac_solver_filename" default="$(find visual_mtt)/param/gnsac_default.yaml"/>
+    <arg name="picture_file_path" default="$(find visual_mtt)/pictures/"/>
     <arg name="launch-prefix"     default="xterm -e gdb -ex run --args"/>
 
 
@@ -63,6 +65,8 @@
             <arg name="plugin_whitelist" value="$(arg plugin_whitelist)" />
             <arg name="static_param_filename" value="$(arg static_param_filename)"/>
             <arg name="tuning" value="$(arg tuning)" />
+            <arg name="gnsac_solver_filename" default="$(arg gnsac_solver_filename)"/>
+            <arg name="picture_file_path"     default="$(arg picture_file_path)"/>
             <arg name="imgtopic" value="$(arg camera_name)/image_raw" />
             <arg name="launch-prefix" value="$(arg launch-prefix)"/>
         </include>

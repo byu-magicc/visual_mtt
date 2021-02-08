@@ -34,12 +34,22 @@ FeatureManager::~FeatureManager()
 
 // ----------------------------------------------------------------------------
 
+void FeatureManager::Initialize(std::string gnsac_solver_filename)
+{
+  parallax_initiated_ = parallax_detec_.Init(gnsac_solver_filename);
+}
+
+// ----------------------------------------------------------------------------
+
 void FeatureManager::SetParameters(visual_mtt::visual_frontendConfig& config)
 {
 
   // Set the parameters for each plugin
   for (auto&& src : feature_matchers_)
       src->SetParameters(config);
+
+  parallax_comp_ = config.parallax_comp;
+  parallax_detec_.SetParallaxThreshold(config.parallax_threshold);
 
 }
 
@@ -118,6 +128,15 @@ void FeatureManager::FindCorrespondences(common::System& sys)
   sys.SetFeatureFlag(good_features);
 
   sys.UndistortMatchedFeatures();
+
+  // Parallax compensation
+  if(parallax_comp_ && parallax_initiated_ && good_features)
+  {
+    parallax_detec_.ParallaxCompensation(sys.ud_prev_matched_, sys.ud_curr_matched_, sys.moving_parallax_);
+  }
+  else
+    sys.moving_parallax_ = std::vector<bool>(sys.ud_prev_matched_.size(), true);
+
 
   if (sys.tuning_)
     char keyboard = cv::waitKey(1);

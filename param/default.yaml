@@ -14,6 +14,8 @@ visual_frontend/text_scale: 1.0
 # feature manager
 visual_frontend/lkt_tracker_enabled:    0
 visual_frontend/lkt_tracker_max_features:      2000
+visual_frontend/parallax_comp: false
+visual_frontend/parallax_threshold: 0.003
 
 # feature motion
 visual_frontend/feature_motion_enabled: true

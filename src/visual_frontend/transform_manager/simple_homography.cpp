@@ -9,6 +9,8 @@ SimpleHomography::SimpleHomography()
   enabled_ = false;
   drawn_ = false;
   name_ = "Simple Homography";
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = "Simple_Homography";
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -74,9 +76,17 @@ void SimpleHomography::DrawTransform(const common::System& sys){
   #if OPENCV_CUDA
     cv::Mat frame_difference(frame_difference_);
     cv::imshow(name_, frame_difference);
+    pic_params_.img = frame_difference.clone();
   #else
     cv::imshow(name_, frame_difference_);
+    pic_params_.img = frame_difference_.clone();    
   #endif
+  }
+
+  if(drawn_ == false)
+  {
+    cv::namedWindow(name_);
+    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
   }
 
   drawn_ = true;

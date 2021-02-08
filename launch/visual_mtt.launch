@@ -8,10 +8,16 @@
   <arg name="tuning"            default="false" />
   <arg name="imgtopic"          default="/image_raw" />
   <arg name="launch-prefix"     default=""/>
+  <arg name="gnsac_solver_filename" default="$(find visual_mtt)/param/gnsac_default.yaml"/>
+  <arg name="picture_file_path"     default="$(find visual_mtt)/pictures/"/>
 
   <!-- params:            path to the yaml file with desired parameter values   -->
   <!-- tuning:            enables dynamic reconfigure and displays measurements -->
   <!-- imgtopic:          name of the topic that contains the video             -->
+
+  <!-- gnsac_solver_filename: Path to GNSAC solver parameters                   -->
+  <!-- plugin_whitelist:      Path to plugin_whitelist param file.              -->
+  <!-- picture_file_path:     Path to where saved pictures are placed           -->
 
   <!-- ######################################################################## -->
 
@@ -23,13 +29,14 @@
   <node pkg="visual_mtt" type="visual_frontend" name="visual_frontend" output="screen" launch-prefix="$(arg launch-prefix)">
     <param name="tuning" type="bool" value="$(arg tuning)" />
     <param name="static_param_filename" value="$(arg static_param_filename)"/>
+    <param name="gnsac_solver_filename" value="$(arg gnsac_solver_filename)"/>
+    <param name="picture_file_path" value="$(arg picture_file_path)"/>
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 
   <!-- tuning tools: dynamic reconfigure and track video -->
   <group if="$(arg tuning)">
     <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="dynamic_reconfigure" />
-    <node pkg="rqt_image_view" type="rqt_image_view" name="rqt_image_view" />
   </group>
 
 </launch>

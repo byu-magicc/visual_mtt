@@ -11,6 +11,8 @@ DifferenceImage::DifferenceImage()
 
   drawn_ = false;
   extra_plots_drawn_ = false;
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = "Difference_Image";
   
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -127,10 +129,17 @@ void DifferenceImage::DrawMeasurements(const common::System& sys)
     cv::circle(draw, meas_pos_d[j], 3, cv::Scalar(255, 0, 255), 3, CV_AA);
   }
 
+  if(drawn_ == false)
+  {
+    cv::namedWindow(name_);
+    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
+  }
+
   if (!draw.empty())
   {
     drawn_ = true;
     cv::imshow(name_, draw);
+    pic_params_.img = draw.clone();
   }
 
 }

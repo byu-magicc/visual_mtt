@@ -28,6 +28,8 @@
   <arg name="plugin_whitelist"  default="$(find visual_mtt)/param/plugin_whitelist.yaml" />
   <arg name="static_param_filename" default="$(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="false" />
+  <arg name="gnsac_solver_filename" default="$(find visual_mtt)/param/gnsac_default.yaml"/>
+  <arg name="picture_file_path" default="$(find visual_mtt)/pictures/"/>
 
 
   <!-- video_path:      path to video file          (video only)              -->
@@ -45,6 +47,10 @@
 
   <!-- params:          path to the yaml file with desired parameter values   -->
   <!-- tuning:          enables dynamic reconfigure and displays measurements -->
+
+  <!-- gnsac_solver_filename: Path to GNSAC solver parameters                 -->
+  <!-- plugin_whitelist:      Path to plugin_whitelist param file.            -->
+  <!-- picture_file_path:     Path to where saved pictures are placed         -->
 
 
   <!-- helpful args to simplify logic -->
@@ -148,7 +154,9 @@
     <arg name="plugin_whitelist" value="$(arg plugin_whitelist)" />
     <arg name="static_param_filename" value="$(arg static_param_filename)"/>
     <arg name="tuning" value="$(arg tuning)" />
+    <arg name="gnsac_solver_filename" value="$(arg gnsac_solver_filename)"/>
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
+    <arg name="picture_file_path"     value="$(arg picture_file_path)"/>
   </include>
 
 </launch>

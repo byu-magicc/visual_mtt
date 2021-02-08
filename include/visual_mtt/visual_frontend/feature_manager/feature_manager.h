@@ -14,6 +14,9 @@
 // Pluginlib
 #include <pluginlib/class_loader.h>
 
+// GNSAC
+#include "parallax_detector/parallax_detector.h"
+
 namespace visual_frontend {
 
   /** \class FeatureManager
@@ -28,6 +31,13 @@ namespace visual_frontend {
   public:
     FeatureManager();
     ~FeatureManager();
+
+    /**
+    * \brief Init the gnsac solver.
+    * @param gnsac_solver_filename The file path to the gnsac solver yaml file. 
+    */
+
+    void Initialize(std::string gnsac_solver_filename);
 
     /**
     * \brief Updates dynamic parameters.
@@ -74,6 +84,12 @@ namespace visual_frontend {
     
     pluginlib::ClassLoader<FeatureBase> plugin_loader_; /**< Plugin loader */
     std::vector<boost::shared_ptr<FeatureBase>> feature_matchers_; /**< Feature Matcher Loaded Plugins */
+
+    gnsac::ParallaxDetector  parallax_detec_;
+
+    bool parallax_comp_; /**< Indicates if parallax compensation should be applied to 
+                              the undistorted matched points */
+    bool parallax_initiated_; /**< Indicates if the GNSAC solver was properly initiated */
 
   };
 

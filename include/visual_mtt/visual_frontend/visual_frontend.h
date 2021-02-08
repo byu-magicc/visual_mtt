@@ -179,6 +179,15 @@ namespace visual_frontend {
 
     unsigned int publish_frame_stride_; /**< Only publish the tracks image every frame_stride_ * publish_frame_stride_ frame */
 
+
+    /**
+    * < Struct containing the necessary information to save an image.
+    * @see common::PictureParams
+    */
+    common::PictureParams pic_params_;
+    std::string name_; /**< A unique identifier for the frontend. Should be initialized in the constructor.*/   
+    bool drawn_;       /**< Indicates if an image has been drawn yet  */
+
   };
 
 }

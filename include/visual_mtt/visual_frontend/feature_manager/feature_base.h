@@ -123,6 +123,12 @@ namespace visual_frontend {
 
     std::vector<cv::Point2f> d_prev_features_; /**< The extracted distorted features from the previous */
 
+    /**
+    * < Struct containing the necessary information to save an image.
+    * @see common::PictureParams
+    */
+    common::PictureParams pic_params_;
+
   };
 
 }
