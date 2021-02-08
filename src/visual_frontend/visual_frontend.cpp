@@ -153,9 +153,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     double percentage;
     nh_.param<double>("rransac/surveillance_region", percentage, 0);
 
-    params_.field_max_x = std::abs(corner_[0].x*percentage);
-    params_.field_max_y = std::abs(corner_[0].y*percentage);
-    tracker_.set_parameters(params_);
+
 
   }
 
@@ -325,48 +323,40 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
 {
 
   // general
-  params_.dt = config.dt;
+  rransac_params_.meas_time_window_ = config.meas_time_window;
+  rransac_params_.transform_consensus_set_ = config.transform_consensus_set;
 
-  // motion model specific parameters
-  params_.sigmaQ_vel = config.sigmaQ_vel;
-  params_.alphaQ_vel = config.alphaQ_vel;
-  params_.sigmaQ_jrk = config.sigmaQ_jrk;
-  params_.alphaQ_jrk = config.alphaQ_jrk;
+  // Cluster Parameters
+  rransac_params_.cluster_time_threshold_ = config.cluster_time_threshold;
+  rransac_params_.cluster_velocity_threshold_ = config.cluster_velocity_threshold;
+  rransac_params_.cluster_position_threshold_ = config.cluster_position_threshold;
+  rransac_params_.cluster_min_size_requirement_ = config.cluster_min_size_requirement;
 
-  // R-RANSAC specific parameters
-  params_.Nw = config.Nw;
-  params_.M = config.M;
-  params_.tauR = config.tauR;
-  params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
+  // RANSAC Parameters
+  rransac_params_.RANSAC_max_iters_ = config.RANSAC_max_iters;
+  rransac_params_.RANSAC_score_stopping_criteria_ = config.RANSAC_score_stopping_criteria;
+  rransac_params_.RANSAC_score_minimum_requirement_ = config.RANSAC_score_minimum_requirement;
+  rransac_params_.RANSAC_minimum_subset_ = config.RANSAC_minimum_subset;
 
-  // RANSAC specific parameters
-  params_.ell = config.ell;
-  params_.guided_sampling_threshold = config.guided_sampling_threshold;
-  params_.tauR_RANSAC = config.tauR_RANSAC;
-  params_.gamma = config.gamma;
-  params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
+   // Model Manager Parameters
+  rransac_params_.track_good_model_threshold_ = config.track_good_model_threshold;
+  rransac_params_.track_max_missed_detection_time_ = config.track_max_missed_detection_time;
+  rransac_params_.track_similar_tracks_threshold_ = config.track_similar_tracks_threshold;
+  rransac_params_.track_max_num_tracks_ = config.track_max_num_tracks;
 
-  // model merging parameters
-  params_.tau_vel_percent_diff = config.tau_vel_percent_diff;
-  params_.tau_vel_abs_diff = config.tau_vel_abs_diff;
-  params_.tau_angle_abs_diff = config.tau_angle_abs_diff;
-  params_.tau_xpos_abs_diff = config.tau_xpos_abs_diff;
-  params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
+  // Nonlinear LMLE
+  rransac_params_.nonlinear_innov_cov_id_ = config.nonlinear_innov_cov_id;
 
-  // model pruning parameters
-  double percentage = config.surveillance_region;
-  params_.field_max_x = std::abs(corner_[0].x*percentage);
-  params_.field_max_y = std::abs(corner_[0].y*percentage);
-  params_.tau_CMD_prune = config.tau_CMD_prune;
-
-  // track (i.e., Good Model) parameters
-  params_.tau_rho = config.tau_rho;
-  params_.tau_CMD = config.tau_CMD;
-  params_.tau_Vmax = config.tau_Vmax;
-  params_.tau_T = config.tau_T;
+#if TRACKING_SE2
+  rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,5,5>::Identity();
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_pos, config.covQ_vel, covQ_vel;
+#else
+  rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,4,4>::Identity();
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_vel, covQ_vel;
+#endif
 
   // Update the R-RANSAC Tracker with these new parameters
-  tracker_.set_parameters(params_);
+  rransac_.SetParameters(rransac_params_);
 
   ROS_INFO("rransac: parameters have been updated");
 }

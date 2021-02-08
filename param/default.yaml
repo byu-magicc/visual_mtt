@@ -66,40 +66,31 @@ visual_frontend/crop_width: 120
 #### R-RANSAC Node
 
 # general
-rransac/dt: 1
+rransac/meas_time_window: 5
+rransac/transform_consensus_set: false
 
 # motion model specific parameters
-rransac/sigmaQ_vel: 3
-rransac/alphaQ_vel: 0.5
-rransac/sigmaQ_jrk: 0.0001
-rransac/alphaQ_jrk: 0.0001
+rransac/sigmaQ_pos: 1
+rransac/sigmaQ_vel: 1
 
-# R-RANSAC specific parameters
-rransac/Nw: 10
-rransac/M: 30
-rransac/tauR: 0.07
-rransac/rransac_motion_model: 2
+# cluster parameters
+rransac/cluster_time_threshold: 1
+rransac/cluster_velocity_threshold: 2
+rransac/cluster_position_threshold: 2
+rransac/cluster_min_size_requirement: 5
 
-# RANSAC specific parameters
-rransac/ell: 100
-rransac/guided_sampling_threshold: 1.43
-rransac/tauR_RANSAC: 0.07
-rransac/gamma: 0.0007
-rransac/ransac_motion_model: 0
 
-# model merging parameters
-rransac/tau_vel_percent_diff: 0.25
-rransac/tau_vel_abs_diff: 1.28
-rransac/tau_angle_abs_diff: 15.0
-rransac/tau_xpos_abs_diff: 0.07
-rransac/tau_ypos_abs_diff: 0.07
+# RANSAC Parameters (track initializer parameters)
+rransac/RANSAC_max_iters: 10
+rransac/RANSAC_score_stopping_criteria: 15
+rransac/RANSAC_score_minimum_requirement: 8
+rransac/RANSAC_minimum_subset: 3
 
-# model pruning parameters
-rransac/surveillance_region: 0.99
-rransac/tau_CMD_prune: 10
+#Model Manager
+rransac/track_good_model_threshold: 20
+rransac/track_max_missed_detection_time: 3
+rransac/track_similar_tracks_threshold: 1
+rransac/track_max_num_tracks: 10
 
-# track (i.e., good model) parameters
-rransac/tau_rho: 0.6
-rransac/tau_CMD: 4
-rransac/tau_Vmax: 0.043
-rransac/tau_T: 4
+#Nonlinear LMLE
+rransac/nonlinear_innov_cov_id: false

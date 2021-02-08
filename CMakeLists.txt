@@ -30,7 +30,15 @@ find_package(yaml-cpp REQUIRED)
 find_package(gnsac REQUIRED)
 
 find_package(Eigen3)
-find_package(rransac 1.0.4 EXACT REQUIRED)
+find_package(rransac REQUIRED)
+
+# rransac can perform target tracking on SE2 and on R2. The default is R2,
+# but you can change it to SE2 using the parameter
+option(TRACKING_SE2 "Perform Target Tracking on SE2 instead of R2" OFF)
+
+
+
+
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 4)
 find_package(OpenCV REQUIRED)
