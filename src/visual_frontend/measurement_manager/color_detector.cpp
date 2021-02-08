@@ -8,11 +8,20 @@ ColorDetector::ColorDetector()
   enabled_ = false;
   name_ = "Color Detector";
   cv_window_name_ = name_ +" Threshold";
-  id_ = 3;
-  has_velocity_ = false;
   drawn_ = false;
-  sigmaR_pos_ = 0.01;
-  sigmaR_vel_=0.01;
+
+
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS;
+#else
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
+#endif
+  
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*0.1;
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_probability_ = 0.9;
+  source_parameters_.RANSAC_inlier_probability_ = 0.9;
 
   // Init params for the simple blob detector
   // We only want it to detect blobs according to size
@@ -143,7 +152,7 @@ bool ColorDetector::GenerateMeasurements(const common::System& sys)
 
   detector_->detect(inv_img_,keypoints_);
 
-  for (auto kp : keypoints_ )
+  for (auto& kp : keypoints_ )
   {
     d_meas_pos_.push_back(kp.pt);
   }

@@ -15,7 +15,26 @@
 #include <dynamic_reconfigure/server.h>
 #include <image_transport/image_transport.h>
 
-#include <rransac/tracker.h>
+#include <rransac/rransac.h>
+#include <lie_groups/state.h>
+#include <rransac/common/transformations/trans_homography.h>
+#include <rransac/common/data_association/cluster_data_tree_policies/data_tree_cluster_association_policy.h>
+#include <rransac/common/data_association/model_policies/model_pdf_policy.h>
+
+#if TRACKING_SE2
+  #include <rransac/common/sources/source_SEN_pos_vel.h>
+  #include <rransac/common/models/model_SEN_pos_vel.h>
+  #include <rransac/track_initialization/seed_policies/SE2_pos_seed_policy.h>
+  #include <rransac/track_initialization/lmle_policies/nonlinear_lmle_policy.h> 
+#else
+  #include <rransac/common/sources/source_RN.h>
+  #include <rransac/common/models/model_RN.h>
+  #include <rransac/track_initialization/seed_policies/null_seed_policy.h>
+  #include <rransac/track_initialization/lmle_policies/linear_lmle_policy.h>
+#endif
+
+
+
 
 // common
 #include "common/params.h"
@@ -147,9 +166,23 @@ namespace visual_frontend {
     MeasurementManager measurement_manager_;
     RecognitionManager recognition_manager_;
 
-    // Recursive-RANSAC Tracker
-    rransac::Tracker tracker_;
-    rransac::core::Parameters params_;
+  // Recursive-RANSAC Tracker
+
+#if TRACKING_SE2
+  typedef rransac::RRANSACTemplateParameters<lie_groups::SE2_se2, rransac::SourceSENPosVel,rransac::TransformHomography, rransac::ModelSENPosVel,rransac::SE2PosSeedPolicy,rransac::NonLinearLMLEPolicy,rransac::ModelPDFPolicy,rransac::DataTreeClusterAssociationPolicy> RRANSACTemplateParams;
+  rransac::MeasurementTypes meas_type_pos_ = rransac::MeasurementTypes::SEN_POS;
+  rransac::MeasurementTypes meas_type_pos_vel_ = rransac::MeasurementTypes::SEN_POS_VEL;
+#else
+  typedef rransac::RRANSACTemplateParameters<lie_groups::R2_r2, rransac::SourceRN,rransac::TransformHomography, rransac::ModelRN,rransac::NULLSeedPolicy,rransac::NonLinearLMLEPolicy,rransac::ModelPDFPolicy,rransac::DataTreeClusterAssociationPolicy> RRANSACTemplateParams;
+  rransac::MeasurementTypes meas_type_pos_ = rransac::MeasurementTypes::RN_POS;
+  rransac::MeasurementTypes meas_type_pos_vel_ = rransac::MeasurementTypes::RN_POS_VEL;
+#endif
+
+  rransac::RRANSAC<RRANSACTemplateParams> rransac_; /**< RRANSAC is a multiple target tracking algorithm. */
+  rransac::Parameters rransac_params_;              /**< The parameters needed for RRANSAC. */
+  rransac::System<typename RRANSACTemplateParams::Model>* rransac_sys_; /**< A constant pointer to all of the data of RRANSAC. */
+
+
     std::vector<cv::Point2f> corner_{{0,0}};
     std::vector<cv::Scalar> colors_;
 

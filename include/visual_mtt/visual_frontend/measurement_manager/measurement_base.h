@@ -3,6 +3,10 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
+// rransac source parameters
+#include <rransac/common/sources/source_base.h>
+#include <rransac/common/measurement/measurement_base.h>
+
 // Dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
@@ -94,14 +98,7 @@ namespace visual_frontend {
                              Should be initialized in the plugin's constructor.*/   
 
 
-    int id_;            /**< Each Measurement Source Plugin must have a unique ID. This
-                             is used for RRANSAC. Must be defined in the plugin's constructor.*/
-    bool has_velocity_; /**< Indicates if the Measurement Source Plugin measures a 
-                             possible object's velicty. Must be defined in the plugin's constructor.*/
-    double sigmaR_pos_; /**< Standard deviation of measurement's position noise. This 
-                             is used for  RRANSAC and must be defined in the plugin's constructor.*/
-    double sigmaR_vel_; /**< Standard deviation of measurement's velocity noise. This 
-                             is used for  RRANSAC and must be defined in the plugin's constructor.*/
+    rransac::SourceParameters source_parameters_; /**< Source parameters needed by RRANSAC. The child class must fill out the member variables: type_, meas_cov_,  spacial_density_of_false_meas_, probability_of_detection_, gate_probability_, and RANSAC_inlier_probability_.*/
 
     std::vector<cv::Point2f> meas_pos_; /**< Possible object's position in the image frame. */
     std::vector<cv::Point2f> meas_vel_; /**< Possible object's velocity in the image frame. */

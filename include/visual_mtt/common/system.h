@@ -3,7 +3,7 @@
 #include <common/gpu.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
-#include <rransac/tracker.h>
+#include <rransac/common/measurement/measurement_base.h>
 #include <ros/console.h>
 
 #include <common/opencv_compat.h>
@@ -11,24 +11,8 @@
 namespace common {
 
 
-/** \struct Measurements
-* \brief A structure that contains measurement data.
-* \detail When a measurement source plugin generates measurements, the data
-* is organized as an object type Measurements that stores all
-* the information that RRANSAC needs.
-*/
 
-struct Measurements {
-
-  std::vector<cv::Point2f> meas_pos; /**< The 2D position of the measurement in undistorted normalized image pixel coordinates.*/
-  std::vector<cv::Point2f> meas_vel; /**< The 2D velocity of the measurement in undistorted normalized image pixel coordinates.*/
-  int id;                            /**< The measurement source id. See visual_frontend::MeasurementBase for more information. */
-  bool has_velocity;                 /**< Indicates if the measurement source also measures velocity. */
-  int num_of_measurements;           /**< Number of measurements generated from a measurement source in one iteration. */
-
-};
-
-/** \struct Measurements
+/** \struct PictureParams
 * \brief Parameters needed to save an image
 * \detail When a user double clicks on an OpenCV window under tuning mode,
 *         an image will be saved according to the name given.
@@ -411,7 +395,7 @@ class System {
   std::vector<bool> moving_parallax_;         /**< Flag indicating whether the point is moving perpendicular to epipolar lines (ie. whether it is an outlier to the Essential Matrix).*/
   
   // Measurement Manager
-  std::vector<Measurements> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
+  std::list<rransac::Meas<double>> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
   int num_of_measurements_;                  /**< Total number of measurements produced by all of the measurement sources in one iteration. @see visual_frontend::MeasurementManager.*/
   bool good_measurements_;                   /**< Flag used to indicate if there are any measurements. @see visual_frontend::MeasurementManager.*/
 
