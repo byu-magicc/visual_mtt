@@ -83,8 +83,12 @@ namespace visual_frontend {
 
     double velocity_floor_; /**< Minimum measurement velocity threshold */
     double velocity_ceiling_; /**< Maximum measurement velocity threshold */
+    double text_scale_ = 1;            /**< Used to resize the text drawn in the track's image. @see VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& tracks)*/
 
     bool drawn_; /**< At least one cv window exists. */
+
+    std::vector<cv::Point2f> meas_pos_parallax_; /**< Point measurements moving because of parallax */
+
   };
 
 }

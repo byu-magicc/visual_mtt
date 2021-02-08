@@ -20,6 +20,8 @@ DarknetPlugin::DarknetPlugin()
     sigmaR_vel_ = 0; 
     sequence_ = 0;
     drawn_ = false;
+    pic_params_.pic_num = 0;
+    pic_params_.file_name = name_;
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -100,9 +102,11 @@ void DarknetPlugin::DrawMeasurements(const common::System& sys)
     if(drawn_ == false)
     {
       cv::namedWindow(name_,CV_WINDOW_NORMAL);
+      cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
     }
     drawn_= true;
     cv::imshow(name_,drawn_img_);
+    pic_params_.img = drawn_img_.clone();
     cv::resizeWindow(name_,sys.sd_res_.width,sys.sd_res_.height);
 
   }

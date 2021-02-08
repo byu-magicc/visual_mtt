@@ -9,6 +9,9 @@ LKTTracker::LKTTracker()
   drawn_ = false;
   first_image_ = true;
 
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = name_;
+
 // Required frames for plugin
 #if OPENCV_CUDA
   frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
@@ -87,10 +90,17 @@ void LKTTracker::DrawFeatures(const common::System& sys)
     cv::arrowedLine(draw, d_prev_matched_[j], scaled_point, cv::Scalar(255, 0, 255), 2, CV_AA);
   }
 
+  if(drawn_ == false)
+  {
+    cv::namedWindow(name_);
+    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
+  }
+
   if (!draw.empty())
   {
     drawn_ = true;
     cv::imshow(name_, draw);
+    pic_params_.img = draw.clone();
   }
 
 }

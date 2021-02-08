@@ -2,6 +2,13 @@
 
 namespace common {
 
+
+
+// Initialize static member of class System
+std::string System::picture_file_path_ = "";
+bool System::picture_file_path_set_ = false;
+
+
 System::System()
 {
   // Init flags
@@ -11,6 +18,7 @@ System::System()
   num_of_measurements_ = 0;
   cam_info_received_ = false;
   tuning_ = false;
+  picture_file_path_set_ = false;
 
   // Required default frames
   default_frames_required_ = {true, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
@@ -232,6 +240,45 @@ void System::AddMeasurements(const int id,
 void System::SetMeasurementFlag(const bool& good_measurements)
 {
   good_measurements_ = good_measurements;
+}
+
+// --------------------------------------------------------------------------------------
+
+void System::SetPictureFilepath(const std::string& picture_file_path)
+{
+  if(picture_file_path == "")
+  {
+    ROS_WARN_STREAM("System:: Filepath has not been set. Pictures cannot be saved.");
+    picture_file_path_set_ = false;
+  }
+  else
+  {
+    picture_file_path_ = picture_file_path;
+    picture_file_path_set_ = true;
+  }
+}
+
+// --------------------------------------------------------------------------------------
+
+void System::TakePicture(int event, int x, int y, int, void* param)
+{
+  // Only save a picture if the event is a double click and
+  // the filepath is set.
+  if( event != cv::EVENT_LBUTTONDBLCLK  || !picture_file_path_set_)
+    return;
+  
+  PictureParams* pp = (PictureParams*)param;
+
+  char full_file_name[100];
+  sprintf(full_file_name,"%s%s%05x.png",picture_file_path_.c_str(), pp->file_name.c_str(),pp->pic_num);
+
+  // Make sure that the image isn't empty
+  if(!pp->img.empty())
+  {
+    cv::imwrite( full_file_name, pp->img );
+    pp->pic_num++;
+  }
+
 }
 
 // --------------------------------------------------------------------------------------

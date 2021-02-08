@@ -7,6 +7,10 @@
 #define CV_TERMCRIT_ITER cv::TermCriteria::MAX_ITER
 #endif
 
+#ifndef CV_WINDOW_NORMAL
+#define CV_WINDOW_NORMAL cv::WINDOW_NORMAL
+#endif
+
 #ifndef CV_BGR2GRAY
 #define CV_BGR2GRAY cv::COLOR_BGR2GRAY
 #endif

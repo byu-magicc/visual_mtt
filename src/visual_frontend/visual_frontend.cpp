@@ -9,9 +9,11 @@ VisualFrontend::VisualFrontend()
 
 
   // Load static parameters.
-  std::string filename;
-  nh_private.param<std::string>("static_param_filename",filename, "");
-  static_params_.Initialize(filename);
+  std::string static_param_filename,gnsac_solver_filename;
+  nh_private.param<std::string>("static_param_filename",static_param_filename, "");
+  nh_private.param<std::string>("gnsac_solver_filename",gnsac_solver_filename,"");
+  static_params_.Initialize(static_param_filename);
+  feature_manager_.Initialize(gnsac_solver_filename);
 
   // ROS Messages Throttle
   static_params_.GetParam("visual_frontend/message_output_period", sys_.message_output_period_, 60);
@@ -25,7 +27,11 @@ VisualFrontend::VisualFrontend()
                            feature_manager_plugin_whitelist;
 
   // get parameters from param server that are not dynamically reconfigurable
+  std::string picture_file_path;
   nh_private.param<bool>("tuning", sys_.tuning_, 0);
+  nh_private.param<std::string>("picture_file_path", picture_file_path, "");
+  sys_.SetPictureFilepath(picture_file_path);
+
   nh_private.getParam("measurement_manager/plugins",measurement_manager_plugin_whitelist);
   nh_private.getParam("transform_manager/plugins",transform_manager_plugin_whitelist);
   nh_private.getParam("feature_manager/plugins",feature_manager_plugin_whitelist);
@@ -79,7 +85,15 @@ VisualFrontend::VisualFrontend()
 
   // establish librransac good model elevation event callback
   params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
-  
+
+
+
+  // Image drawing and saving parameters
+  name_ = "Visual MTT";
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = "Tracks";
+  drawn_ = false;
+
 }
 
 // ----------------------------------------------------------------------------
@@ -227,9 +241,26 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   PublishTracks(sys_.tracks_);
   PublishTransform();
 
-  // generate visualization, but only if someone is listening
-  if (pub_tracks_video.getNumSubscribers() > 0 && (pub_frame_++ % publish_frame_stride_ == 0)) {
+  // generate visualization, but only if someone is listening or in tuning mode
+  bool listening_or_tuning_mode = (pub_tracks_video.getNumSubscribers() > 0) || sys_.tuning_;
+  bool pub_frame_ready = (pub_frame_++ % publish_frame_stride_ == 0);
+  if (listening_or_tuning_mode > 0 && pub_frame_ready) {
     const cv::Mat drawing = DrawTracks(sys_.tracks_);
+
+    if(sys_.tuning_ && drawn_ == false)
+    {
+      cv::namedWindow(name_,CV_WINDOW_NORMAL);
+      cv::setMouseCallback(name_,sys_.TakePicture, &pic_params_);
+      cv::resizeWindow(name_,sys_.sd_res_.width,sys_.sd_res_.height);
+      
+    }
+
+    if(!drawing.empty() && sys_.tuning_)
+    {
+      drawn_ = true;
+      cv::imshow(name_, drawing);
+      pic_params_.img = drawing.clone();
+    }
 
     // Publish over ROS network
     if (!drawing.empty()) {

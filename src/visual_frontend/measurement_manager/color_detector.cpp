@@ -89,7 +89,7 @@ void ColorDetector::DrawMeasurements(const common::System& sys)
     cv::namedWindow(name_);
     cv::namedWindow(cv_window_name_);
     // cv::namedWindow("temp");
-    // cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
+    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
   }
 
   if (!draw.empty())
@@ -99,7 +99,7 @@ void ColorDetector::DrawMeasurements(const common::System& sys)
     cv::imshow(name_, draw);
     cv::imshow(cv_window_name_, thresholded_img_);
     
-    // pic_params_.img = draw.clone();
+    pic_params_.img = draw.clone();
   }
 }
 

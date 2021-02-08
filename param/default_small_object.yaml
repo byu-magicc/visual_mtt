@@ -12,15 +12,17 @@ visual_frontend/published_frame_stride: 1.0
 visual_frontend/text_scale: 1.0
 
 # feature manager
-visual_frontend/lkt_tracker_enabled:    0
+visual_frontend/lkt_tracker_enabled:    1
 visual_frontend/lkt_tracker_max_features:      600
+visual_frontend/parallax_comp: true
+visual_frontend/parallax_threshold: 0.0002      # smaller value = smaller perpendicular velocity needed to be considered non-parallax
 
 # feature motion
 visual_frontend/feature_motion_enabled: true
 visual_frontend/feature_motion_sigmaR_pos: 0.007
 visual_frontend/feature_motion_sigmaR_vel: 0.00014
-visual_frontend/minimum_feature_velocity: 0.0003
-visual_frontend/maximum_feature_velocity: 0.01
+visual_frontend/minimum_feature_velocity: 0.0002
+visual_frontend/maximum_feature_velocity: 0.001
 
 # difference image
 visual_frontend/difference_image_enabled: false
@@ -74,16 +76,16 @@ rransac/sigmaQ_jrk: 0.0001
 rransac/alphaQ_jrk: 0.0001
 
 # R-RANSAC specific parameters
-rransac/Nw: 10
+rransac/Nw: 20 #10
 rransac/M: 30
-rransac/tauR: 0.07
+rransac/tauR: 0.04 #0.07
 rransac/rransac_motion_model: 2
 
 # RANSAC specific parameters
-rransac/ell: 200
+rransac/ell: 20 #200
 rransac/guided_sampling_threshold: 1.43
-rransac/tauR_RANSAC: 0.07
-rransac/gamma: 0.0007
+rransac/tauR_RANSAC: 0.04 #0.07
+rransac/gamma: 0.0016 #0.0007
 rransac/ransac_motion_model: 0
 
 # model merging parameters
@@ -95,10 +97,10 @@ rransac/tau_ypos_abs_diff: 0.07
 
 # model pruning parameters
 rransac/surveillance_region: 0.99
-rransac/tau_CMD_prune: 20
+rransac/tau_CMD_prune: 10 #20
 
 # track (i.e., good model) parameters
 rransac/tau_rho: 0.6
-rransac/tau_CMD: 4
+rransac/tau_CMD: 5 #4
 rransac/tau_Vmax: 0.043
-rransac/tau_T: 1
+rransac/tau_T: 10 #1

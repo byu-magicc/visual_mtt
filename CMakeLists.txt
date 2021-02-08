@@ -24,6 +24,11 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
 )
 
+# yaml-cpp is used to read in a yaml file and retrieve its values 
+find_package(yaml-cpp REQUIRED)
+# gnsac is used to optimize the essential matrix using RANSAC or LMEDS.
+find_package(gnsac REQUIRED)
+
 find_package(Eigen3)
 find_package(rransac 1.0.4 EXACT REQUIRED)
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
@@ -69,12 +74,6 @@ if(VISUAL_MTT_CUDA)
 
 
 endif()
-
-# yaml-cpp is used to read in a yaml file and retrieve its values 
-find_package(yaml-cpp REQUIRED)
-
-
-
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -176,6 +175,7 @@ include_directories(include/visual_mtt
   ${catkin_INCLUDE_DIRS}
   ${RRANSAC_INCLUDE_DIRS}
   ${YAML_CPP_INCLUDE_DIR}
+  ${GNSAC_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR})
 
 ## Plugins
@@ -250,6 +250,7 @@ target_link_libraries(${PROJECT_NAME}_visual_frontend
   ${catkin_LIBRARIES} 
   ${OpenCV_LIBS} 
   ${RRANSAC_LIBS}
+  ${GNSAC_LIBS}
   ${YAML_CPP_LIBRARIES})
 
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})

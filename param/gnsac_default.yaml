@@ -1,0 +1,17 @@
+# LM+LMEDS, eigen version
+library: gnsac_eigen
+n_subsets: 100
+n_subsets_ignore_after: 100000
+optimizer: LM
+LM_lambda: 1e-4
+optimizer_cost: algebraic
+optimizer_seed: random #best
+optimizer_seed_noise: 0
+scoring_cost: sampson
+consensus_alg: LMEDS
+consensus_seed: previous
+max_iterations: 10
+exit_tolerance: 0
+pose_disambig: trace
+renormalize: false
+refine: true

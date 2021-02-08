@@ -15,6 +15,8 @@ FeatureMotion::FeatureMotion()
   first_image_ = true;
   velocity_floor_ = 0.002;
   velocity_ceiling_ = 0.02;
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = "Feature_Motion";
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -59,24 +61,62 @@ void FeatureMotion::DrawMeasurements(const common::System& sys)
   // treat points in the normalized image plane as 3D points (homogeneous).
   // project the points onto the sensor (pixel space) for plotting.
   // use no rotation or translation (world frame = camera frame).
-  std::vector<cv::Point3f> meas_pos_h; // homogeneous
-  std::vector<cv::Point2f> meas_pos_d; // distorted
+  std::vector<cv::Point3f> meas_pos_h, meas_pos_h_p; // homogeneous
+  std::vector<cv::Point2f> meas_pos_d, meas_pos_d_p; // distorted
   if (meas_pos_.size()>0)
   {
     cv::convertPointsToHomogeneous(meas_pos_, meas_pos_h);
     cv::projectPoints(meas_pos_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys.sd_camera_matrix_, sys.dist_coeff_, meas_pos_d);
   }
-
-  // plot measurements
-  for (int j=0; j<meas_pos_d.size(); j++)
+  if (meas_pos_parallax_.size() > 0)
   {
-    cv::circle(draw, meas_pos_d[j], 2, cv::Scalar(255, 0, 255), 2, CV_AA);
+    cv::convertPointsToHomogeneous(meas_pos_parallax_, meas_pos_h_p);
+    cv::projectPoints(meas_pos_h_p, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys.sd_camera_matrix_, sys.dist_coeff_, meas_pos_d_p);
+  }
+
+
+  char text[40];
+  cv::Point bl_corner = cv::Point(165, 18)*text_scale_;
+  cv::Point corner_offset = cv::Point(0, 20)*text_scale_;
+  cv::Point corner_offset2 = cv::Point(20, 0)*text_scale_;
+  cv::Point text_offset = cv::Point(5, 13)*text_scale_;
+  double text_size = 0.5*text_scale_;
+
+  sprintf(text, "Moving:");
+  cv::Point corner = cv::Point(5,5)*text_scale_;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset+corner_offset2, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+  cv::circle(draw, corner + corner_offset/2 + corner_offset2/2, 2, cv::Scalar(205, 0, 0), 2, CV_AA);
+
+  sprintf(text, "Parallax: ");
+  corner += corner_offset;
+  cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
+  cv::putText(draw, text, corner + text_offset+corner_offset2, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
+  cv::circle(draw, corner + corner_offset/2 + corner_offset2/2 , 2, cv::Scalar(0, 0, 205), 2, CV_AA);
+
+  // Draw the points moving along the epipolar lines
+  for (int j=0; j<meas_pos_d_p.size(); j++)
+  {
+      cv::circle(draw, meas_pos_d_p[j], 2, cv::Scalar(0, 0, 205), 2, CV_AA);
+  }
+
+  // Draw the points moving perpendicular to the epipolar lines
+  for (int jj=0; jj<meas_pos_d.size(); jj++)
+  {
+      cv::circle(draw, meas_pos_d[jj], 2, cv::Scalar(205, 0, 0), 2, CV_AA);
+  }
+
+  if(drawn_ == false)
+  {
+    cv::namedWindow(name_);
+    cv::setMouseCallback(name_,sys.TakePicture, &pic_params_);
   }
 
   if (!draw.empty())
   {
     drawn_ = true;
     cv::imshow(name_, draw);
+    pic_params_.img = draw.clone();
   }
 
 }
@@ -88,6 +128,7 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
   bool good_measurements = false;
   meas_pos_.clear();
   meas_vel_.clear();
+  meas_pos_parallax_.clear();
 
 
   // If there isn't a good transform, dont' do anything. 
@@ -112,9 +153,17 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
       float vel = sqrt(meas_vel[ii].x*meas_vel[ii].x + meas_vel[ii].y*meas_vel[ii].y);
       if (vel > velocity_floor_ && vel < velocity_ceiling_)
       {
-        numberOfPossibleMovers++;
-        meas_pos_.push_back(sys.ud_curr_matched_[ii]);
-        meas_vel_.push_back(meas_vel[ii]);
+        if(sys.moving_parallax_[ii])
+        {
+          numberOfPossibleMovers++;
+          meas_pos_.push_back(sys.ud_curr_matched_[ii]);
+          meas_vel_.push_back(meas_vel[ii]);
+        }
+        else
+        {
+          meas_pos_parallax_.push_back(sys.ud_curr_matched_[ii]);
+        }
+
       }
     }
   } else {
