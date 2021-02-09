@@ -4,6 +4,7 @@
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
 #include <rransac/common/measurement/measurement_base.h>
+#include <rransac/common/sources/source_base.h>
 #include <ros/console.h>
 
 #include <common/opencv_compat.h>
@@ -222,7 +223,7 @@ class System {
   * @see common::Measurements::meas_vel
   * @see visual_frontend::MeasurementManager::GenerateMeasurements(common::System& sys)
   */
-  void AddMeasurements(const int id,
+  void AddMeasurements(const rransac::SourceParameters& source_params,
                        const bool has_velocity, 
                        const std::vector<cv::Point2f>& meas_pos, 
                        const std::vector<cv::Point2f>& meas_vel);
@@ -399,9 +400,7 @@ class System {
   int num_of_measurements_;                  /**< Total number of measurements produced by all of the measurement sources in one iteration. @see visual_frontend::MeasurementManager.*/
   bool good_measurements_;                   /**< Flag used to indicate if there are any measurements. @see visual_frontend::MeasurementManager.*/
 
-  // R-RANSAC
-  std::vector<rransac::core::ModelPtr> tracks_; /**< Container for all the track (Good Models) computed by R-RANSAC.*/
-
+  
   ////////////////////////////////////////////////////////////////////////
   // Visual Frontend
   // Images, camera info, and mask
@@ -445,6 +444,8 @@ class System {
   
   static std::string picture_file_path_;     /**< File Path where the pictures will be saved. */
   static bool picture_file_path_set_;        /**< If True, the picture file path has been set but no garuntee that its a valid file path. */
+
+  double current_time_ = 0;                  /**< The current time in seconds provided by the video header files. */
 
   private:
 

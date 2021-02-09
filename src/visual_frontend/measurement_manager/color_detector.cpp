@@ -9,6 +9,8 @@ ColorDetector::ColorDetector()
   name_ = "Color Detector";
   cv_window_name_ = name_ +" Threshold";
   drawn_ = false;
+  has_velocity_ = false;
+  source_parameters_changed_ = false;
 
 
 #if TRACKING_SE2
@@ -60,7 +62,9 @@ ColorDetector::~ColorDetector()
 
 // ----------------------------------------------------------------------------
 
-void ColorDetector::Initialize(const common::Params& params) {}
+void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+  source_parameters_.source_index_ = source_index;
+}
 
 // ----------------------------------------------------------------------------
 

@@ -217,21 +217,34 @@ void System::ClearMeasurements()
 
 // --------------------------------------------------------------------------------------
 
-void System::AddMeasurements(const int id,
-                             const bool has_velocity, 
+void System::AddMeasurements(const rransac::SourceParameters& source_params, const bool has_velocity 
                              const std::vector<cv::Point2f>& meas_pos, 
                              const std::vector<cv::Point2f>& meas_vel)
 {
 
-  Measurements measurement;
-  measurement.id = id;
-  measurement.has_velocity = has_velocity;
-  measurement.meas_pos = meas_pos;
-  measurement.meas_vel = meas_vel;
-  measurement.num_of_measurements = meas_pos.size();;
+Meas<double> m;
+m.source_index = source_params.source_index_;
+m.type = source_params.type_;
+m.time_stamp = this->current_time_;
+Eigen::Matrix<double,2,1> tmp;
 
-  measurements_.push_back(measurement);
-  num_of_measurements_ += meas_pos.size();
+for (unsigned int ii=0; ii < meas_pos.size(); ++ii ) {
+
+  tmp(0) = meas_pos[ii].x;
+  tmp(1) = meas_pos[ii].y;
+  m.pose = tmp;
+
+  if (has_velocity) {
+    tmp << meas_vel[ii].x, meas_vel[ii].y;
+    m.twist = tmp;
+  }
+
+  measurements_.push_back(m);
+  num_of_measurements_++;
+
+}
+
+
 
 }
 
