@@ -6,14 +6,26 @@ DifferenceImage::DifferenceImage()
 {
   enabled_ = false;
   name_ = "Difference Image";
-  id_ = 1;
   has_velocity_ = false;
 
   drawn_ = false;
   extra_plots_drawn_ = false;
   pic_params_.pic_num = 0;
   pic_params_.file_name = "Difference_Image";
+  source_parameters_changed_ = false;
   
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS;
+#else
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
+#endif
+
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*0.1;
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_probability_ = 0.9;
+  source_parameters_.RANSAC_inlier_probability_ = 0.9;
+
 // Required frames for plugin
 #if OPENCV_CUDA
   frames_required_ = {false, false, false, false, false};  // {HD, SD, MONO, UNDIST, HSV}
@@ -33,7 +45,9 @@ DifferenceImage::~DifferenceImage()
 
 // ----------------------------------------------------------------------------
 
-void DifferenceImage::Initialize(const common::Params& params) {}
+void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+  source_parameters_.source_index_ = source_index;
+}
 
 // ----------------------------------------------------------------------------
 

@@ -6,17 +6,30 @@ FeatureMotion::FeatureMotion()
 {
   enabled_ = false;
   name_ = "Feature Motion";
-  id_ = 0;
   has_velocity_ = true;
   drawn_ = false;
   sigmaR_pos_ = 0.01;
   sigmaR_vel_=0.01;
+  source_parameters_changed_ = false;
 
   first_image_ = true;
   velocity_floor_ = 0.002;
   velocity_ceiling_ = 0.02;
   pic_params_.pic_num = 0;
   pic_params_.file_name = "Feature_Motion";
+
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS_VEL;
+#else
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS_VEL;  
+#endif
+  
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,4,4>::Identity();
+  source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_probability_ = 0.9;
+  source_parameters_.RANSAC_inlier_probability_ = 0.9;
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -36,8 +49,9 @@ FeatureMotion::~FeatureMotion()
 
 // ----------------------------------------------------------------------------
     
-void FeatureMotion::Initialize(const common::Params& params) {}
-
+void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+  source_parameters_.source_index_ = source_index;
+}
 // ----------------------------------------------------------------------------
 
 void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& config)
@@ -46,8 +60,13 @@ void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& confi
   velocity_ceiling_ = config.maximum_feature_velocity;
 
   // noise parameters (only for storage, not used in measurement generation)
-  sigmaR_pos_ = config.feature_motion_sigmaR_pos;
-  sigmaR_vel_ = config.feature_motion_sigmaR_vel;
+  if (sigmaR_pos_ != config.feature_motion_sigmaR_pos || sigmaR_vel_ != config.feature_motion_sigmaR_vel) {
+      sigmaR_pos_ = config.feature_motion_sigmaR_pos;
+      sigmaR_vel_ = config.feature_motion_sigmaR_vel;
+      source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);
+      source_parameters_changed_ = true;
+  }
+    
 
   ShouldReset(config.feature_motion_enabled);
 }

@@ -42,7 +42,7 @@ namespace visual_frontend {
     * @see common::Params
     * @see MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params)
     */
-    virtual void Initialize(const common::Params& params) = 0;
+    virtual void Initialize(const common::Params& params, const unsigned int source_index) = 0;
 
     /**
     * \brief Updates dynamic parameters.
@@ -99,6 +99,9 @@ namespace visual_frontend {
 
 
     rransac::SourceParameters source_parameters_; /**< Source parameters needed by RRANSAC. The child class must fill out the member variables: type_, meas_cov_,  spacial_density_of_false_meas_, probability_of_detection_, gate_probability_, and RANSAC_inlier_probability_.*/
+    bool has_velocity_;                           /**< Flag used to indicate if it has velocity. True indicates that it has velocity. */
+    bool source_parameters_changed_; /**< Used to indicate if any of the source parameters changed in the SetParameters function. If they did, then rransac 
+                                          needs to change the corresponding parameters. */
 
     std::vector<cv::Point2f> meas_pos_; /**< Possible object's position in the image frame. */
     std::vector<cv::Point2f> meas_vel_; /**< Possible object's velocity in the image frame. */
