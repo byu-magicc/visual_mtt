@@ -217,12 +217,12 @@ void System::ClearMeasurements()
 
 // --------------------------------------------------------------------------------------
 
-void System::AddMeasurements(const rransac::SourceParameters& source_params, const bool has_velocity 
+void System::AddMeasurements(const rransac::SourceParameters& source_params, const bool has_velocity, 
                              const std::vector<cv::Point2f>& meas_pos, 
                              const std::vector<cv::Point2f>& meas_vel)
 {
 
-Meas<double> m;
+rransac::Meas<double> m;
 m.source_index = source_params.source_index_;
 m.type = source_params.type_;
 m.time_stamp = this->current_time_;
@@ -332,6 +332,8 @@ cv::Mat System::GetFrame(frame_type_ frame_type) const
       }
       return hsv_frame_;
   }
+  std::cerr << "ERROR: HD frame has not been set" << std::endl;
+  return hd_frame_;
 }
 
 #if OPENCV_CUDA
@@ -371,6 +373,8 @@ cv::cuda::GpuMat System::GetCUDAFrame(frame_type_cuda_ frame_type_cuda) const
       }
       return hsv_frame_cuda_;
   }
+  std::cerr << "ERROR: HD CUDA frame has not been set" << std::endl;
+  return hd_frame_cuda_;
 }
 #endif
 

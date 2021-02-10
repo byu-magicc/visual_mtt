@@ -7,7 +7,8 @@ DifferenceImage::DifferenceImage()
   enabled_ = false;
   name_ = "Difference Image";
   has_velocity_ = false;
-
+  sigmaR_pos_ = 0.1;
+  sigmaR_vel_=0;
   drawn_ = false;
   extra_plots_drawn_ = false;
   pic_params_.pic_num = 0;
@@ -20,7 +21,7 @@ DifferenceImage::DifferenceImage()
   source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
 #endif
 
-  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*0.1;
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*sigmaR_pos_;
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
   source_parameters_.gate_probability_ = 0.9;
@@ -45,7 +46,7 @@ DifferenceImage::~DifferenceImage()
 
 // ----------------------------------------------------------------------------
 
-void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+void DifferenceImage::Initialize(const common::Params& params, const unsigned int source_index) {
   source_parameters_.source_index_ = source_index;
 }
 

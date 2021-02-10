@@ -61,7 +61,7 @@ uint32_t RecognitionManager::identify_target(const double x, const double y)
 
 // ----------------------------------------------------------------------------
 
-void RecognitionManager::update_descriptors(const std::vector<rransac::core::ModelPtr> tracks)
+void RecognitionManager::update_descriptors(const std::vector<RR_Model*> tracks)
 {
   // if no method is selected (NONE), return 0 (no ID recognized)
   if (recognition_method_ == nullptr)
@@ -71,9 +71,13 @@ void RecognitionManager::update_descriptors(const std::vector<rransac::core::Mod
   for (auto&& track : tracks)
   {
     // for convenience
-    double x = track->xhat(0);
-    double y = track->xhat(1);
-
+#if TRACKING_SE2
+    double x = track->state_.g_.t_(0);
+    double y = track->state_.g_.t_(1);
+#else
+    double x = track->state_.g_.data_(0);
+    double y = track->state_.g_.data_(1);
+#endif
     // get pixel location in the hd frame
     cv::Point center;
 
@@ -94,7 +98,7 @@ void RecognitionManager::update_descriptors(const std::vector<rransac::core::Mod
     cv::Mat subimage = crop(center);
 
     // update historical visual information about target
-    recognition_method_->update_descriptors(subimage, track->GMN);
+    recognition_method_->update_descriptors(subimage, track->label_);
   }
 }
 

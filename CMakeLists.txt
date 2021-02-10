@@ -190,7 +190,8 @@ include_directories(include/visual_mtt
 add_library(measurement_source_plugin 
   src/visual_frontend/measurement_manager/feature_motion.cpp
   src/visual_frontend/measurement_manager/difference_image.cpp
-  src/visual_frontend/measurement_manager/color_detector.cpp)
+  src/visual_frontend/measurement_manager/color_detector.cpp
+  )
 
 add_library(transform_method_plugin 
   src/visual_frontend/transform_manager/simple_homography.cpp)
@@ -234,7 +235,8 @@ add_executable(${PROJECT_NAME}_visual_frontend
 
   # Common
   src/common/gpu.cpp
-  src/common/system.cpp)
+  src/common/system.cpp
+  )
 
 
 add_executable(${PROJECT_NAME}_camera_sim

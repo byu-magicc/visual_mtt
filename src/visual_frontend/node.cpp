@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <opencv2/opencv.hpp>
 #include "visual_frontend/visual_frontend.h"
 
 #define BLUE "\033[1;34m"
