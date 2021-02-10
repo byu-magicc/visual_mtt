@@ -114,7 +114,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   header_frame_ = data->header;
 
   // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
-  sys_.current_time_ = ros::WallTime::now().toSec();
+  sys_.current_time_ = header_frame_.stamp.toSec();
 
   //
   // Estimate FPS
@@ -131,6 +131,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Only process every Nth frame
   if (frame_++ % frame_stride_ != 0)
     return;
+
 
 
   // convert message data into OpenCV type cv::Mat
@@ -164,6 +165,8 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
 
   }
+
+
 
   //
   // Initial image processing
@@ -519,12 +522,48 @@ cv::Mat VisualFrontend::DrawTracks()
     // double radius = params_.tauR * sys_.hd_camera_matrix_.at<double>(0,0);
     // cv::circle(draw, center, (int)radius, color, 2, 8, 0);
 
+
+    ////////////////////////////////////////////////////////////////////
+    // Draw validation region
+    ///////////////////////////////////////////////////////////////////
+        auto& source = rransac_sys_->sources_.front();
+        unsigned int source_index = source.params_.source_index_;
+        Eigen::MatrixXd S = track->GetInnovationCovariance(rransac_sys_->sources_,source_index);
+        Eigen::Matrix2d S_pos = S.block(0,0,2,2);
+        Eigen::EigenSolver<Eigen::Matrix2d> eigen_solver;
+        eigen_solver.compute(S_pos);
+        Eigen::Vector2cd eigen_values = eigen_solver.eigenvalues();
+        Eigen::Matrix2cd eigen_vectors = eigen_solver.eigenvectors();
+        double th = 0;
+        // Make sure that the x component is positive
+        if (std::real(eigen_vectors(0,0)) < 0) {
+            eigen_vectors.block(0,0,2,1)*=-1;
+        }
+        if (std::real(eigen_vectors(0,1)) < 0) {
+            eigen_vectors.block(0,1,2,1)*=-1;
+        }
+
+
+        double scale = std::sqrt(source.params_.gate_threshold_)*sys_.hd_camera_matrix_.at<double>(0,0);
+        if (std::real(eigen_vectors(0,0)*eigen_vectors(1,0)) < 0) {
+            th = std::real(eigen_vectors(0,0))*180/M_PI;
+            cv::Size size(std::sqrt(std::norm(eigen_values(0)))*scale,std::sqrt(std::norm(eigen_values(1)))*scale);
+            cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
+        } else {
+            th = std::real(eigen_vectors(0,1))*180/M_PI;
+            cv::Size size(std::sqrt(std::norm(eigen_values(1)))*scale,std::sqrt(std::norm(eigen_values(0)))*scale);
+            cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
+        }
+    
+
+
+
     // draw red dot at the position estimate
     cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
 
     // draw scaled velocity vector
     cv::Point velocity;
-    double velocity_scale = 10; // for visibility
+    double velocity_scale = 1; // for visibility
     velocity.x = x_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
     velocity.y = y_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
     cv::line(draw, center, center + velocity, color, 1, CV_AA);
@@ -599,7 +638,17 @@ void VisualFrontend::UpdateRRANSAC()
   Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
 
+  std::cout << "tt: " << std::endl << TT << std::endl;
+  // std::cout << "transform: " << std::endl << sys_.transform_ << std::endl;
+
+  for (auto& m : sys_.measurements_) {
+    std::cout << "p: " << std::endl << m.pose << std::endl;
+  }
+
   rransac_.AddMeasurements(sys_.measurements_,TT);
+
+  std::cout << "tt r: " << std::endl << rransac_sys_->transformaion_.GetData() << std::endl;
+
   rransac_.RunTrackInitialization();
   rransac_.RunTrackManagement();
 
