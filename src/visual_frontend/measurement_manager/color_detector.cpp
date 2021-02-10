@@ -11,7 +11,8 @@ ColorDetector::ColorDetector()
   drawn_ = false;
   has_velocity_ = false;
   source_parameters_changed_ = false;
-
+  sigmaR_pos_ = 0.1;
+  sigmaR_vel_=0;
 
 #if TRACKING_SE2
   source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS;
@@ -19,7 +20,7 @@ ColorDetector::ColorDetector()
   source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
 #endif
   
-  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*0.1;
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*sigmaR_pos_;
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
   source_parameters_.gate_probability_ = 0.9;

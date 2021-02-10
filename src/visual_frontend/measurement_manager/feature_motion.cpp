@@ -4,6 +4,7 @@ namespace visual_frontend {
 
 FeatureMotion::FeatureMotion()
 {
+  
   enabled_ = false;
   name_ = "Feature Motion";
   has_velocity_ = true;
@@ -20,7 +21,7 @@ FeatureMotion::FeatureMotion()
 
 #if TRACKING_SE2
   source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS_VEL;
-#else
+#else // R2
   source_parameters_.type_ = rransac::MeasurementTypes::RN_POS_VEL;  
 #endif
   
@@ -49,7 +50,7 @@ FeatureMotion::~FeatureMotion()
 
 // ----------------------------------------------------------------------------
     
-void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+void FeatureMotion::Initialize(const common::Params& params, const unsigned int source_index) {
   source_parameters_.source_index_ = source_index;
 }
 // ----------------------------------------------------------------------------
@@ -60,7 +61,7 @@ void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& confi
   velocity_ceiling_ = config.maximum_feature_velocity;
 
   // noise parameters (only for storage, not used in measurement generation)
-  if (sigmaR_pos_ != config.feature_motion_sigmaR_pos || sigmaR_vel_ != config.feature_motion_sigmaR_vel) {
+  if ((sigmaR_pos_ != config.feature_motion_sigmaR_pos || sigmaR_vel_ != config.feature_motion_sigmaR_vel) && source_parameters_.meas_cov_.rows() == 2) {
       sigmaR_pos_ = config.feature_motion_sigmaR_pos;
       sigmaR_vel_ = config.feature_motion_sigmaR_vel;
       source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);

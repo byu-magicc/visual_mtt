@@ -3,9 +3,7 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
-// rransac source parameters
-#include <rransac/common/sources/source_base.h>
-#include <rransac/common/measurement/measurement_base.h>
+
 
 // Dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
@@ -13,6 +11,7 @@
 // common
 #include "common/params.h"
 #include "common/system.h"
+
 
 // Pluginlib
 #include <pluginlib/class_list_macros.h>
@@ -31,6 +30,9 @@ namespace visual_frontend {
   class MeasurementBase
   {
   public:
+
+    // // Ensures to invoke actual object destructor
+    // virtual ~MeasurementBase(){}
 
    /**
     * \brief Used to initialize a plugin's static parameters.
@@ -100,6 +102,11 @@ namespace visual_frontend {
 
     rransac::SourceParameters source_parameters_; /**< Source parameters needed by RRANSAC. The child class must fill out the member variables: type_, meas_cov_,  spacial_density_of_false_meas_, probability_of_detection_, gate_probability_, and RANSAC_inlier_probability_.*/
     bool has_velocity_;                           /**< Flag used to indicate if it has velocity. True indicates that it has velocity. */
+    double sigmaR_pos_; /**< Standard deviation of measurement's position noise. This 
+                             is used for  RRANSAC and must be defined in the plugin's constructor.*/
+    double sigmaR_vel_; /**< Standard deviation of measurement's velocity noise. This 
+                             is used for  RRANSAC and must be defined in the plugin's constructor.*/
+
     bool source_parameters_changed_; /**< Used to indicate if any of the source parameters changed in the SetParameters function. If they did, then rransac 
                                           needs to change the corresponding parameters. */
 

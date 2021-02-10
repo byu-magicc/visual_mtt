@@ -3,11 +3,12 @@
 #include <common/gpu.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
-#include <rransac/common/measurement/measurement_base.h>
-#include <rransac/common/sources/source_base.h>
+
 #include <ros/console.h>
 
 #include <common/opencv_compat.h>
+
+#include "common/object_types.h"
 
 namespace common {
 

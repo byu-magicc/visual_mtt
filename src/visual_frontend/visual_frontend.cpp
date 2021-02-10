@@ -83,10 +83,6 @@ VisualFrontend::VisualFrontend()
     colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
 
 
-  // establish librransac good model elevation event callback
-  params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
-
-
   ////////////////////////////////////////////////////////////////////////////////////
   // Setup sources for RRANSAC
   for (auto&& sources : measurement_manager_.measurement_sources_) {
@@ -118,7 +114,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   header_frame_ = data->header;
 
   // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
-  sys_.current_time_ = ros::WallTime::now().toSec()
+  sys_.current_time_ = ros::WallTime::now().toSec();
 
   //
   // Estimate FPS
@@ -248,7 +244,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   //
 
   // publish the tracks and homography matrix onto ROS network
-  PublishTracks(sys_.tracks_);
+  PublishTracks(rransac_sys_->good_models_);
   PublishTransform();
 
   // generate visualization, but only if someone is listening or in tuning mode
@@ -312,8 +308,6 @@ void VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& conf
       rransac_.ChangeSourceParameters(src->source_parameters_);
       src->source_parameters_changed_ = false;
   }
-
-
   }
 
   ROS_INFO("visual frontend: parameters have been updated");
@@ -354,11 +348,11 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
   rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_pos, config.covQ_vel, covQ_vel;
 #else
   rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,4,4>::Identity();
-  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_vel, covQ_vel;
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_vel, config.covQ_vel;
 #endif
 
   // Update the R-RANSAC Tracker with these new parameters
-  rransac_.SetParameters(rransac_params_);
+  rransac_.SetSystemParameters(rransac_params_);
 
   ROS_INFO("rransac: parameters have been updated");
 }
@@ -375,16 +369,10 @@ void VisualFrontend::SetParameters(visual_mtt::visual_frontendConfig& config)
   sys_.SetScaledCameraParams();
 }
 
-// ----------------------------------------------------------------------------
-
-uint32_t VisualFrontend::CallbackElevationEvent(double x, double y) {
-  uint32_t id = recognition_manager_.identify_target(x, y);
-  return id;
-}
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::PublishTracks(const std::vector<rransac::core::ModelPtr>& tracks)
+void VisualFrontend::PublishTracks(const std::vector<RR_Model*> tracks)
 {
 
   // Create the ROS message we will send
@@ -395,19 +383,32 @@ void VisualFrontend::PublishTracks(const std::vector<rransac::core::ModelPtr>& t
     visual_mtt::Track track;
 
     // General track information
-    track.id            = tracks[i]->GMN;
-    track.inlier_ratio  = tracks[i]->rho;
+    track.id                 = tracks[i]->label_;
+    track.model_likelihood  = tracks[i]->model_likelihood_;
 
+#if TRACKING_SE2
     // Position measurements
-    track.position.x    = tracks[i]->xhat(0);
-    track.position.y    = tracks[i]->xhat(1);
+    track.position.x    = tracks[i]->state_.g_.t_(0);
+    track.position.y    = tracks[i]->state_.g_.t_(1);
+    track.R = std::vector<float>(tracks[i]->state_.g_.R_(0,0).tracks[i]->state_.g_.R_(0,1),tracks[i]->state_.g_.R_(1,0),tracks[i]->state_.g_.R_(1,1)   );
 
     // Velocity measurements
-    track.velocity.x    = tracks[i]->xhat(2);
-    track.velocity.y    = tracks[i]->xhat(3);
+    track.velocity.x    = tracks[i]->state_.u_.p_(0);
+    track.velocity.y    = tracks[i]->state_.u_.p_(1);
+    track.omega = tracks[i]->state_.u_.th_(0);
+#else // R2
+    // Position measurements
+    track.position.x    = tracks[i]->state_.g_.data_(0);
+    track.position.y    = tracks[i]->state_.g_.data_(1);
+
+    // Velocity measurements
+    track.velocity.x    = tracks[i]->state_.u_.data_(0);
+    track.velocity.y    = tracks[i]->state_.u_.data_(1);
+#endif
+
 
     // Error covariance: Convert col-major double to row-major float  ---  #MakeDonaldDrumpfAgain
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> covfefe = tracks[i]->P.cast<float>();
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> covfefe = tracks[i]->err_cov_.cast<float>();
     track.covariance.insert(track.covariance.end(), covfefe.data(), covfefe.data()+covfefe.size());
 
     // Add this track to the tracks msg
@@ -478,8 +479,8 @@ cv::Mat VisualFrontend::DrawTracks()
 
 #if TRACKING_SE2
   vel = track->state_.g_.R_ * track->state_.u_.p_;
-#else
-  vel = track->state_.u_;
+#else // R2
+  vel = track->state_.u_.data_;
 #endif
 
   x_vel = vel(0,0);
@@ -504,11 +505,11 @@ cv::Mat VisualFrontend::DrawTracks()
 
     // project the center point and the consensus set
     center_h.push_back(cv::Point3f(x_pos, y_pos, 1));
-    for (auto& outer_iter = track->cs_.data_.begin(); outer_iter != track->cs_.data_.end(); ++ outer_iter) {
-      for (auto& inner_iter = outer_iter->begin(), inner_iter != outer_iter->end(); ++inner_iter) {
-        center_h.push_back(cv::Point3f(inner_iter->pose(0,0), inner_iter->pose(1,0), 1));
-      }
-    }
+    // for (const auto& outer_iter = track->cs_.consensus_set_.begin(); outer_iter != track->cs_.consensus_set_.end(); ++ outer_iter) {
+    //   for (const auto& inner_iter = outer_iter->begin(); inner_iter != outer_iter->end(); ++inner_iter) {
+    //     center_h.push_back(cv::Point3f(inner_iter->pose(0,0), inner_iter->pose(1,0), 1));
+    //   }
+    // }
 
     cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys_.hd_camera_matrix_, sys_.dist_coeff_, center_d);
     center = center_d[0];
@@ -559,7 +560,7 @@ cv::Mat VisualFrontend::DrawTracks()
   cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
-  sprintf(text, "Current models: %d", (int)tracks.size());
+  sprintf(text, "Current models: %d", (int)rransac_sys_->good_models_.size());
   corner += corner_offset;
   cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
@@ -595,7 +596,7 @@ void VisualFrontend::UpdateRRANSAC()
 
 
   // Apply transform
-  Eigen::Matrix3f TT;
+  Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
 
   rransac_.AddMeasurements(sys_.measurements_,TT);

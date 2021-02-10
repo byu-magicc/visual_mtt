@@ -29,6 +29,9 @@ namespace visual_frontend {
   {
   public:
 
+    // // Ensures to invoke actual object destructor
+    // virtual ~TransformBase(){}
+
    /**
     * \brief Used to initialize a plugin's static parameters.
     * \detail This method is called by TransformManager
