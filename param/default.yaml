@@ -70,8 +70,8 @@ rransac/meas_time_window: 5
 rransac/transform_consensus_set: false
 
 # motion model specific parameters
-rransac/sigmaQ_pos: 1
-rransac/sigmaQ_vel: 1
+rransac/covQ_pos: 0.1
+rransac/covQ_vel: 0.1
 
 # cluster parameters
 rransac/cluster_time_threshold: 1
