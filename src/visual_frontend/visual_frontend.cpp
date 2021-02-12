@@ -638,16 +638,37 @@ void VisualFrontend::UpdateRRANSAC()
   Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
 
-  std::cout << "tt: " << std::endl << TT << std::endl;
+  // std::cout << "tt: " << std::endl << TT << std::endl;
   // std::cout << "transform: " << std::endl << sys_.transform_ << std::endl;
 
-  for (auto& m : sys_.measurements_) {
-    std::cout << "p: " << std::endl << m.pose << std::endl;
-  }
+  // for (auto& m : sys_.measurements_) {
+  //   m.pose << 0.5,0.5;
+  //   m.twist << 0,0;
+  //   std::cout << "p: " << std::endl << m.pose << std::endl;
+
+  // }
+
+  // if (sys_.measurements_.size() > 0) {
+  //   rransac::Meas<double> meas;
+  //   meas = sys_.measurements_.front();
+  //   sys_.measurements_.clear();
+  //   sys_.measurements_.push_back(meas);
+  // }
+
+  std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
   rransac_.AddMeasurements(sys_.measurements_,TT);
 
-  std::cout << "tt r: " << std::endl << rransac_sys_->transformaion_.GetData() << std::endl;
+  // std::cout << "tt r: " << std::endl << rransac_sys_->transformaion_.GetData() << std::endl;
+
+  // for(auto& source : rransac_sys_->sources_) {
+  //   std::cout << "source: meas cov" << std::endl << source.params_.meas_cov_ << std::endl;
+  //   std::cout << "source: gate prob" << std::endl << source.params_.probability_of_detection_ << std::endl;
+  //   std::cout << std::endl;
+  // }
+
+    std::cout << "process noise" << std::endl << rransac_sys_->params_.process_noise_covariance_ << std::endl;
+
 
   rransac_.RunTrackInitialization();
   rransac_.RunTrackManagement();

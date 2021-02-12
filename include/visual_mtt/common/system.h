@@ -448,6 +448,9 @@ class System {
 
   double current_time_ = 0;                  /**< The current time in seconds provided by the video header files. */
 
+  // RRANSAC visualization info
+  rransac::DrawInfo draw_info_;              /**< The visualization info for RRANSAC */
+
   private:
 
 };
