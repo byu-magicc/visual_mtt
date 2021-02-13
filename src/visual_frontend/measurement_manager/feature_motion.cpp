@@ -29,8 +29,8 @@ FeatureMotion::FeatureMotion()
   source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
-  source_parameters_.gate_probability_ = 0.9;
-  source_parameters_.RANSAC_inlier_probability_ = 0.9;
+  source_parameters_.gate_probability_ = 0.7;
+  source_parameters_.RANSAC_inlier_probability_ = 0.8;
 
 // Required frames for plugin
 #if OPENCV_CUDA
