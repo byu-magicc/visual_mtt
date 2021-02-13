@@ -449,7 +449,20 @@ class System {
   double current_time_ = 0;                  /**< The current time in seconds provided by the video header files. */
 
   // RRANSAC visualization info
-  rransac::DrawInfo draw_info_;              /**< The visualization info for RRANSAC */
+  rransac::DrawInfo rransac_draw_info_;      /**< The visualization info for RRANSAC */
+  std::string rransac_video_file_name_;      /**< The filename of the video. This must be an absolute path. Ex: /home/user/vmtt/video.mp4. */
+  double rransac_fps_;                       /**< The video's fps for the RRANSAC visualization. */
+  bool rransac_visualize_data_;              /**< If true, the visualization of RRANSAC wil be shown. */
+  int rransac_vis_image_width_;              /**< The width of the image that will display the rransac visualization. */
+  int rransac_vis_image_height_;             /**< The height of the image that will display the rransac visualization. */
+
+
+#if TRACKING_SE2
+  rransac::VisualizationHost<RR_Model, rransac::DrawMeasR2SE2PosPolicy, rransac::DrawTrackPolicySE2> rransac_viz_;
+#else // R2
+  rransac::VisualizationHost<RR_Model, rransac::DrawMeasR2SE2PosPolicy, rransac::DrawTrackPolicyR2> rransac_viz_;
+#endif
+
 
   private:
 
@@ -457,3 +470,4 @@ class System {
 
 
 }
+
