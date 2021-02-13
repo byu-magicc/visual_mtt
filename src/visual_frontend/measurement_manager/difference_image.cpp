@@ -7,7 +7,7 @@ DifferenceImage::DifferenceImage()
   enabled_ = false;
   name_ = "Difference Image";
   has_velocity_ = false;
-  sigmaR_pos_ = 0.1;
+  sigmaR_pos_ = 0.05;
   sigmaR_vel_=0;
   drawn_ = false;
   extra_plots_drawn_ = false;

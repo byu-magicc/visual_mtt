@@ -21,6 +21,26 @@ VisualFrontend::VisualFrontend()
 
 
   /////////////////////////////////////////////////////////////////////////
+  // Setup RRANSAC visualization information
+  static_params_.GetParam("rransac/scale_draw_pos",sys_.rransac_draw_info_.scale_draw_pos,2);
+  static_params_.GetParam("rransac/scale_draw_vel",sys_.rransac_draw_info_.scale_draw_vel,2);
+  static_params_.GetParam("rransac/scale_drawing",sys_.rransac_draw_info_.scale_drawing,1);
+  static_params_.GetParam("rransac/line_thickness",sys_.rransac_draw_info_.line_thickness,1);
+  static_params_.GetParam("rransac/image_width",sys_.rransac_vis_image_width_,1);
+  static_params_.GetParam("rransac/image_height",sys_.rransac_vis_image_height_,1);
+  static_params_.GetParam("rransac/draw_validation_region",sys_.rransac_draw_info_.draw_validation_region,false);
+  static_params_.GetParam("rransac/draw_cluster_velocity_position_threshold",sys_.rransac_draw_info_.draw_cluster_velocity_position_threshold,false);
+  static_params_.GetParam("rransac/draw_measurment_velocity_position_threshold",sys_.rransac_draw_info_.draw_measurment_velocity_position_threshold,false);
+  static_params_.GetParam("rransac/draw_poor_tracks",sys_.rransac_draw_info_.draw_poor_tracks,false);
+  static_params_.GetParam("rransac/visualize",sys_.rransac_visualize_data_,false);
+  static_params_.GetParam("rransac/video_file_path",sys_.rransac_video_file_name_,"");
+  static_params_.GetParam("rransac/fps",sys_.rransac_fps_,30);
+  std::cout << "width: " << sys_.rransac_vis_image_width_ << std::endl;
+  std::cout << "height: " << sys_.rransac_vis_image_height_ << std::endl;
+  std::vector<int> rransac_img_dimension{sys_.rransac_vis_image_width_,sys_.rransac_vis_image_height_};
+  sys_.rransac_viz_.Setup(rransac_img_dimension, sys_.rransac_draw_info_, sys_.rransac_video_file_name_,sys_.rransac_fps_);
+
+  /////////////////////////////////////////////////////////////////////////
   // Initialize the managers and plugins
   std::vector<std::string> measurement_manager_plugin_whitelist, 
                            transform_manager_plugin_whitelist,
@@ -638,40 +658,27 @@ void VisualFrontend::UpdateRRANSAC()
   Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
 
-  // std::cout << "tt: " << std::endl << TT << std::endl;
-  // std::cout << "transform: " << std::endl << sys_.transform_ << std::endl;
+ 
+  // std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
-  // for (auto& m : sys_.measurements_) {
-  //   m.pose << 0.5,0.5;
-  //   m.twist << 0,0;
-  //   std::cout << "p: " << std::endl << m.pose << std::endl;
+  // rransac_.AddMeasurements(sys_.measurements_,TT);
+  rransac_.AddMeasurements(sys_.measurements_);
 
-  // }
+  std::cout << "meas data tree " << rransac_sys_->data_tree_.Size() << std::endl;
 
-  // if (sys_.measurements_.size() > 0) {
-  //   rransac::Meas<double> meas;
-  //   meas = sys_.measurements_.front();
-  //   sys_.measurements_.clear();
-  //   sys_.measurements_.push_back(meas);
-  // }
-
-  std::cout << "size: " << sys_.measurements_.size() << std::endl;
-
-  rransac_.AddMeasurements(sys_.measurements_,TT);
-
-  // std::cout << "tt r: " << std::endl << rransac_sys_->transformaion_.GetData() << std::endl;
-
-  // for(auto& source : rransac_sys_->sources_) {
-  //   std::cout << "source: meas cov" << std::endl << source.params_.meas_cov_ << std::endl;
-  //   std::cout << "source: gate prob" << std::endl << source.params_.probability_of_detection_ << std::endl;
-  //   std::cout << std::endl;
-  // }
-
-    std::cout << "process noise" << std::endl << rransac_sys_->params_.process_noise_covariance_ << std::endl;
+  // std::cout << "process noise" << std::endl << rransac_sys_->params_.process_noise_covariance_ << std::endl;
 
 
   rransac_.RunTrackInitialization();
   rransac_.RunTrackManagement();
+
+  if (sys_.rransac_visualize_data_) {
+    sys_.rransac_viz_.DrawClusters(rransac_sys_,true);
+    sys_.rransac_viz_.DrawUnAssociatedMeasurements(rransac_sys_,false);
+    sys_.rransac_viz_.DrawEstimatedTracks(rransac_sys_,false);
+    sys_.rransac_viz_.DrawNewMeasurements(sys_.measurements_,rransac_sys_,false);
+    sys_.rransac_viz_.RecordImage();
+  }
 
 }
 

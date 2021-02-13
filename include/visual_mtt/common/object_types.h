@@ -12,17 +12,24 @@
 #include <rransac/common/data_association/model_policies/model_pdf_policy.h>
 #include <rransac/common/measurement/measurement_base.h>
 #include <rransac/common/sources/source_base.h>
+#include <rransac/visualization/draw_info.h>
+#include <rransac/visualization/visualization_host.h>
+#include <rransac/visualization/draw_meas_policies/draw_meas_R2_SE2_pos_policy.h>
 
 #if TRACKING_SE2
   #include <rransac/common/sources/source_SEN_pos_vel.h>
   #include <rransac/common/models/model_SEN_pos_vel.h>
   #include <rransac/track_initialization/seed_policies/SE2_pos_seed_policy.h>
   #include <rransac/track_initialization/lmle_policies/nonlinear_lmle_policy.h> 
+  #include <rransac/visualization/draw_track_policies/draw_track_policy_SE2.h>
+
 #else // R2
   #include <rransac/common/sources/source_RN.h>
   #include <rransac/common/models/model_RN.h>
   #include <rransac/track_initialization/seed_policies/null_seed_policy.h>
   #include <rransac/track_initialization/lmle_policies/linear_lmle_policy.h>
+  #include <rransac/visualization/draw_track_policies/draw_track_policy_R2.h>
+
 #endif
 
 
