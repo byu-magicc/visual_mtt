@@ -661,8 +661,8 @@ void VisualFrontend::UpdateRRANSAC()
  
   // std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
-  // rransac_.AddMeasurements(sys_.measurements_,TT);
-  rransac_.AddMeasurements(sys_.measurements_);
+  rransac_.AddMeasurements(sys_.measurements_,TT);
+  // rransac_.AddMeasurements(sys_.measurements_);
 
   std::cout << "meas data tree " << rransac_sys_->data_tree_.Size() << std::endl;
 
