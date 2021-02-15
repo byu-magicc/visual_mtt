@@ -51,6 +51,7 @@ rransac/image_height: 1080
 rransac/draw_validation_region: false
 rransac/draw_cluster_velocity_position_threshold: false
 rransac/draw_measurment_velocity_position_threshold: false
+rransac/flip_image_x_axis: false
 rransac/draw_poor_tracks: false
 rransac/visualize: false
 rransac/video_file_path: "<filename of the video. This must be an absolute path. Ex: /home/user/vmtt/video.mp4>"

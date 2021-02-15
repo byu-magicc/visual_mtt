@@ -31,6 +31,7 @@ VisualFrontend::VisualFrontend()
   static_params_.GetParam("rransac/draw_validation_region",sys_.rransac_draw_info_.draw_validation_region,false);
   static_params_.GetParam("rransac/draw_cluster_velocity_position_threshold",sys_.rransac_draw_info_.draw_cluster_velocity_position_threshold,false);
   static_params_.GetParam("rransac/draw_measurment_velocity_position_threshold",sys_.rransac_draw_info_.draw_measurment_velocity_position_threshold,false);
+  static_params_.GetParam("rransac/flip_image_x_axis",sys_.rransac_draw_info_.flip_image_x_axis,false);
   static_params_.GetParam("rransac/draw_poor_tracks",sys_.rransac_draw_info_.draw_poor_tracks,false);
   static_params_.GetParam("rransac/visualize",sys_.rransac_visualize_data_,false);
   static_params_.GetParam("rransac/video_file_path",sys_.rransac_video_file_name_,"");
@@ -160,6 +161,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // save camera parameters one time
   if (!sys_.cam_info_received_)
   {
+    
     // camera_matrix_ (K) is 3x3
     // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
     cv::Mat camera_matrix(3, 3, CV_64FC1);
@@ -182,7 +184,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     double percentage;
     nh_.param<double>("rransac/surveillance_region", percentage, 0);
 
-
+    sys_.prev_time_ = sys_.current_time_; // Initialize it to the current time for the first iteration.
 
   }
 
@@ -304,6 +306,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   t_other_ = (ros::WallTime::now() - tic).toSec();
 
   sys_.ResetFrames();
+  sys_.prev_time_ = sys_.current_time_;
 }
 
 // ----------------------------------------------------------------------------
@@ -368,7 +371,7 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
 
 #if TRACKING_SE2
   rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,5,5>::Identity();
-  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_pos, config.covQ_vel, covQ_vel;
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_pos, config.covQ_vel, config.covQ_vel;
 #else
   rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,4,4>::Identity();
   rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_vel, config.covQ_vel;
@@ -413,7 +416,7 @@ void VisualFrontend::PublishTracks(const std::vector<RR_Model*> tracks)
     // Position measurements
     track.position.x    = tracks[i]->state_.g_.t_(0);
     track.position.y    = tracks[i]->state_.g_.t_(1);
-    track.R = std::vector<float>(tracks[i]->state_.g_.R_(0,0).tracks[i]->state_.g_.R_(0,1),tracks[i]->state_.g_.R_(1,0),tracks[i]->state_.g_.R_(1,1)   );
+    track.R = std::vector<float>{static_cast<float>(tracks[i]->state_.g_.R_(0,0)),static_cast<float>(tracks[i]->state_.g_.R_(0,1)),static_cast<float>(tracks[i]->state_.g_.R_(1,0)),static_cast<float>(tracks[i]->state_.g_.R_(1,1))   };
 
     // Velocity measurements
     track.velocity.x    = tracks[i]->state_.u_.p_(0);
@@ -537,68 +540,88 @@ cv::Mat VisualFrontend::DrawTracks()
     cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys_.hd_camera_matrix_, sys_.dist_coeff_, center_d);
     center = center_d[0];
 
-    // TODO:: Add this back in
-    // // draw circle with center at position estimate
-    // double radius = params_.tauR * sys_.hd_camera_matrix_.at<double>(0,0);
-    // cv::circle(draw, center, (int)radius, color, 2, 8, 0);
+    if (center.x <= draw.cols && center.x >= 0 && center.y <= draw.rows && center.y>=0) {
+
+      ////////////////////////////////////////////////////////////////////
+      // Draw validation region
+      ///////////////////////////////////////////////////////////////////
 
 
-    ////////////////////////////////////////////////////////////////////
-    // Draw validation region
-    ///////////////////////////////////////////////////////////////////
-        auto& source = rransac_sys_->sources_.front();
-        unsigned int source_index = source.params_.source_index_;
-        Eigen::MatrixXd S = track->GetInnovationCovariance(rransac_sys_->sources_,source_index);
-        Eigen::Matrix2d S_pos = S.block(0,0,2,2);
-        Eigen::EigenSolver<Eigen::Matrix2d> eigen_solver;
-        eigen_solver.compute(S_pos);
-        Eigen::Vector2cd eigen_values = eigen_solver.eigenvalues();
-        Eigen::Matrix2cd eigen_vectors = eigen_solver.eigenvectors();
-        double th = 0;
-        // Make sure that the x component is positive
-        if (std::real(eigen_vectors(0,0)) < 0) {
-            eigen_vectors.block(0,0,2,1)*=-1;
-        }
-        if (std::real(eigen_vectors(0,1)) < 0) {
-            eigen_vectors.block(0,1,2,1)*=-1;
-        }
+      unsigned int source_index = -1;
+      for (auto& source : rransac_sys_->sources_) {
+          if (source.params_.type_ == rransac::MeasurementTypes::SEN_POS) {
+              source_index = source.params_.source_index_;
+              break;
+          }
+      }
+      if (source_index < 0);
+          source_index =0;
+
+      auto& source = rransac_sys_->sources_[source_index];
+#if RRANSAC_VIZ_HOOKS
+      Eigen::MatrixXd S;
+      if (source_index < track->S_validation_.size())
+        S = track->S_validation_[source_index];
+      else
+        S = track->GetInnovationCovariance(rransac_sys_->sources_,source_index);
+#else
+      Eigen::MatrixXd S = track->GetInnovationCovariance(rransac_sys_->sources_,source_index);
+#endif
+      Eigen::Matrix2d S_pos = S.block(0,0,2,2)*source.params_.gate_threshold_;
+      Eigen::EigenSolver<Eigen::Matrix2d> eigen_solver;
+      eigen_solver.compute(S_pos);
+      Eigen::Vector2cd eigen_values = eigen_solver.eigenvalues();
+      Eigen::Matrix2cd eigen_vectors = eigen_solver.eigenvectors();
+      double th = 0;
+
+      // Make sure that the x component is positive
+      if (std::real(eigen_vectors(0,0)) < 0) {
+          eigen_vectors.block(0,0,2,1)*=-1;
+      }
+      if (std::real(eigen_vectors(0,1)) < 0) {
+          eigen_vectors.block(0,1,2,1)*=-1;
+      }
+
+      double scale = sys_.hd_camera_matrix_.at<double>(0,0);
 
 
-        double scale = std::sqrt(source.params_.gate_threshold_)*sys_.hd_camera_matrix_.at<double>(0,0);
-        if (std::real(eigen_vectors(0,0)*eigen_vectors(1,0)) < 0) {
-            th = std::real(eigen_vectors(0,0))*180/M_PI;
-            cv::Size size(std::sqrt(std::norm(eigen_values(0)))*scale,std::sqrt(std::norm(eigen_values(1)))*scale);
-            cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
-        } else {
-            th = std::real(eigen_vectors(0,1))*180/M_PI;
-            cv::Size size(std::sqrt(std::norm(eigen_values(1)))*scale,std::sqrt(std::norm(eigen_values(0)))*scale);
-            cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
-        }
-    
+
+      
+      if (std::real(eigen_vectors(0,0)*eigen_vectors(1,0)) < 0) {
+          th = std::real(eigen_vectors(0,0))*180/M_PI;
+          cv::Size size(std::sqrt(std::fabs(eigen_values(0).real()))*scale,std::sqrt(std::fabs(eigen_values(1).real()))*scale);
+          cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
+      } else {
+          th = std::real(eigen_vectors(0,1))*180/M_PI;
+          cv::Size size(std::sqrt(std::fabs(eigen_values(1).real()))*scale,std::sqrt(std::fabs(eigen_values(0).real()))*scale);
+          cv::ellipse(draw,center,size,th, 0,360,color,2, cv::LINE_AA);
+      }
+      
 
 
 
-    // draw red dot at the position estimate
-    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
+      // draw red dot at the position estimate
+      cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
 
-    // draw scaled velocity vector
-    cv::Point velocity;
-    double velocity_scale = 1; // for visibility
-    velocity.x = x_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
-    velocity.y = y_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
-    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+      // draw scaled velocity vector
+      cv::Point velocity;
+      double velocity_scale = 1; // for visibility
+      velocity.x = x_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
+      velocity.y = y_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
+      cv::line(draw, center, center + velocity, color, 1, CV_AA);
 
-    // draw model number and inlier ratio
-    std::stringstream ssGMN;
-    ssGMN << track->label_;
-    int boldness = 2*((int)text_scale_);
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 210), boldness);
+      // draw model number and inlier ratio
+      std::stringstream ssGMN;
+      ssGMN << track->label_;
+      int boldness = 2*((int)text_scale_);
+      cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 210), boldness);
 
-    // draw consensus sets
-    for (int j=1; j<center_d.size(); j++)
-    {
-      center = center_d[j];
-      cv::circle(draw, center, 2, color, -1, 8, 0);
+      // draw consensus sets
+      for (int j=1; j<center_d.size(); j++)
+      {
+        center = center_d[j];
+        cv::circle(draw, center, 2, color, -1, 8, 0);
+      }
     }
   }
 
@@ -661,10 +684,10 @@ void VisualFrontend::UpdateRRANSAC()
  
   // std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
-  rransac_.AddMeasurements(sys_.measurements_,TT);
-  // rransac_.AddMeasurements(sys_.measurements_);
+  // rransac_.AddMeasurements(sys_.measurements_,TT);
+  rransac_.AddMeasurements(sys_.measurements_);
 
-  std::cout << "meas data tree " << rransac_sys_->data_tree_.Size() << std::endl;
+  // std::cout << "meas data tree " << rransac_sys_->data_tree_.Size() << std::endl;
 
   // std::cout << "process noise" << std::endl << rransac_sys_->params_.process_noise_covariance_ << std::endl;
 
