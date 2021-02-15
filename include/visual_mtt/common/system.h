@@ -447,6 +447,8 @@ class System {
   static bool picture_file_path_set_;        /**< If True, the picture file path has been set but no garuntee that its a valid file path. */
 
   double current_time_ = 0;                  /**< The current time in seconds provided by the video header files. */
+  double prev_time_ = 0;                     /**< The time stamp associated with the previous image from which d_prev_matched_ were extracted. When the first image is received,
+                                                  prev_time_ is set to current time since there is no previous image. */
 
   // RRANSAC visualization info
   rransac::DrawInfo rransac_draw_info_;      /**< The visualization info for RRANSAC */

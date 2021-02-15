@@ -10,7 +10,7 @@ FeatureMotion::FeatureMotion()
   has_velocity_ = true;
   drawn_ = false;
   sigmaR_pos_ = 0.01;
-  sigmaR_vel_=0.01;
+  sigmaR_vel_=0.03;
   source_parameters_changed_ = false;
 
   first_image_ = true;
@@ -150,10 +150,18 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
   meas_vel_.clear();
   meas_pos_parallax_.clear();
 
+  double dt = sys.current_time_ - sys.prev_time_;
+
 
   // If there isn't a good transform, dont' do anything. 
   if (!first_image_ && sys.good_transform_)
   {
+
+      if (dt <=0 ) {
+        ROS_DEBUG_STREAM_THROTTLE(sys.message_output_period_, "The current image time stamp minus the previous image time stamp is less than or equal to 0. Setting it to 1. ");
+        dt = 1;
+      } 
+
     // Warp previous features forwards. All static features from sequential
     // frames will be aligned. Features from moving objects will be offset by
     // some distance, a velocity ("normalized image units" per frame).
@@ -164,7 +172,7 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
     // Find the point velocities
     std::vector<cv::Point2f> meas_vel;
     for (int i = 0; i < corrected_pts.size(); ++i)
-      meas_vel.push_back(sys.ud_curr_matched_.at(i) - corrected_pts[i]);
+      meas_vel.push_back( (sys.ud_curr_matched_.at(i) - corrected_pts[i])/dt);
 
     // Save points whose disparity exceed the velocity threshold
     int numberOfPossibleMovers = 0;

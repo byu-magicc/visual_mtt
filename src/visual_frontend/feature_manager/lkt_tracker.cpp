@@ -123,6 +123,7 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // Uses previous GFTT features to find next_features in current frame
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
+  valid.clear();
 
   #if OPENCV_CUDA
     CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
