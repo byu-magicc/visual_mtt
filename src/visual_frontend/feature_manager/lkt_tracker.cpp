@@ -221,7 +221,7 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
 #if OPENCV_CUDA
 void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
-  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20, false);
+  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 50, 500, false);
 
   if (!first_image_)
   {
@@ -233,12 +233,6 @@ void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Po
 
       // Run LK optical flow on the GPU
       cv::cuda::GpuMat gNextFeatures, gValid;
-      // cv::Mat tmp1, tmp2;
-      // gLastMono.download(tmp1);
-      // gMono.download(tmp2);
-      // cv::imshow("blah1", tmp1);
-      // cv::imshow("blah2", tmp2);
-      // cv::waitKey(0);
       gSparsePyrLK->calc(gLastMono, gMono, gPrevFeatures, gNextFeatures, gValid);
 
       // Download from the GPU
@@ -256,12 +250,7 @@ void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Po
     first_image_ = false;
   }
 
-  // for (int ii=0; ii < curr_features.size(); ++ii) {
-  //   if(valid[ii]) {
-  //     std::cout << "curr feature: " << curr_features[ii] << std::endl;
-  //     std::cout << "prev_feature: " << d_prev_features_[ii] << std::endl;
-  //   }
-  // }
+
 
   // save mono for the next iteration
   gLastMono = gMono.clone();
@@ -276,10 +265,7 @@ void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::P
 {
     cv::cuda::GpuMat gMask(mask);
     cv::cuda::GpuMat gFeatures;
-    std::cout << "gMono " << gMono.size() << std::endl;
-    std::cout << "type " << gMono.type() << std::endl;
     gftt_detector_->detect(gMono, gFeatures, gMask);
-    std::cout << "gMask " << gMask.size() << std::endl;
     
 
 
