@@ -38,6 +38,7 @@ VisualFrontend::VisualFrontend()
   static_params_.GetParam("rransac/fps",sys_.rransac_fps_,30);
   std::cout << "width: " << sys_.rransac_vis_image_width_ << std::endl;
   std::cout << "height: " << sys_.rransac_vis_image_height_ << std::endl;
+  std::cout << "sys_.rransac_fps_: " << sys_.rransac_fps_ << std::endl;
   std::vector<int> rransac_img_dimension{sys_.rransac_vis_image_width_,sys_.rransac_vis_image_height_};
   sys_.rransac_viz_.Setup(rransac_img_dimension, sys_.rransac_draw_info_, sys_.rransac_video_file_name_,sys_.rransac_fps_);
 
@@ -78,25 +79,6 @@ VisualFrontend::VisualFrontend()
     ROS_WARN("tuning mode enabled");
     sys_.RegisterFrame(common::SD);
 
-  /////////////////////////////////////////////////////////////////////////
-  // Setup ROS topics and dynamic reconfigures
-
-  // ROS communication
-  image_transport::ImageTransport it(nh_);
-  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
-  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
-  pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
-  pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
-
-  // establish dynamic reconfigure and load defaults (callback runs once here)
-  auto func1 = std::bind(&VisualFrontend::CallbackReconfigure, this, std::placeholders::_1, std::placeholders::_2);
-  server_.setCallback(func1);
-
-  // establish dynamic reconfigure and load defaults (callback runs once here)
-  ros::NodeHandle nh_private_rransac("rransac");
-  rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
-  auto func2 = std::bind(&VisualFrontend::CallbackReconfigureRransac, this, std::placeholders::_1, std::placeholders::_2);
-  rransac_server_->setCallback(func2);
 
   // populate plotting colors
   colors_ = std::vector<cv::Scalar>();
@@ -120,6 +102,32 @@ VisualFrontend::VisualFrontend()
   pic_params_.file_name = "Tracks";
   drawn_ = false;
 
+
+
+
+  /////////////////////////////////////////////////////////////////////////
+  // Setup ROS topics and dynamic reconfigures
+
+  // establish dynamic reconfigure and load defaults (callback runs once here)
+  auto func1 = std::bind(&VisualFrontend::CallbackReconfigure, this, std::placeholders::_1, std::placeholders::_2);
+  server_.setCallback(func1);
+
+  // establish dynamic reconfigure and load defaults (callback runs once here)
+  ros::NodeHandle nh_private_rransac("rransac");
+  rransac_server_.reset(new dynamic_reconfigure::Server<visual_mtt::rransacConfig>(nh_private_rransac));
+  auto func2 = std::bind(&VisualFrontend::CallbackReconfigureRransac, this, std::placeholders::_1, std::placeholders::_2);
+  rransac_server_->setCallback(func2);
+
+  // ROS communication
+  image_transport::ImageTransport it(nh_);
+  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
+  pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
+  pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
+  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
+
+
+
+
 }
 
 // ----------------------------------------------------------------------------
@@ -136,6 +144,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
   // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
   sys_.current_time_ = header_frame_.stamp.toSec();
+  std::cout << "dt: " << sys_.current_time_ - sys_.prev_time_ << std::endl;
 
   //
   // Estimate FPS
@@ -505,8 +514,12 @@ cv::Mat VisualFrontend::DrawTracks()
 
 #if TRACKING_SE2
   vel = track->state_.g_.R_ * track->state_.u_.p_;
+  x_pos = track->state_.g_.data_(0,2);
+  y_pos = track->state_.g_.data_(1,2);
 #else // R2
   vel = track->state_.u_.data_;
+  x_pos = track->state_.g_.data_(0,0);
+  y_pos = track->state_.g_.data_(1,0);
 #endif
 
   x_vel = vel(0,0);
@@ -682,7 +695,7 @@ void VisualFrontend::UpdateRRANSAC()
   cv::cv2eigen(sys_.transform_, TT);
 
  
-  // std::cout << "size: " << sys_.measurements_.size() << std::endl;
+  std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
   // rransac_.AddMeasurements(sys_.measurements_,TT);
   rransac_.AddMeasurements(sys_.measurements_);
