@@ -30,6 +30,7 @@
   <arg name="tuning"                     default="false" />
   <arg name="gnsac_solver_filename"      default="$(find visual_mtt)/param/gnsac_default.yaml"/>
   <arg name="picture_file_path"          default="$(find visual_mtt)/pictures/"/>
+  <arg name="launch-prefix"     default=""/>
 
 
   <!-- video_path:      path to video file          (video only)              -->
@@ -157,6 +158,7 @@
     <arg name="gnsac_solver_filename" value="$(arg gnsac_solver_filename)"/>
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
     <arg name="picture_file_path"     value="$(arg picture_file_path)"/>
+    <arg name="launch-prefix"     value="$(arg launch-prefix)"/>
   </include>
 
 </launch>

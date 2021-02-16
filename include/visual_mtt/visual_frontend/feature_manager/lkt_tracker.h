@@ -102,16 +102,6 @@ namespace visual_frontend {
     void CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys);
 #endif
 
-    /**
-    * \brief Uses OpenCV's good features to track to extract features from the image.
-    * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
-    * @param mono Grayscale image of common::System::sd_frame_
-    * @param features Extracted features from the current mono frame
-    * @param mask The common::System::undistorted_region_mask_.
-    * @see LKTTracker::FindCorrespondences(const common::System& sys)
-    */
-    void DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
-
 #if OPENCV_CUDA
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image on the GPU.
@@ -122,6 +112,19 @@ namespace visual_frontend {
     * @see LKTTracker::FindCorrespondences(const common::System& sys)
     */
     void DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
+
+#else
+
+    /**
+    * \brief Uses OpenCV's good features to track to extract features from the image.
+    * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
+    * @param mono Grayscale image of common::System::sd_frame_
+    * @param features Extracted features from the current mono frame
+    * @param mask The common::System::undistorted_region_mask_.
+    * @see LKTTracker::FindCorrespondences(const common::System& sys)
+    */
+    void DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask);
+
 #endif
 
     /**
