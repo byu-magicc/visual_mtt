@@ -30,7 +30,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(gnsac REQUIRED)
 
 find_package(Eigen3)
-find_package(rransac REQUIRED)
+find_package(rransac 1.0.0 EXACT REQUIRED)
 
 ##########################################################################
 # RRANSAC build options
@@ -182,6 +182,7 @@ catkin_package(
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
+
 
 ###########
 ## Build ##
