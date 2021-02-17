@@ -487,6 +487,16 @@ void System::RegisterPluginFrames(FrameRefVector& plugin_frames)
     
     // integrate requested frames into previously requested frames
     frames_required_[i] = frames_required_[i] | plugin_frames[i];
+
+    // add SD frame if any derived frames needed
+    if(i == 2 || i == 3 || i == 4)
+    {
+      if(!(frames_required_[1]))
+      {
+        std::cout << "IMAGE REQUESTED: SD" << std::endl;
+        frames_required_[1] = true;
+      }
+    }
   }
 }
 
@@ -519,6 +529,16 @@ void System::RegisterPluginCUDAFrames(CUDAFrameRefVector& plugin_frames_cuda)
     
     // integrate requested CUDA frames into previously requested CUDA frames
     cuda_frames_required_[i] = cuda_frames_required_[i] | plugin_frames_cuda[i];
+
+    // add CUDA SD frame if any derived frames needed
+    if(i == 2 || i == 3 || i == 4)
+    {
+      if(!(cuda_frames_required_[1]))
+      {
+        std::cout << "CUDA IMAGE REQUESTED: SD CUDA" << std::endl;
+        cuda_frames_required_[1] = true;
+      }
+    }
   }
 }
 #endif
@@ -527,6 +547,16 @@ void System::RegisterFrame(frame_type_ frame_type)
 {
   // register requested frame type
   frames_required_[frame_type] = true;
+
+  // add SD frame if derivative frame needed
+  if(frame_type == frame_type_::MONO || frame_type == frame_type_::UNDIST || frame_type == frame_type_::HSV)
+  {
+    if(!(frames_required_[frame_type_::SD]))
+    {
+      frames_required_[frame_type_::SD] = true;
+    }
+  }
+
   switch(frame_type)
   {
     case HD:
@@ -552,6 +582,16 @@ void System::RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda)
 {
   // register requested CUDA frame type
   cuda_frames_required_[frame_type_cuda] = true;
+
+  // add SD CUDA frame if derivative frame needed
+  if(frame_type_cuda == frame_type_cuda_::MONO_CUDA || frame_type_cuda == frame_type_cuda_::UNDIST_CUDA || frame_type_cuda == frame_type_cuda_::HSV_CUDA)
+  {
+    if(!(cuda_frames_required_[frame_type_cuda_::SD_CUDA]))
+    {
+      cuda_frames_required_[frame_type_cuda_::SD_CUDA] = true;
+    }
+  }
+
   switch(frame_type_cuda)
   {
     case HD_CUDA:
