@@ -29,12 +29,14 @@ ColorDetector::ColorDetector()
   params_.maxThreshold = 255;             // I don't know what this does yet
   params_.thresholdStep = 50;           // I don't know what this does yet
 
+  detector_ = cv::SimpleBlobDetector::create(params_);
+
 // Required frames for plugin
 #if OPENCV_CUDA
-  frames_required_ = {false, true, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
+  frames_required_ = {false, false, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
   cuda_frames_required_ = {false, false, false, false, false};  // {HD_CUDA, SD_CUDA, MONO_CUDA, _CUDA, HSV_CUDA}
 #else
-  frames_required_ = {false, true, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
+  frames_required_ = {false, false, false, false, true};  // {HD, SD, MONO, UNDIST, HSV}
 #endif
 
 }
@@ -122,8 +124,7 @@ bool ColorDetector::GenerateMeasurements(const common::System& sys)
   d_meas_pos_.clear();
 
   // If the pixel falue is within this range, set it to 255 (white) else set it to 0 (black)
-  cv:: inRange(sys.GetFrame(common::HSV), cv::Scalar(min_hue_, min_sat_, min_val_), cv::Scalar(max_hue_, max_sat_, max_val_), thresholded_img_);
-
+  cv::inRange(sys.GetFrame(common::HSV), cv::Scalar(min_hue_, min_sat_, min_val_), cv::Scalar(max_hue_, max_sat_, max_val_), thresholded_img_);
 
   //morphological opening (remove small objects from the foreground)
   cv::erode(thresholded_img_, thresholded_img_, cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(morph_kernel_, morph_kernel_)),cv::Point(-1,-1),morph_iterations_ );
