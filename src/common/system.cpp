@@ -460,9 +460,6 @@ void System::SetCUDAFrames()
   }
   if(cuda_frames_required_[MONO_CUDA])
   {
-    std::cerr << "hd_frame_size" << hd_frame_cuda_.size() << std::endl;
-    std::cerr << "sd_frame_size" << sd_frame_cuda_.size() << std::endl;
-    std::cerr << "sd_frame_ channels" << sd_frame_cuda_.channels() << std::endl;
     cv::cuda::cvtColor(sd_frame_cuda_, mono_frame_cuda_, CV_RGB2GRAY);
     cuda_frame_exists_[MONO_CUDA] = true;
   }

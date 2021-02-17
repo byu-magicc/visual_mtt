@@ -221,7 +221,7 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
 #if OPENCV_CUDA
 void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
-  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 50, 500, false);
+  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 30, false);
 
   if (!first_image_)
   {
