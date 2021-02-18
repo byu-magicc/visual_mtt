@@ -695,14 +695,9 @@ void VisualFrontend::UpdateRRANSAC()
   cv::cv2eigen(sys_.transform_, TT);
 
  
-  std::cout << "size: " << sys_.measurements_.size() << std::endl;
 
-  // rransac_.AddMeasurements(sys_.measurements_,TT);
   rransac_.AddMeasurements(sys_.measurements_);
 
-  // std::cout << "meas data tree " << rransac_sys_->data_tree_.Size() << std::endl;
-
-  // std::cout << "process noise" << std::endl << rransac_sys_->params_.process_noise_covariance_ << std::endl;
 
 
   rransac_.RunTrackInitialization();
