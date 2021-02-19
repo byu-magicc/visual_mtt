@@ -276,6 +276,10 @@ target_link_libraries(${PROJECT_NAME}_visual_frontend
   ${GNSAC_LIBS}
   ${YAML_CPP_LIBRARIES})
 
+if(TRACKING_SE2)
+  target_link_libraries( ${PROJECT_NAME}_visual_frontend Ceres::ceres )
+endif()
+
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
 

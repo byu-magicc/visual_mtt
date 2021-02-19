@@ -11,7 +11,7 @@ LKTTracker::LKTTracker()
 
   pic_params_.pic_num = 0;
   pic_params_.file_name = name_;
-  max_features_ = 200;
+  max_features_ = 0;
 
 // Required frames for plugin
 #if OPENCV_CUDA

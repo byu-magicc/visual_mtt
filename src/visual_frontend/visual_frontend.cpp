@@ -144,7 +144,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
   // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
   sys_.current_time_ = header_frame_.stamp.toSec();
-  std::cout << "dt: " << sys_.current_time_ - sys_.prev_time_ << std::endl;
+  
 
   //
   // Estimate FPS
@@ -161,8 +161,6 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // Only process every Nth frame
   if (frame_++ % frame_stride_ != 0)
     return;
-
-
 
   // convert message data into OpenCV type cv::Mat
   sys_.SetHDFrame(cv_bridge::toCvShare(data, "bgr8")->image);
@@ -696,7 +694,7 @@ void VisualFrontend::UpdateRRANSAC()
 
  
 
-  rransac_.AddMeasurements(sys_.measurements_);
+  rransac_.AddMeasurements(sys_.measurements_,TT);
 
 
 

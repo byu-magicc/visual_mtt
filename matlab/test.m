@@ -14,15 +14,15 @@ norm(logm(R1'*R))
 norm(logm(R2'*R))
 
 %%
-% rng('shuffle')
-rng('default')
+rng('shuffle')
+% rng('default')
 w = diag([0.1,0.1,2])*rand(3,1);
 W = [0 -w(3) w(1); w(3) 0 -w(2); -w(1) w(2) 0];
 R = expm(W);
 
 N = normalize([0.1*rand(1,1);0.1*rand(1,1);1],'norm');
 T = rand(3,1)*5;
-d = abs(T(3));
+d = 1;
 H = R+T*N'/d;
 HL = H/norm(H);
 % HL = H
@@ -60,7 +60,7 @@ H2 = R2 + T2*N2';
 
 Hp1 = project(R1,T1,N1)
 Hp2 = project(R2,T2,N2)
-Hp = project(R,T,N)
+Hp = project(R,T/d,N)
 
 
 function S = ssm(s)
@@ -82,7 +82,7 @@ end
 % T = T/norm(T);
 V = logm(R);
 V = logm(R);
-w = [0;0;V(1,2)];
+w = [0;0;V(2,1)];
 W = [0 -w(3) w(1); w(3) 0 -w(2); -w(1) w(2) 0];
 R = expm(W);
 N = [0;0;1];
