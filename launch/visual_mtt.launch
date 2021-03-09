@@ -7,6 +7,7 @@
   <arg name="static_param_filename" default="$(find visual_mtt)/param/static_default.yaml"/>
   <arg name="tuning"            default="false" />
   <arg name="imgtopic"          default="/image_raw" />
+  <arg name="camera_pose_topic" default="/camera/camera_pose" />
   <arg name="launch-prefix"     default=""/>
   <arg name="gnsac_solver_filename" default="$(find visual_mtt)/param/gnsac_default.yaml"/>
   <arg name="picture_file_path"     default="$(find visual_mtt)/pictures/"/>
@@ -32,6 +33,7 @@
     <param name="gnsac_solver_filename" value="$(arg gnsac_solver_filename)"/>
     <param name="picture_file_path" value="$(arg picture_file_path)"/>
     <remap from="video" to="$(arg imgtopic)" />
+    <remap from="camera_pose" to="$(arg camera_pose_topic)"/>
   </node>
 
   <!-- tuning tools: dynamic reconfigure and track video -->

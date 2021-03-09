@@ -40,7 +40,9 @@ VisualFrontend::VisualFrontend()
   std::cout << "height: " << sys_.rransac_vis_image_height_ << std::endl;
   std::cout << "sys_.rransac_fps_: " << sys_.rransac_fps_ << std::endl;
   std::vector<int> rransac_img_dimension{sys_.rransac_vis_image_width_,sys_.rransac_vis_image_height_};
-  sys_.rransac_viz_.Setup(rransac_img_dimension, sys_.rransac_draw_info_, sys_.rransac_video_file_name_,sys_.rransac_fps_);
+
+  if (sys_.rransac_visualize_data_)
+    sys_.rransac_viz_.Setup(rransac_img_dimension, sys_.rransac_draw_info_, sys_.rransac_video_file_name_,sys_.rransac_fps_);
 
   /////////////////////////////////////////////////////////////////////////
   // Initialize the managers and plugins
@@ -124,7 +126,7 @@ VisualFrontend::VisualFrontend()
   pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
   pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
-
+  sub_camera_pose_ = nh_.subscribe("camera_pose",10,&VisualFrontend::CallbackCameraPose,this);
 
 
 
@@ -145,6 +147,14 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
   sys_.current_time_ = header_frame_.stamp.toSec();
   
+  // Set the image camera pose
+  if(sys_.camera_pose_available_) {
+    sys_.SetImageCameraPose();
+    if (fabs(sys_.image_camera_pose_.time_stamp - sys_.current_time_) > 1e-1) {
+      ROS_WARN_STREAM_THROTTLE( sys_.message_output_period_ , "The time stamp between the image and pose is off by " << fabs(sys_.image_camera_pose_.time_stamp - sys_.current_time_));
+    }
+  }
+
 
   //
   // Estimate FPS
@@ -392,6 +402,16 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
 
 // ----------------------------------------------------------------------------
 
+void VisualFrontend::CallbackCameraPose(const geometry_msgs::PoseStamped::ConstPtr& msg) {
+  sys_.latest_camera_pose_.P << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+  sys_.latest_camera_pose_.Q = Eigen::Quaternion<double>(msg->pose.orientation.w,msg->pose.orientation.x,msg->pose.orientation.y,msg->pose.orientation.z);
+  sys_.latest_camera_pose_.time_stamp = msg->header.stamp.toSec();
+  sys_.camera_pose_available_ = true;
+
+}
+
+// ----------------------------------------------------------------------------
+
 void VisualFrontend::SetParameters(visual_mtt::visual_frontendConfig& config)
 {
   frame_stride_ = config.frame_stride;
@@ -529,10 +549,19 @@ cv::Mat VisualFrontend::DrawTracks()
     // projected by scaling by that eigenvalue. camera_matrix_ is upper
     // triangular so the (0,0) element represents this scaling
 
+    // If the pose has been provided, the targets are being tracked on the NVIP. They need to be
+    // rotated into the image plane for drawing. 
+    cv::Point2f center_nvip;
+    std::vector<cv::Point2f> v_center_nvip;
+    center_nvip.x = x_pos;
+    center_nvip.y = y_pos;
+    v_center_nvip.push_back(center_nvip);
+    v_center_nvip = sys_.TransformBetweenImagePlanes(v_center_nvip,true);
+
     // get normalized image plane point
     cv::Point center;
-    center.x = x_pos;
-    center.y = y_pos;
+    center.x = v_center_nvip.front().x;
+    center.y = v_center_nvip.front().y;
 
     // treat points in the normalized image plane as a 3D points (homogeneous).
     // project the points onto the sensor (pixel space) for plotting.
@@ -691,6 +720,12 @@ void VisualFrontend::UpdateRRANSAC()
   // Apply transform
   Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
+
+  if(sys.camera_pose_available_) {
+    // Transform homography to VNIP
+    TT = sys_.image_camera_pose_.toRotationMatrix()*TT*sys.image_camera_pose_.Q_c_bl.toRotationMatrix().transpose();
+    sys_.measurements_ =  sys.TransformBetweenImagePlanes(sys_.measurements_ , false);
+  }
 
  
 

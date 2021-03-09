@@ -31,7 +31,7 @@
   <arg name="gnsac_solver_filename"      default="$(find visual_mtt)/param/gnsac_default.yaml"/>
   <arg name="picture_file_path"          default="$(find visual_mtt)/pictures/"/>
   <arg name="launch-prefix"     default=""/>
-
+  <arg name="camera_pose_topic" default="/camera/camera_pose" />
 
   <!-- video_path:      path to video file          (video only)              -->
   <!-- fps:             desired framerate           (video only)              -->
@@ -159,6 +159,7 @@
     <arg name="imgtopic" value="$(arg final_video)/image_raw" />
     <arg name="picture_file_path"     value="$(arg picture_file_path)"/>
     <arg name="launch-prefix"     value="$(arg launch-prefix)"/>
+    <arg name="camera_pose_topic" value="$(arg camera_pose_topic)" />
   </include>
 
 </launch>

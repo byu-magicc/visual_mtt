@@ -8,6 +8,7 @@
 
 #include <ros/ros.h>
 #include <ros/console.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
@@ -98,6 +99,12 @@ namespace visual_frontend {
     */
     void CallbackReconfigureRransac(visual_mtt::rransacConfig& config, uint32_t level);
 
+    /**
+     * Sets the latest camera pose
+     * @param msg Contains the information for the lastest camera pose and time stamp. 
+     */ 
+    void CallbackCameraPose(const geometry_msgs::PoseStamped::ConstPtr& msg);
+
      /**
     * \detail Called by VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& config, uint32_t level)
     * to update VisualFrontend and common::System dynamic parameters.
@@ -136,6 +143,7 @@ namespace visual_frontend {
     ros::Publisher  pub_tracks;
     image_transport::CameraPublisher pub_tracks_video;
     ros::Publisher  pub_transform_;  
+    ros::Subscriber sub_camera_pose_;
 
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;

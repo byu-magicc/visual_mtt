@@ -137,6 +137,8 @@ void FeatureManager::FindCorrespondences(common::System& sys)
   else
     sys.moving_parallax_ = std::vector<bool>(sys.ud_prev_matched_.size(), true);
 
+  
+
 
   if (sys.tuning_)
     char keyboard = cv::waitKey(1);

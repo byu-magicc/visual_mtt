@@ -12,6 +12,18 @@
 
 namespace common {
 
+/** \struct Camera Pose
+ * The pose of the camera is represented by a position and a 
+ * Quaternion component. The position is expressed in the inertial with respect to the inertial frame.
+ * The Quaternion should be the rotation from the camera's body frame to the inertial frame. 
+ */
+struct CameraPose {
+
+Eigen::Matrix<double,3,1> P;       /**< The postion of the camera expressed in the inertial frame w.r.t. the camera frame. */
+Eigen::Quaternion<double> Q;       /**< The orientation of the camera frame that denotes the rotation from the camera frame to the inertial frame. */
+Eigen::Quaternion<double> Q_c_bl;  /**< The rotation from the camera frame to the body level frame. This rotation allows us to rotate the measurements to the normalized virtual image plane (NVIP). */
+double time_stamp;                 /**< The time stamp in seconds of the camera pose. */
+}; 
 
 
 /** \struct PictureParams
@@ -381,7 +393,28 @@ class System {
   */
   void ResetFrames();
 
+
+  /**
+   * Sets image_camera_pose_ to latest_camera_pose_ and computes the value CameraPose::Q_c_bl
+   * which is the rotation from the camera to the body level frame of the UAV   * 
+   */ 
+  void SetImageCameraPose();
+
+  /**
+   * If the pose of the camera is provided, then this function will transform the points
+   * from the normalized image plane to the virtual normalized image plane or the inverse
+   * depending on the parameter inverse.
+   * @param points The points that will be transformed
+   * @param inverse If false, the points will be transformed from the image plane to the normalized image plane; otherise the inverse operation. 
+   */ 
+  std::vector<cv::Point2f> TransformBetweenImagePlanes(const std::vector<cv::Point2f> points, const bool inverse) const;
+
 /**< */
+
+  // Camera poses
+  CameraPose latest_camera_pose_;        /**< The lastest provided camera pose. */
+  CameraPose image_camera_pose_;         /**< The pose of the camera when an image is being processed. This is necessary since the rate at which we receive camera poses can be different than the rate we receive images. */
+  bool camera_pose_available_=false;     /**< Indicates if the camera pose is available. This is set to true by the callback function that sets the latest_camera_pose_. */
 
   // Feature Manager
   std::vector<cv::Point2f> d_prev_matched_;  /**< Distorted matched features from the previous frame. @see visual_frontend::FeatureManager.*/

@@ -630,6 +630,8 @@ void System::RegisterCUDAFrame(frame_type_cuda_ frame_type_cuda)
 }
 #endif
 
+//--------------------------------------------------------------------
+
 void System::ResetFrames()
 {
   for(int i = 0; i < num_frame_types_; i++) 
@@ -645,4 +647,57 @@ void System::ResetFrames()
 #endif
 }
   
+//--------------------------------------------------------------------
+
+void System::SetImageCameraPose() {
+  if (camera_pose_available_) {
+    image_camera_pose_ = latest_camera_pose_;
+    // euler angles in yaw pitch roll
+    Eigen::Matrix<double,3,1> euler = image_camera_pose_.Q.toRotationMatrix().eulerAngles(2, 1, 0);
+    // euler(2) = 0; // set yaw to zero.
+    latest_camera_pose_.Q_c_bl = Eigen::AngleAxisd(euler(1), Eigen::Vector3d::UnitY())*Eigen::AngleAxisd(euler(2), Eigen::Vector3d::UnitX());
+  } else {
+    std::cerr << "System::SetImageCameraPose Camera pose is not available. This function should not be called. " << std::endl;
+  }
+  std::cout << "Q: " << std::endl << "x: " << image_camera_pose_.Q.x() << " y: " <<  image_camera_pose_.Q.y() << " z: " << image_camera_pose_.Q.z() << " w: " << image_camera_pose_.Q.w() << std::endl;
+  std::cout << "Q_c_bl: "  << std::endl << "x: " << image_camera_pose_.Q_c_bl.x() << " y: " <<  image_camera_pose_.Q_c_bl.y() << " z: " << image_camera_pose_.Q_c_bl.z() << " w: " << image_camera_pose_.Q_c_bl.w() << std::endl;
+
+}
+
+//--------------------------------------------------------------------
+
+std::vector<cv::Point2f> System::TransformBetweenImagePlanes(const std::vector<cv::Point2f> points, const bool inverse) const {
+
+  if (camera_pose_available_) {
+    std::vector<cv::Point2f> transformed_points;
+    cv::Point2f p;
+    Eigen::Quaternion<double> Q = image_camera_pose_.Q_c_bl;
+    Eigen::Matrix<double,3,3> R;
+
+    
+    if(inverse)
+      Q = Q.inverse();
+
+    R = Q.toRotationMatrix();
+    double scalar=0;
+
+    for (auto& point : points) {
+      std::cout << "inverse: " << inverse << std::endl;
+      std::cout << "R: " << std::endl << R << std::endl;
+      std::cout << "point: " << std::endl << point << std::endl;
+      scalar = R(2,0)*point.x + R(2,1)*point.y + R(2,2);
+      p.x = (R(0,0)*point.x + R(0,1)*point.y + R(0,2))/scalar;
+      p.y = (R(1,0)*point.x + R(1,1)*point.y + R(1,2))/scalar;
+      std::cout << "p" << std::endl << p << std::endl;
+
+      transformed_points.push_back(p);
+    }
+
+    return transformed_points;
+  } else {
+    throw std::runtime_error("System::TransformBetweenImagePlanes: camera pose is not available. This function should not be called.");
+  }
+
+}
+
 }  //end namespace common
