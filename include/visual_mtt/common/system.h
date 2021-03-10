@@ -409,6 +409,19 @@ class System {
    */ 
   std::vector<cv::Point2f> TransformBetweenImagePlanes(const std::vector<cv::Point2f> points, const bool inverse) const;
 
+  /**
+   * Transforms a point from the NVIP to the NIP
+   * @param point The point to be transformed.
+   * @return The transformed point. 
+   */ 
+  cv::Point2f TransformPointNVIPtoNIP(const cv::Point2f point);
+
+  /**
+   * If tracking is being done on the NVIP and the pose of the camera is provided. This function is called to transform the measurements from the 
+   * normalized  image plane to the NVIP. 
+   */ 
+  void TransformMeasurementsNIPToNVIP();
+
 /**< */
 
   // Camera poses

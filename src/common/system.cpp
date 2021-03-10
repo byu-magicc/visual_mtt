@@ -700,4 +700,45 @@ std::vector<cv::Point2f> System::TransformBetweenImagePlanes(const std::vector<c
 
 }
 
+//--------------------------------------------------------------------------------------------------
+
+
+cv::Point2f System::TransformPointNVIPtoNIP(const cv::Point2f point){
+    cv::Point2f p;
+    Eigen::Matrix<double,3,3> R = image_camera_pose_.Q_c_bl.inverse().toRotationMatrix();
+    scalar = R(2,0)*point.x + R(2,1)*point.y + R(2,2);
+    p.x = (R(0,0)*point.x + R(0,1)*point.y + R(0,2))/scalar;
+    p.y = (R(1,0)*point.x + R(1,1)*point.y + R(1,2))/scalar;
+    return p;
+}
+
+//--------------------------------------------------------------------------------------------------
+
+void System::TransformMeasurementsNIPToNVIP() {
+
+
+
+  Eigen::Matrix<double,3,3> R image_camera_pose_.Q_c_bl.toRotationMatrix();
+  Eigen::Matrix<double,2,2> R1   = R.block(0,0,2,2);
+  Eigen::Matrix<double,2,1> R2   = R.block(0,2,2,1);
+  Eigen::Matrix<double,1,2> R3_T = R.block(2,0,1,2);
+  Eigen::Matrix<double,1,1> R4   = R.block(2,2,1,1);
+  double tmp = 0;
+
+  for (auto& m : measurements_) {
+
+    tmp = (R3_T*m.pose + R4)(0,0);
+
+    // Transform velocity
+    if(m.twist.rows() !=0) {
+      
+      m.twist = (tmp*R1 -(R1*m.pose + R2)*R3_T )/(tmp*tmp)*m.twist;
+    }
+
+    // Transform pose
+    m.pose = (R1*m.pose + R2)/tmp;
+  }
+
+}
+
 }  //end namespace common

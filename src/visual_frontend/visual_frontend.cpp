@@ -551,17 +551,22 @@ cv::Mat VisualFrontend::DrawTracks()
 
     // If the pose has been provided, the targets are being tracked on the NVIP. They need to be
     // rotated into the image plane for drawing. 
-    cv::Point2f center_nvip;
-    std::vector<cv::Point2f> v_center_nvip;
-    center_nvip.x = x_pos;
-    center_nvip.y = y_pos;
-    v_center_nvip.push_back(center_nvip);
-    v_center_nvip = sys_.TransformBetweenImagePlanes(v_center_nvip,true);
+    cv::Point center;
+    if( sys_.image_camera_pose_) {
+      cv::Point2f NVIP_center;
+      NVIP_center.x = x_pos;
+      NVIP_center.y = y_pose;
+      NVIP_center = TransformPointNVIPtoNIP(NVIP_center);
+      center.x = NVIP_center.x;
+      center.y = NVIP_center.y;
+    } else {
+      center.x = x_pos;
+      center.y = y_pos;
+    }
 
     // get normalized image plane point
-    cv::Point center;
-    center.x = v_center_nvip.front().x;
-    center.y = v_center_nvip.front().y;
+    
+    
 
     // treat points in the normalized image plane as a 3D points (homogeneous).
     // project the points onto the sensor (pixel space) for plotting.
@@ -722,9 +727,9 @@ void VisualFrontend::UpdateRRANSAC()
   cv::cv2eigen(sys_.transform_, TT);
 
   if(sys.camera_pose_available_) {
-    // Transform homography to VNIP
+    // Transform homography and measurements to VNIP
     TT = sys_.image_camera_pose_.toRotationMatrix()*TT*sys.image_camera_pose_.Q_c_bl.toRotationMatrix().transpose();
-    sys_.measurements_ =  sys.TransformBetweenImagePlanes(sys_.measurements_ , false);
+    sys_.TransformMeasurementsNIPToNVIP();
   }
 
  
