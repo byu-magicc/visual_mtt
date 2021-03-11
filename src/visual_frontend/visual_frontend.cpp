@@ -153,6 +153,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     if (fabs(sys_.image_camera_pose_.time_stamp - sys_.current_time_) > 1e-1) {
       ROS_WARN_STREAM_THROTTLE( sys_.message_output_period_ , "The time stamp between the image and pose is off by " << fabs(sys_.image_camera_pose_.time_stamp - sys_.current_time_));
     }
+    PublishCameraPose(); 
   }
 
 
@@ -527,8 +528,6 @@ cv::Mat VisualFrontend::DrawTracks()
   {
     
     cv::Scalar color = colors_[track->label_];
-    x_pos = track->state_.g_.data_(0,0);
-    y_pos = track->state_.g_.data_(1,0);
 
 #if TRACKING_SE2
   vel = track->state_.g_.R_ * track->state_.u_.p_;
@@ -552,17 +551,16 @@ cv::Mat VisualFrontend::DrawTracks()
     // If the pose has been provided, the targets are being tracked on the NVIP. They need to be
     // rotated into the image plane for drawing. 
     cv::Point center;
-    if( sys_.image_camera_pose_) {
+    if( sys_.camera_pose_available_) {
       cv::Point2f NVIP_center;
       NVIP_center.x = x_pos;
-      NVIP_center.y = y_pose;
-      NVIP_center = TransformPointNVIPtoNIP(NVIP_center);
-      center.x = NVIP_center.x;
-      center.y = NVIP_center.y;
-    } else {
-      center.x = x_pos;
-      center.y = y_pos;
-    }
+      NVIP_center.y = y_pos;
+      NVIP_center = sys_.TransformPointNVIPtoNIP(NVIP_center);
+      x_pos = NVIP_center.x;
+      y_pos = NVIP_center.y;
+    } 
+
+   
 
     // get normalized image plane point
     
@@ -726,12 +724,20 @@ void VisualFrontend::UpdateRRANSAC()
   Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
 
-  if(sys.camera_pose_available_) {
+  if(sys_.camera_pose_available_) {
     // Transform homography and measurements to VNIP
-    TT = sys_.image_camera_pose_.toRotationMatrix()*TT*sys.image_camera_pose_.Q_c_bl.toRotationMatrix().transpose();
+    TT = sys_.image_camera_pose_.Q_c_bl.toRotationMatrix()*TT*(sys_.image_camera_pose_.Q_c_bl.toRotationMatrix().transpose());
     sys_.TransformMeasurementsNIPToNVIP();
   }
 
+  // for (auto& m: sys_.measurements_ ) {
+  //   std::cerr << "meas: " << std::endl;
+  //   std::cerr << "pose: " << std::endl << m.pose << std::endl;
+  //   std::cerr << "twist: " << std::endl << m.twist << std::endl;
+  // }
+
+  // std::cerr << "meas size: " << sys_.measurements_.size() << std::endl;
+  // std::cerr << "Transformation : " << std::endl << TT << std::endl;
  
 
   rransac_.AddMeasurements(sys_.measurements_,TT);
@@ -747,8 +753,37 @@ void VisualFrontend::UpdateRRANSAC()
     sys_.rransac_viz_.DrawEstimatedTracks(rransac_sys_,false);
     sys_.rransac_viz_.DrawNewMeasurements(sys_.measurements_,rransac_sys_,false);
     sys_.rransac_viz_.RecordImage();
+
   }
 
 }
 
-}
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+ void VisualFrontend::PublishCameraPose() {
+   if (sys_.camera_pose_available_) {
+    geometry_msgs::TransformStamped transformStamped;
+    transformStamped.header.stamp = ros::Time::now();
+    transformStamped.header.frame_id = "NED";
+    transformStamped.child_frame_id = "camera";
+    transformStamped.transform.translation.x = sys_.image_camera_pose_.P(0,0);
+    transformStamped.transform.translation.y = sys_.image_camera_pose_.P(1,0);
+    transformStamped.transform.translation.z = sys_.image_camera_pose_.P(2,0);
+    transformStamped.transform.rotation.x = sys_.image_camera_pose_.Q.x();
+    transformStamped.transform.rotation.y = sys_.image_camera_pose_.Q.y();
+    transformStamped.transform.rotation.z = sys_.image_camera_pose_.Q.z();
+    transformStamped.transform.rotation.w = sys_.image_camera_pose_.Q.w();
+
+    camera_pose_broadcaster_.sendTransform(transformStamped);
+
+    transformStamped.child_frame_id = "body level";
+    transformStamped.transform.rotation.x = sys_.image_camera_pose_.Q_c_bl.x();
+    transformStamped.transform.rotation.y = sys_.image_camera_pose_.Q_c_bl.y();
+    transformStamped.transform.rotation.z = sys_.image_camera_pose_.Q_c_bl.z();
+    transformStamped.transform.rotation.w = sys_.image_camera_pose_.Q_c_bl.w();
+    camera_pose_broadcaster_.sendTransform(transformStamped);
+
+   }
+ } 
+
+} // namespace v

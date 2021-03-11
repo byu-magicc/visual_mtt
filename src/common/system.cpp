@@ -652,15 +652,24 @@ void System::ResetFrames()
 void System::SetImageCameraPose() {
   if (camera_pose_available_) {
     image_camera_pose_ = latest_camera_pose_;
+    image_camera_pose_.Q_c_bl = latest_camera_pose_.Q;
     // euler angles in yaw pitch roll
     Eigen::Matrix<double,3,1> euler = image_camera_pose_.Q.toRotationMatrix().eulerAngles(2, 1, 0);
-    // euler(2) = 0; // set yaw to zero.
-    latest_camera_pose_.Q_c_bl = Eigen::AngleAxisd(euler(1), Eigen::Vector3d::UnitY())*Eigen::AngleAxisd(euler(2), Eigen::Vector3d::UnitX());
+    Eigen::Matrix<double,3,3> R = image_camera_pose_.Q.toRotationMatrix();
+    double th = -asin(R(2,0));
+    double phi = atan2(R(2,1),R(2,2));
+    double psi = atan2(R(1,0),R(0,0));
+    std::cout << "th: " << th << std::endl;
+    std::cout << "phi: " << phi << std::endl;
+    std::cout << "psi: " << psi << std::endl;
+    std::cout << "euler: " << std::endl << euler << std::endl;
+    // // euler(2) = 0; // set yaw to zero.
+    image_camera_pose_.Q_c_bl = Eigen::AngleAxisd(euler(1), Eigen::Vector3d::UnitY())*Eigen::AngleAxisd(euler(0), Eigen::Vector3d::UnitX());
   } else {
     std::cerr << "System::SetImageCameraPose Camera pose is not available. This function should not be called. " << std::endl;
   }
-  std::cout << "Q: " << std::endl << "x: " << image_camera_pose_.Q.x() << " y: " <<  image_camera_pose_.Q.y() << " z: " << image_camera_pose_.Q.z() << " w: " << image_camera_pose_.Q.w() << std::endl;
-  std::cout << "Q_c_bl: "  << std::endl << "x: " << image_camera_pose_.Q_c_bl.x() << " y: " <<  image_camera_pose_.Q_c_bl.y() << " z: " << image_camera_pose_.Q_c_bl.z() << " w: " << image_camera_pose_.Q_c_bl.w() << std::endl;
+  // std::cout << "Q: " << std::endl << "x: " << image_camera_pose_.Q.x() << " y: " <<  image_camera_pose_.Q.y() << " z: " << image_camera_pose_.Q.z() << " w: " << image_camera_pose_.Q.w() << std::endl;
+  // std::cout << "Q_c_bl: "  << std::endl << "x: " << image_camera_pose_.Q_c_bl.x() << " y: " <<  image_camera_pose_.Q_c_bl.y() << " z: " << image_camera_pose_.Q_c_bl.z() << " w: " << image_camera_pose_.Q_c_bl.w() << std::endl;
 
 }
 
@@ -706,6 +715,7 @@ std::vector<cv::Point2f> System::TransformBetweenImagePlanes(const std::vector<c
 cv::Point2f System::TransformPointNVIPtoNIP(const cv::Point2f point){
     cv::Point2f p;
     Eigen::Matrix<double,3,3> R = image_camera_pose_.Q_c_bl.inverse().toRotationMatrix();
+    double scalar = 0;
     scalar = R(2,0)*point.x + R(2,1)*point.y + R(2,2);
     p.x = (R(0,0)*point.x + R(0,1)*point.y + R(0,2))/scalar;
     p.y = (R(1,0)*point.x + R(1,1)*point.y + R(1,2))/scalar;
@@ -718,7 +728,7 @@ void System::TransformMeasurementsNIPToNVIP() {
 
 
 
-  Eigen::Matrix<double,3,3> R image_camera_pose_.Q_c_bl.toRotationMatrix();
+  Eigen::Matrix<double,3,3> R = image_camera_pose_.Q_c_bl.toRotationMatrix();
   Eigen::Matrix<double,2,2> R1   = R.block(0,0,2,2);
   Eigen::Matrix<double,2,1> R2   = R.block(0,2,2,1);
   Eigen::Matrix<double,1,2> R3_T = R.block(2,0,1,2);

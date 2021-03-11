@@ -22,6 +22,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   pluginlib
   camera_info_manager
+  tf2 
+  tf2_ros
 )
 
 # yaml-cpp is used to read in a yaml file and retrieve its values 
