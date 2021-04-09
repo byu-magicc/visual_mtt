@@ -5,6 +5,7 @@
 
 
 visual_frontend/message_output_period: 6
+visual_frontend/picture_file_path: ""
 
 
 ###############################################################################
@@ -41,18 +42,21 @@ measurement_manger/darknet_plugin/params_filename:  "/darknet_wrapper/params/def
 
 ###############################################################################
 #### RRANSAC
+# These parameters are used in the visualization of R-RANSAC. 
 
-rransac/scale_draw_pos: 2
-rransac/scale_draw_vel: 2
-rransac/scale_drawing: 1
+rransac/scale_draw_pos: 2            # Scales the size of the objects drawn
+rransac/scale_draw_vel: 2            # Scales the size of the velocity vector
+rransac/scale_drawing: 1             # Scales the drawing. Visual MTT performs tracking in the normalized image plane. This typically means that the image plane has an area of about 1 meter.
+                                     # This scale should be set to map from meters to pixels. It is typically the first value in the camera intrinsic matrix; but it can be adjusted to 
+                                     # allow for greater or lower resolution images. 
 rransac/line_thickness: 1
-rransac/image_width: 1920
-rransac/image_height: 1080
-rransac/draw_validation_region: false
-rransac/draw_cluster_velocity_position_threshold: false
-rransac/draw_measurment_velocity_position_threshold: false
-rransac/flip_image_x_axis: false
-rransac/draw_poor_tracks: false
-rransac/visualize: false
-rransac/video_file_path: "<filename of the video. This must be an absolute path. Ex: /home/user/vmtt/video.mp4>"
-rransac/fps: 30
+rransac/image_width: 1920            # Width of the visualization
+rransac/image_height: 1080           # Height of the visualization
+rransac/draw_validation_region: false                         # If true, the validation region for the tracks will be drawn
+rransac/draw_cluster_velocity_position_threshold: false       # If true, the position and velocity thresholds will be drawn
+rransac/draw_measurment_velocity_position_threshold: false    
+rransac/flip_image_x_axis: false                              # Flips the image across the x axis
+rransac/draw_poor_tracks: false                               # If true, not only will good tracks be drawn but poor ones also. 
+rransac/visualize: false                                      # If true, the visualization will be rendered
+rransac/video_file_path: "<filename of the video. This must be an absolute path. Ex: /home/user/vmtt/video.mp4>"  # The absolute file name where the video of the visualization will be saved. 
+rransac/fps: 30                                               # The frames per second for the rendering. 
