@@ -1,11 +1,11 @@
 Visual Multiple Target Tracker
 ==============================
 
-This ROS package, known as `visual_mtt`, includes a visual measurement frontend that feeds the **R-RANSAC Tracker** (see [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac)).
+This ROS package, known as `visual_mtt`, receives a sequence of images and camera parameters from which measurements are extracted and fed into the multiple target tracker Recursive-RANSAC (see [here](https://magiccvs.byu.edu/gitlab/recursive_ransac/rransac)). R-RANSAC uses the measurement to initialize and manage tracks in order to follow moving objects in the camera's field of view. 
 
 ## Installation
 
-1. Install the R-RANSAC Tracker (`librransac`) from [here](https://magiccvs.byu.edu/gitlab/robust_tracking/rransac).
+1. Install the R-RANSAC Tracker from [here](https://magiccvs.byu.edu/gitlab/recursive_ransac/rransac).
 1. Install the Parallax Compensation library from [here](https://magiccvs.byu.edu/gitlab/robust_tracking/parallax_cpp).
 1. Clone repo into `src` of a catkin workspace.
 1. `catkin_make` in the root of your catkin workspace.
@@ -29,6 +29,18 @@ $ catkin_make -DOpenCV_DIR=/usr/local/opencv -DVISUAL_MTT_CUDA=ON
 ```
 
 This tells `CMake` to look at *your* installation of OpenCV instead of the one at `/opt/ros/<release>/share/OpenCV-<version>-dev`. Pay attention to the catkin_make process and you should see it tell you whether or not it found a CUDA-enabled OpenCV. Also, once you run the `visual_mtt` node, you should see it tell you how many CUDA devices it found.
+
+#### Tracking On Different Manifolds
+
+The R-RANSAC library can perform multiple target tracking on different manifolds such as Euclidean space of 2-dimension, affine space of 2-dimension and others. Early versions of visual MTT only performed target tracking on Euclidean space of 2-dimension, but the current version allows tracking to be performed on the special Euclidean group of 2-dimension (SE(2)). 
+
+By default, visual MTT tracks on the Euclidean space of 2-dimension. To build visuall MTT to track on SE(2), add the definition '-DTRACKING_SE2=ON'. In other words, when running catkin_make use the command. 
+
+```bash
+$ catkin_make -DTRACKING_SE2=ON
+```
+A word of caution. Tracking on SE(2) is designed to be done on the normalized virtual image plane due to the restrictions of the Homography when transforming measurements and tracks from the previous frame to the current frame. Thus, only build visual MTT to track on SE(2) if the camera is not moving or if the camera plane is parallel to the the plane the objects move on. 
+
 
 ## Quick Start
 
