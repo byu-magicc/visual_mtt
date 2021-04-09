@@ -4,19 +4,32 @@ namespace visual_frontend {
 
 FeatureMotion::FeatureMotion()
 {
+  
   enabled_ = false;
   name_ = "Feature Motion";
-  id_ = 0;
   has_velocity_ = true;
   drawn_ = false;
   sigmaR_pos_ = 0.01;
-  sigmaR_vel_=0.01;
+  sigmaR_vel_=0.03;
+  source_parameters_changed_ = false;
 
   first_image_ = true;
   velocity_floor_ = 0.002;
   velocity_ceiling_ = 0.02;
   pic_params_.pic_num = 0;
   pic_params_.file_name = "Feature_Motion";
+
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS_VEL;
+#else // R2
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS_VEL;  
+#endif
+  
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,4,4>::Identity();
+  source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_threshold_ = 0.1;
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -36,8 +49,9 @@ FeatureMotion::~FeatureMotion()
 
 // ----------------------------------------------------------------------------
     
-void FeatureMotion::Initialize(const common::Params& params) {}
-
+void FeatureMotion::Initialize(const common::Params& params, const unsigned int source_index) {
+  source_parameters_.source_index_ = source_index;
+}
 // ----------------------------------------------------------------------------
 
 void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& config)
@@ -46,8 +60,14 @@ void FeatureMotion::SetParameters(const visual_mtt::visual_frontendConfig& confi
   velocity_ceiling_ = config.maximum_feature_velocity;
 
   // noise parameters (only for storage, not used in measurement generation)
-  sigmaR_pos_ = config.feature_motion_sigmaR_pos;
-  sigmaR_vel_ = config.feature_motion_sigmaR_vel;
+  if ((sigmaR_pos_ != config.feature_motion_sigmaR_pos || sigmaR_vel_ != config.feature_motion_sigmaR_vel) && source_parameters_.meas_cov_.rows() !=0 || source_parameters_.gate_threshold_!=config.RRANSAC_gate_threshold ) {
+      sigmaR_pos_ = config.feature_motion_sigmaR_pos;
+      sigmaR_vel_ = config.feature_motion_sigmaR_vel;
+      source_parameters_.gate_threshold_ = config.RRANSAC_gate_threshold;
+      source_parameters_.meas_cov_.diagonal() << pow(sigmaR_pos_,2), pow(sigmaR_pos_,2), pow(sigmaR_vel_,2), pow(sigmaR_vel_,2);
+      source_parameters_changed_ = true;
+  }
+    
 
   ShouldReset(config.feature_motion_enabled);
 }
@@ -130,10 +150,18 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
   meas_vel_.clear();
   meas_pos_parallax_.clear();
 
+  double dt = sys.current_time_ - sys.prev_time_;
+
 
   // If there isn't a good transform, dont' do anything. 
   if (!first_image_ && sys.good_transform_)
   {
+
+      if (dt <=0 ) {
+        ROS_DEBUG_STREAM_THROTTLE(sys.message_output_period_, "The current image time stamp minus the previous image time stamp is less than or equal to 0. Setting it to 1. ");
+        dt = 1;
+      } 
+
     // Warp previous features forwards. All static features from sequential
     // frames will be aligned. Features from moving objects will be offset by
     // some distance, a velocity ("normalized image units" per frame).
@@ -144,7 +172,7 @@ bool FeatureMotion::GenerateMeasurements(const common::System& sys)
     // Find the point velocities
     std::vector<cv::Point2f> meas_vel;
     for (int i = 0; i < corrected_pts.size(); ++i)
-      meas_vel.push_back(sys.ud_curr_matched_.at(i) - corrected_pts[i]);
+      meas_vel.push_back( (sys.ud_curr_matched_.at(i) - corrected_pts[i])/dt);
 
     // Save points whose disparity exceed the velocity threshold
     int numberOfPossibleMovers = 0;

@@ -11,6 +11,7 @@ LKTTracker::LKTTracker()
 
   pic_params_.pic_num = 0;
   pic_params_.file_name = name_;
+  max_features_ = 0;
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -87,7 +88,7 @@ void LKTTracker::DrawFeatures(const common::System& sys)
   for (int j=0; j<d_prev_matched_.size(); j+=inc)
   {
     cv::Point2f scaled_point = d_prev_matched_[j] + (d_curr_matched_[j]-d_prev_matched_[j])*scale;
-    cv::arrowedLine(draw, d_prev_matched_[j], scaled_point, cv::Scalar(255, 0, 255), 2, CV_AA);
+    cv::arrowedLine(draw, d_prev_matched_[j], d_curr_matched_[j], cv::Scalar(255, 0, 255), 2, CV_AA);
   }
 
   if(drawn_ == false)
@@ -123,6 +124,7 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // Uses previous GFTT features to find next_features in current frame
   std::vector<cv::Point2f> d_curr_features;
   std::vector<unsigned char> valid;
+  valid.clear();
 
   #if OPENCV_CUDA
     CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
@@ -219,7 +221,7 @@ void LKTTracker::CalculateFlow(const cv::Mat& mono, std::vector<cv::Point2f>& cu
 #if OPENCV_CUDA
 void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& curr_features, std::vector<unsigned char>& valid,const common::System& sys)
 {
-  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 20);
+  static cv::Ptr<cv::cuda::SparsePyrLKOpticalFlow> gSparsePyrLK = cv::cuda::SparsePyrLKOpticalFlow::create(pyramid_size_, 3, 30, false);
 
   if (!first_image_)
   {
@@ -248,24 +250,15 @@ void LKTTracker::CalculateFlow(const cv::cuda::GpuMat& gMono, std::vector<cv::Po
     first_image_ = false;
   }
 
+
+
   // save mono for the next iteration
   gLastMono = gMono.clone();
 }
 #endif
 // ---------------------------------------------------------------------------
 
-void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
-{   
-  #ifndef OPENCV_CUDA
-    std::vector<cv::KeyPoint> keypoints;
-    gftt_detector_->detect(mono, keypoints, mask);
 
-    // Unpack keypoints and create regular features points
-    features.resize(keypoints.size());
-    for (auto&& key : keypoints)
-      features.push_back(key.pt);
-  #endif
-}
 
 #if OPENCV_CUDA
 void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
@@ -273,10 +266,29 @@ void LKTTracker::DetectFeatures(const cv::cuda::GpuMat& gMono, std::vector<cv::P
     cv::cuda::GpuMat gMask(mask);
     cv::cuda::GpuMat gFeatures;
     gftt_detector_->detect(gMono, gFeatures, gMask);
+    
+
 
     // Download
     common::gpu::download(gFeatures, features);
+    // for (auto& f : features) 
+    //   std::cout << f << std::endl;
 }
+
+#else
+
+void LKTTracker::DetectFeatures(const cv::Mat& mono, std::vector<cv::Point2f>& features, const cv::Mat& mask)
+{   
+  std::vector<cv::KeyPoint> keypoints;
+  gftt_detector_->detect(mono, keypoints, mask);
+
+  // Unpack keypoints and create regular features points
+  features.resize(keypoints.size());
+  for (auto&& key : keypoints)
+    features.push_back(key.pt);
+}
+
+
 #endif
 
 // ---------------------------------------------------------------------------

@@ -3,12 +3,15 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
+
+
 // Dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
 // common
 #include "common/params.h"
 #include "common/system.h"
+
 
 // Pluginlib
 #include <pluginlib/class_list_macros.h>
@@ -28,6 +31,9 @@ namespace visual_frontend {
   {
   public:
 
+    // // Ensures to invoke actual object destructor
+    // virtual ~MeasurementBase(){}
+
    /**
     * \brief Used to initialize a plugin's static parameters.
     * \detail This method is called by MeasurementManager
@@ -38,7 +44,7 @@ namespace visual_frontend {
     * @see common::Params
     * @see MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params)
     */
-    virtual void Initialize(const common::Params& params) = 0;
+    virtual void Initialize(const common::Params& params, const unsigned int source_index) = 0;
 
     /**
     * \brief Updates dynamic parameters.
@@ -94,14 +100,15 @@ namespace visual_frontend {
                              Should be initialized in the plugin's constructor.*/   
 
 
-    int id_;            /**< Each Measurement Source Plugin must have a unique ID. This
-                             is used for RRANSAC. Must be defined in the plugin's constructor.*/
-    bool has_velocity_; /**< Indicates if the Measurement Source Plugin measures a 
-                             possible object's velicty. Must be defined in the plugin's constructor.*/
+    rransac::SourceParameters source_parameters_; /**< Source parameters needed by RRANSAC. The child class must fill out the member variables: type_, meas_cov_,  spacial_density_of_false_meas_, probability_of_detection_, gate_probability_, and RANSAC_inlier_probability_.*/
+    bool has_velocity_;                           /**< Flag used to indicate if it has velocity. True indicates that it has velocity. */
     double sigmaR_pos_; /**< Standard deviation of measurement's position noise. This 
                              is used for  RRANSAC and must be defined in the plugin's constructor.*/
     double sigmaR_vel_; /**< Standard deviation of measurement's velocity noise. This 
                              is used for  RRANSAC and must be defined in the plugin's constructor.*/
+
+    bool source_parameters_changed_; /**< Used to indicate if any of the source parameters changed in the SetParameters function. If they did, then rransac 
+                                          needs to change the corresponding parameters. */
 
     std::vector<cv::Point2f> meas_pos_; /**< Possible object's position in the image frame. */
     std::vector<cv::Point2f> meas_vel_; /**< Possible object's velocity in the image frame. */

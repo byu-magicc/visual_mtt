@@ -13,15 +13,26 @@ const std::string kVmttFilePath_ = VMTT_FILE_PATH;
 DarknetPlugin::DarknetPlugin()
 {
 
-    name_  = "Darknet";
-    id_ = 2;            
-    has_velocity_= false; 
-    sigmaR_pos_ = 0.007;
-    sigmaR_vel_ = 0; 
-    sequence_ = 0;
-    drawn_ = false;
-    pic_params_.pic_num = 0;
-    pic_params_.file_name = name_;
+  name_  = "Darknet";
+  has_velocity_= false; 
+  sigmaR_pos_ = 0.1;
+  sigmaR_vel_ = 0; 
+  sequence_ = 0;
+  drawn_ = false;
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = name_;
+  source_parameters_changed_ = false;
+
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS;
+#else
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
+#endif 
+
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*sigmaR_pos_;
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_threshold_ = 0.1;
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -44,9 +55,9 @@ DarknetPlugin::~DarknetPlugin()
 
 // ----------------------------------------------------------------------------
 
-void DarknetPlugin::Initialize(const common::Params& params)
+void DarknetPlugin::Initialize(const common::Params& params, const unsigned int source_index)
 {
-
+  source_parameters_.source_index_ = source_index;
 
 	std::string labels_file_path, config_file_path, weights_file_path, params_file_path;
 	std::string labels_file_name, config_file_name, weights_file_name, params_file_name;
@@ -84,6 +95,11 @@ void DarknetPlugin::SetParameters(const visual_mtt::visual_frontendConfig& confi
   params.threshold = config.darknet_threshold;
   params.frame_stride = config.darknet_frame_stride;
   params.draw_detections = config.darknet_draw_detections;
+
+  if (source_parameters_.gate_threshold_!=config.RRANSAC_gate_threshold ) {
+      source_parameters_.gate_threshold_ = config.RRANSAC_gate_threshold;
+      source_parameters_changed_ = true;
+  }
   
   ShouldReset(config.darknet_enabled);
 

@@ -6,9 +6,6 @@
 #include <vector>
 #include <memory>
 
-#include <rransac/tracker.h>
-
-#include "visual_frontend/accessors.h"
 
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"

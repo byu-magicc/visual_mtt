@@ -74,6 +74,15 @@ namespace visual_frontend {
     void DestroyWindows();
 
 
+    /**
+     * When tracking on SE2, it is assumed that the camera is tracking on the virtual normalized image plane. Under this 
+     * assumption, the homography should be described by a Rotation about the optical axis, and the vector normal to the plane
+     * should be along the optical axis. However, when the homography is calculated, it can be noisy and portray rotation about other axes
+     * and that the normal vector is not along the optical axis. This function projects it onto the optical axis.
+     */ 
+    void ProjectHomographySE2();
+
+
     std::vector<uchar> inlier_mask_;  /**< Homography inlier mask. */
     bool good_transform_;             /**< Indicates if the homography is good. */
 
