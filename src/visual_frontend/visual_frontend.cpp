@@ -21,6 +21,31 @@ VisualFrontend::VisualFrontend()
 
 
   /////////////////////////////////////////////////////////////////////////
+  // Setup RRANSAC visualization information
+  static_params_.GetParam("rransac/scale_draw_pos",sys_.rransac_draw_info_.scale_draw_pos,2);
+  static_params_.GetParam("rransac/scale_draw_vel",sys_.rransac_draw_info_.scale_draw_vel,2);
+  static_params_.GetParam("rransac/scale_drawing",sys_.rransac_draw_info_.scale_drawing,1);
+  static_params_.GetParam("rransac/line_thickness",sys_.rransac_draw_info_.line_thickness,1);
+  static_params_.GetParam("rransac/image_width",sys_.rransac_vis_image_width_,1);
+  static_params_.GetParam("rransac/image_height",sys_.rransac_vis_image_height_,1);
+  static_params_.GetParam("rransac/draw_validation_region",sys_.rransac_draw_info_.draw_validation_region,false);
+  static_params_.GetParam("rransac/draw_cluster_velocity_position_threshold",sys_.rransac_draw_info_.draw_cluster_velocity_position_threshold,false);
+  static_params_.GetParam("rransac/draw_measurment_velocity_position_threshold",sys_.rransac_draw_info_.draw_measurment_velocity_position_threshold,false);
+  static_params_.GetParam("rransac/flip_image_x_axis",sys_.rransac_draw_info_.flip_image_x_axis,false);
+  static_params_.GetParam("rransac/draw_poor_tracks",sys_.rransac_draw_info_.draw_poor_tracks,false);
+  static_params_.GetParam("rransac/visualize",sys_.rransac_visualize_data_,false);
+  static_params_.GetParam("rransac/video_file_path",sys_.rransac_video_file_name_,"");
+  static_params_.GetParam("rransac/fps",sys_.rransac_fps_,30);
+  std::cout << "width: " << sys_.rransac_vis_image_width_ << std::endl;
+  std::cout << "height: " << sys_.rransac_vis_image_height_ << std::endl;
+  std::cout << "sys_.rransac_fps_: " << sys_.rransac_fps_ << std::endl;
+  std::vector<int> rransac_img_dimension{sys_.rransac_vis_image_width_,sys_.rransac_vis_image_height_};
+
+  if (sys_.rransac_visualize_data_) {
+    sys_.rransac_viz_.Setup(rransac_img_dimension, sys_.rransac_draw_info_, sys_.rransac_video_file_name_,sys_.rransac_fps_);
+  }
+
+  /////////////////////////////////////////////////////////////////////////
   // Initialize the managers and plugins
   std::vector<std::string> measurement_manager_plugin_whitelist, 
                            transform_manager_plugin_whitelist,
@@ -57,15 +82,34 @@ VisualFrontend::VisualFrontend()
     ROS_WARN("tuning mode enabled");
     sys_.RegisterFrame(common::SD);
 
+
+  // populate plotting colors
+  colors_ = std::vector<cv::Scalar>();
+  for (int i = 0; i < 1000; i++)
+    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
+
+
+  ////////////////////////////////////////////////////////////////////////////////////
+  // Setup sources for RRANSAC
+  for (auto&& sources : measurement_manager_.measurement_sources_) {
+    rransac_.AddSource(sources->source_parameters_);
+  }
+
+  rransac_sys_ = rransac_.GetSystemInformation();
+
+
+  ////////////////////////////////////////////////////////////////////////
+  // Image drawing and saving parameters
+  name_ = "Visual MTT";
+  pic_params_.pic_num = 0;
+  pic_params_.file_name = "Tracks";
+  drawn_ = false;
+
+
+
+
   /////////////////////////////////////////////////////////////////////////
   // Setup ROS topics and dynamic reconfigures
-
-  // ROS communication
-  image_transport::ImageTransport it(nh_);
-  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
-  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
-  pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
-  pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
 
   // establish dynamic reconfigure and load defaults (callback runs once here)
   auto func1 = std::bind(&VisualFrontend::CallbackReconfigure, this, std::placeholders::_1, std::placeholders::_2);
@@ -77,22 +121,15 @@ VisualFrontend::VisualFrontend()
   auto func2 = std::bind(&VisualFrontend::CallbackReconfigureRransac, this, std::placeholders::_1, std::placeholders::_2);
   rransac_server_->setCallback(func2);
 
-  // populate plotting colors
-  colors_ = std::vector<cv::Scalar>();
-  for (int i = 0; i < 1000; i++)
-    colors_.push_back(cv::Scalar(std::rand() % 256, std::rand() % 256, std::rand() % 256));
-
-
-  // establish librransac good model elevation event callback
-  params_.set_elevation_callback(std::bind(&VisualFrontend::CallbackElevationEvent, this, std::placeholders::_1, std::placeholders::_2));
+  // ROS communication
+  image_transport::ImageTransport it(nh_);
+  pub_tracks       = nh_.advertise<visual_mtt::Tracks>("tracks", 1);
+  pub_tracks_video = it.advertiseCamera("tracks_video/image_raw", 1);
+  pub_transform_   = nh_.advertise<std_msgs::Float32MultiArray>("transform", 1);
+  sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
 
 
 
-  // Image drawing and saving parameters
-  name_ = "Visual MTT";
-  pic_params_.pic_num = 0;
-  pic_params_.file_name = "Tracks";
-  drawn_ = false;
 
 }
 
@@ -107,6 +144,10 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   static std_msgs::Header header_frame_last;
   header_frame_last = header_frame_;
   header_frame_ = data->header;
+
+  // set time (this should come from the header file, but it isn't gauranteed that the header file has time information. )
+  sys_.current_time_ = header_frame_.stamp.toSec();
+  
 
   //
   // Estimate FPS
@@ -124,13 +165,13 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   if (frame_++ % frame_stride_ != 0)
     return;
 
-
   // convert message data into OpenCV type cv::Mat
   sys_.SetHDFrame(cv_bridge::toCvShare(data, "bgr8")->image);
 
   // save camera parameters one time
   if (!sys_.cam_info_received_)
   {
+    
     // camera_matrix_ (K) is 3x3
     // dist_coeff_    (D) is a column vector of 4, 5, or 8 elements
     cv::Mat camera_matrix(3, 3, CV_64FC1);
@@ -153,11 +194,11 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
     double percentage;
     nh_.param<double>("rransac/surveillance_region", percentage, 0);
 
-    params_.field_max_x = std::abs(corner_[0].x*percentage);
-    params_.field_max_y = std::abs(corner_[0].y*percentage);
-    tracker_.set_parameters(params_);
+    sys_.prev_time_ = sys_.current_time_; // Initialize it to the current time for the first iteration.
 
   }
+
+
 
   //
   // Initial image processing
@@ -238,14 +279,14 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   //
 
   // publish the tracks and homography matrix onto ROS network
-  PublishTracks(sys_.tracks_);
+  PublishTracks(rransac_sys_->good_models_);
   PublishTransform();
 
   // generate visualization, but only if someone is listening or in tuning mode
   bool listening_or_tuning_mode = (pub_tracks_video.getNumSubscribers() > 0) || sys_.tuning_;
   bool pub_frame_ready = (pub_frame_++ % publish_frame_stride_ == 0);
   if (listening_or_tuning_mode > 0 && pub_frame_ready) {
-    const cv::Mat drawing = DrawTracks(sys_.tracks_);
+    const cv::Mat drawing = DrawTracks();
 
     if(sys_.tuning_ && drawn_ == false)
     {
@@ -275,6 +316,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   t_other_ = (ros::WallTime::now() - tic).toSec();
 
   sys_.ResetFrames();
+  sys_.prev_time_ = sys_.current_time_;
 }
 
 // ----------------------------------------------------------------------------
@@ -291,29 +333,17 @@ void VisualFrontend::CallbackReconfigure(visual_mtt::visual_frontendConfig& conf
   measurement_manager_.SetParameters(config);
   recognition_manager_.set_parameters(config);
 
-  /* TODO
-  it should not be reseting every time. 
-  */
 
 
-  // Was there a change inthe number of sources?
-  // if (current_num_sources != measurement_manager_.n_sources_)
+
+
+  // rransac needs to update the source parameters if they changed
+  for (auto&& src : measurement_manager_.measurement_sources_)
   {
-    // Clear the existing source information inside R-RANSAC
-    params_.reset_sources();
-
-    /* TODO
-    Make sources private, and get information through a method call.
-    */
-    // Add each source with the corresponding new parameters
-    for (auto&& src : measurement_manager_.measurement_sources_)
-    {
-      params_.add_source(src->id_, src->has_velocity_, src->sigmaR_pos_, src->sigmaR_vel_);
-    }
-
-    // Send updated parameters to R-RANSAC
-    tracker_.set_parameters(params_);
-
+    if (src->source_parameters_changed_) {
+      rransac_.ChangeSourceParameters(src->source_parameters_);
+      src->source_parameters_changed_ = false;
+  }
   }
 
   ROS_INFO("visual frontend: parameters have been updated");
@@ -325,48 +355,40 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
 {
 
   // general
-  params_.dt = config.dt;
+  rransac_params_.meas_time_window_ = config.meas_time_window;
+  rransac_params_.transform_consensus_set_ = config.transform_consensus_set;
 
-  // motion model specific parameters
-  params_.sigmaQ_vel = config.sigmaQ_vel;
-  params_.alphaQ_vel = config.alphaQ_vel;
-  params_.sigmaQ_jrk = config.sigmaQ_jrk;
-  params_.alphaQ_jrk = config.alphaQ_jrk;
+  // Cluster Parameters
+  rransac_params_.cluster_time_threshold_ = config.cluster_time_threshold;
+  rransac_params_.cluster_velocity_threshold_ = config.cluster_velocity_threshold;
+  rransac_params_.cluster_position_threshold_ = config.cluster_position_threshold;
+  rransac_params_.cluster_min_size_requirement_ = config.cluster_min_size_requirement;
 
-  // R-RANSAC specific parameters
-  params_.Nw = config.Nw;
-  params_.M = config.M;
-  params_.tauR = config.tauR;
-  params_.set_motion_model(static_cast<enum rransac::core::MotionModelType>(config.rransac_motion_model));
+  // RANSAC Parameters
+  rransac_params_.RANSAC_max_iters_ = config.RANSAC_max_iters;
+  rransac_params_.RANSAC_score_stopping_criteria_ = config.RANSAC_score_stopping_criteria;
+  rransac_params_.RANSAC_score_minimum_requirement_ = config.RANSAC_score_minimum_requirement;
+  rransac_params_.RANSAC_minimum_subset_ = config.RANSAC_minimum_subset;
 
-  // RANSAC specific parameters
-  params_.ell = config.ell;
-  params_.guided_sampling_threshold = config.guided_sampling_threshold;
-  params_.tauR_RANSAC = config.tauR_RANSAC;
-  params_.gamma = config.gamma;
-  params_.set_motion_model_RANSAC(static_cast<enum rransac::core::MotionModelType>(config.ransac_motion_model));
+   // Model Manager Parameters
+  rransac_params_.track_good_model_threshold_ = config.track_good_model_threshold;
+  rransac_params_.track_max_missed_detection_time_ = config.track_max_missed_detection_time;
+  rransac_params_.track_similar_tracks_threshold_ = config.track_similar_tracks_threshold;
+  rransac_params_.track_max_num_tracks_ = config.track_max_num_tracks;
 
-  // model merging parameters
-  params_.tau_vel_percent_diff = config.tau_vel_percent_diff;
-  params_.tau_vel_abs_diff = config.tau_vel_abs_diff;
-  params_.tau_angle_abs_diff = config.tau_angle_abs_diff;
-  params_.tau_xpos_abs_diff = config.tau_xpos_abs_diff;
-  params_.tau_ypos_abs_diff = config.tau_ypos_abs_diff;
+  // Nonlinear LMLE
+  rransac_params_.nonlinear_innov_cov_id_ = config.nonlinear_innov_cov_id;
 
-  // model pruning parameters
-  double percentage = config.surveillance_region;
-  params_.field_max_x = std::abs(corner_[0].x*percentage);
-  params_.field_max_y = std::abs(corner_[0].y*percentage);
-  params_.tau_CMD_prune = config.tau_CMD_prune;
-
-  // track (i.e., Good Model) parameters
-  params_.tau_rho = config.tau_rho;
-  params_.tau_CMD = config.tau_CMD;
-  params_.tau_Vmax = config.tau_Vmax;
-  params_.tau_T = config.tau_T;
+#if TRACKING_SE2
+  rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,5,5>::Identity();
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_pos, config.covQ_vel, config.covQ_vel;
+#else
+  rransac_params_.process_noise_covariance_ = Eigen::Matrix<double,4,4>::Identity();
+  rransac_params_.process_noise_covariance_.diagonal() << config.covQ_pos, config.covQ_pos, config.covQ_vel, config.covQ_vel;
+#endif
 
   // Update the R-RANSAC Tracker with these new parameters
-  tracker_.set_parameters(params_);
+  rransac_.SetSystemParameters(rransac_params_);
 
   ROS_INFO("rransac: parameters have been updated");
 }
@@ -378,21 +400,16 @@ void VisualFrontend::SetParameters(visual_mtt::visual_frontendConfig& config)
   frame_stride_ = config.frame_stride;
   publish_frame_stride_ = config.published_frame_stride;
   pub_scale_ = config.published_video_scale;
+  RRANSAC_gate_threshold_ = config.RRANSAC_gate_threshold;
 
   sys_.SetResizeScale(config.resize_scale);
   sys_.SetScaledCameraParams();
 }
 
-// ----------------------------------------------------------------------------
-
-uint32_t VisualFrontend::CallbackElevationEvent(double x, double y) {
-  uint32_t id = recognition_manager_.identify_target(x, y);
-  return id;
-}
 
 // ----------------------------------------------------------------------------
 
-void VisualFrontend::PublishTracks(const std::vector<rransac::core::ModelPtr>& tracks)
+void VisualFrontend::PublishTracks(const std::vector<RR_Model*> tracks)
 {
 
   // Create the ROS message we will send
@@ -403,19 +420,32 @@ void VisualFrontend::PublishTracks(const std::vector<rransac::core::ModelPtr>& t
     visual_mtt::Track track;
 
     // General track information
-    track.id            = tracks[i]->GMN;
-    track.inlier_ratio  = tracks[i]->rho;
+    track.id                 = tracks[i]->label_;
+    track.model_likelihood  = tracks[i]->model_likelihood_;
 
+#if TRACKING_SE2
     // Position measurements
-    track.position.x    = tracks[i]->xhat(0);
-    track.position.y    = tracks[i]->xhat(1);
+    track.position.x    = tracks[i]->state_.g_.t_(0);
+    track.position.y    = tracks[i]->state_.g_.t_(1);
+    track.R = std::vector<float>{static_cast<float>(tracks[i]->state_.g_.R_(0,0)),static_cast<float>(tracks[i]->state_.g_.R_(0,1)),static_cast<float>(tracks[i]->state_.g_.R_(1,0)),static_cast<float>(tracks[i]->state_.g_.R_(1,1))   };
 
     // Velocity measurements
-    track.velocity.x    = tracks[i]->xhat(2);
-    track.velocity.y    = tracks[i]->xhat(3);
+    track.velocity.x    = tracks[i]->state_.u_.p_(0);
+    track.velocity.y    = tracks[i]->state_.u_.p_(1);
+    track.omega = tracks[i]->state_.u_.th_(0);
+#else // R2
+    // Position measurements
+    track.position.x    = tracks[i]->state_.g_.data_(0);
+    track.position.y    = tracks[i]->state_.g_.data_(1);
+
+    // Velocity measurements
+    track.velocity.x    = tracks[i]->state_.u_.data_(0);
+    track.velocity.y    = tracks[i]->state_.u_.data_(1);
+#endif
+
 
     // Error covariance: Convert col-major double to row-major float  ---  #MakeDonaldDrumpfAgain
-    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> covfefe = tracks[i]->P.cast<float>();
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> covfefe = tracks[i]->err_cov_.cast<float>();
     track.covariance.insert(track.covariance.end(), covfefe.data(), covfefe.data()+covfefe.size());
 
     // Add this track to the tracks msg
@@ -462,7 +492,7 @@ void VisualFrontend::PublishTransform()
 
 // ----------------------------------------------------------------------------
 
-cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& tracks)
+cv::Mat VisualFrontend::DrawTracks()
 {
 
   if (sys_.GetFrame(common::HD).empty())
@@ -470,12 +500,34 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
 
   cv::Mat draw = sys_.GetFrame(common::HD).clone();
 
-  static int max_num_tracks = 0;
+  static int max_num_tracks = rransac_sys_->model_label_;
+  double x_pos = 0;
+  double y_pos = 0;
+  double x_vel = 0;
+  double y_vel = 0;
+  Eigen::Matrix<double,2,1> vel;
 
-  for (int i=0; i<tracks.size(); i++)
-  {
-    max_num_tracks = std::max(max_num_tracks, (int)tracks[i]->GMN);
-    cv::Scalar color = colors_[tracks[i]->GMN];
+  for (auto&& track : rransac_sys_->good_models_){
+  // for (auto& tt : rransac_sys_->models_)
+  // {
+  //   auto* track = &tt;////////////////////
+    
+    cv::Scalar color = colors_[track->label_];
+    x_pos = track->state_.g_.data_(0,0);
+    y_pos = track->state_.g_.data_(1,0);
+
+#if TRACKING_SE2
+  vel = track->state_.g_.R_ * track->state_.u_.p_;
+  x_pos = track->state_.g_.data_(0,2);
+  y_pos = track->state_.g_.data_(1,2);
+#else // R2
+  vel = track->state_.u_.data_;
+  x_pos = track->state_.g_.data_(0,0);
+  y_pos = track->state_.g_.data_(1,0);
+#endif
+
+  x_vel = vel(0,0);
+  y_vel = vel(1,0);
 
     // Projecting Distances (tauR and velocity lines)
     // since the 2 important dimensions of the transform have roughly equal
@@ -485,8 +537,8 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
 
     // get normalized image plane point
     cv::Point center;
-    center.x = tracks[i]->xhat(0);
-    center.y = tracks[i]->xhat(1);
+    center.x = x_pos;
+    center.y = y_pos;
 
     // treat points in the normalized image plane as a 3D points (homogeneous).
     // project the points onto the sensor (pixel space) for plotting.
@@ -495,38 +547,48 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
     std::vector<cv::Point2f> center_d; // distorted
 
     // project the center point and the consensus set
-    center_h.push_back(cv::Point3f(tracks[i]->xhat(0), tracks[i]->xhat(1), 1));
-    for (int j=0; j<tracks[i]->CS.size(); j++)
-      center_h.push_back(cv::Point3f(tracks[i]->CS[j]->pos(0), tracks[i]->CS[j]->pos(1), 1));
+    center_h.push_back(cv::Point3f(x_pos, y_pos, 1));
+    // for (const auto& outer_iter = track->cs_.consensus_set_.begin(); outer_iter != track->cs_.consensus_set_.end(); ++ outer_iter) {
+    //   for (const auto& inner_iter = outer_iter->begin(); inner_iter != outer_iter->end(); ++inner_iter) {
+    //     center_h.push_back(cv::Point3f(inner_iter->pose(0,0), inner_iter->pose(1,0), 1));
+    //   }
+    // }
 
     cv::projectPoints(center_h, cv::Vec3f(0,0,0), cv::Vec3f(0,0,0), sys_.hd_camera_matrix_, sys_.dist_coeff_, center_d);
     center = center_d[0];
 
-    // draw circle with center at position estimate
-    double radius = params_.tauR * sys_.hd_camera_matrix_.at<double>(0,0);
-    cv::circle(draw, center, (int)radius, color, 2, 8, 0);
+    if (center.x <= draw.cols && center.x >= 0 && center.y <= draw.rows && center.y>=0) {
 
-    // draw red dot at the position estimate
-    cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
+      ////////////////////////////////////////////////////////////////////
+      // Draw validation region
+      ///////////////////////////////////////////////////////////////////
 
-    // draw scaled velocity vector
-    cv::Point velocity;
-    double velocity_scale = 10; // for visibility
-    velocity.x = tracks[i]->xhat(2) * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
-    velocity.y = tracks[i]->xhat(3) * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
-    cv::line(draw, center, center + velocity, color, 1, CV_AA);
+      cv::circle(draw,center,rransac_sys_->sources_[0].params_.gate_threshold_*sys_.hd_camera_matrix_.at<double>(0,0),color,2,8,0);
+     
 
-    // draw model number and inlier ratio
-    std::stringstream ssGMN;
-    ssGMN << tracks[i]->GMN;
-    int boldness = 2*((int)text_scale_);
-    cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 210), boldness);
 
-    // draw consensus sets
-    for (int j=1; j<center_d.size(); j++)
-    {
-      center = center_d[j];
-      cv::circle(draw, center, 2, color, -1, 8, 0);
+      // draw red dot at the position estimate
+      cv::circle(draw, center, 2, cv::Scalar(0, 0, 255), 2, 8, 0);
+
+      // draw scaled velocity vector
+      cv::Point velocity;
+      double velocity_scale = 1; // for visibility
+      velocity.x = x_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
+      velocity.y = y_vel * sys_.hd_camera_matrix_.at<double>(0,0) * velocity_scale;
+      cv::line(draw, center, center + velocity, color, 1, CV_AA);
+
+      // draw model number and inlier ratio
+      std::stringstream ssGMN;
+      ssGMN << track->label_;
+      int boldness = 2*((int)text_scale_);
+      cv::putText(draw, ssGMN.str().c_str(), cv::Point(center.x + 5, center.y + 15), cv::FONT_HERSHEY_SIMPLEX, 0.85*text_scale_, cv::Scalar(0, 0, 210), boldness);
+
+      // draw consensus sets
+      for (int j=1; j<center_d.size(); j++)
+      {
+        center = center_d[j];
+        cv::circle(draw, center, 2, color, -1, 8, 0);
+      }
     }
   }
 
@@ -547,7 +609,7 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
   cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
 
-  sprintf(text, "Current models: %d", (int)tracks.size());
+  sprintf(text, "Current models: %d", (int)rransac_sys_->good_models_.size());
   corner += corner_offset;
   cv::rectangle(draw, corner, corner + bl_corner, cv::Scalar(255, 255, 255), -1);
   cv::putText(draw, text, corner + text_offset, cv::FONT_HERSHEY_SIMPLEX, text_size, cv::Scalar(0, 0, 0));
@@ -580,22 +642,34 @@ cv::Mat VisualFrontend::DrawTracks(const std::vector<rransac::core::ModelPtr>& t
 void VisualFrontend::UpdateRRANSAC()
 {
   // Feed rransac measurements
-  for (auto& meas_src : sys_.measurements_)
-  {
-    if(meas_src.has_velocity)
-      tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.meas_vel, meas_src.id);
-    else
-      tracker_.add_measurements<CVPoint2fAccess>(meas_src.meas_pos, meas_src.id);
-  }
+
 
   // Apply transform
-  Eigen::Matrix3f TT;
+  Eigen::Matrix3d TT;
   cv::cv2eigen(sys_.transform_, TT);
-  Eigen::Projective2d T(TT.cast<double>());
-  tracker_.apply_transformation(T);
 
-  // Run R-RANSAC and store any tracks (i.e., Good Models) to publish through ROS
-  sys_.tracks_ = tracker_.run();
+ 
+  // try { 
+    // std::cerr << "start rransac" << std::endl;
+    rransac_.AddMeasurements(sys_.measurements_,sys_.current_time_,TT);
+    // std::cerr << "run track init" << std::endl;
+    rransac_.RunTrackInitialization();
+    // std::cerr << "run track management" << std::endl;
+    rransac_.RunTrackManagement();
+    // std::cerr << "end rransac" << std::endl;
+  // } catch (...) {
+  //   std::cerr << "exception occured in rransac" << std::endl;
+  // }
+
+
+  if (sys_.rransac_visualize_data_) {
+    sys_.rransac_viz_.DrawClusters(rransac_sys_,true);
+    sys_.rransac_viz_.DrawUnAssociatedMeasurements(rransac_sys_,false);
+    sys_.rransac_viz_.DrawEstimatedTracks(rransac_sys_,false);
+    sys_.rransac_viz_.DrawNewMeasurements(sys_.measurements_,rransac_sys_,false);
+    sys_.rransac_viz_.RecordImage();
+  }
+
 }
 
 }

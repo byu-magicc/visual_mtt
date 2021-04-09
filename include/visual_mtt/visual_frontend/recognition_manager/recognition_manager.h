@@ -5,7 +5,8 @@
 // dynamic reconfig
 #include "visual_mtt/visual_frontendConfig.h"
 
-#include <rransac/tracker.h>
+// common
+#include "common/system.h"
 
 // available recognition methods
 #include "recognition_method.h"
@@ -24,7 +25,7 @@ namespace visual_frontend {
     uint32_t identify_target(const double x, const double y);
 
     // update image descriptors using current image (for tracks callback)
-    void update_descriptors(const std::vector<rransac::core::ModelPtr> tracks);
+    void update_descriptors(const std::vector<RR_Model*> tracks);
 
     // save high definition image (for video callback)
     void update_image(const cv::Mat hd_frame);

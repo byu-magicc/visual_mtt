@@ -17,6 +17,9 @@ visual_frontend/lkt_tracker_max_features:      600
 visual_frontend/parallax_comp: true
 visual_frontend/parallax_threshold: 0.0002      # smaller value = smaller perpendicular velocity needed to be considered non-parallax
 
+# measurement manager
+visual_frontend/RRANSAC_gate_threshold: 0.2
+
 # feature motion
 visual_frontend/feature_motion_enabled: true
 visual_frontend/feature_motion_sigmaR_pos: 0.007

@@ -122,10 +122,15 @@ bool SimpleHomography::GetTransform(const common::System& sys)
     if (transform_.empty())
     {
       transform_ = cv::Mat::eye(3, 3, CV_32F);
-    }
-
+    } else {
     // baptize the homography
     transform_.convertTo(transform_, CV_32F);
+
+
+    }
+
+
+    
 
     // use inlier count to determine if the homography is good
     int inlier_count = 0;
@@ -165,7 +170,105 @@ void SimpleHomography::DestroyWindows()
   if(drawn_)
     cv::destroyWindow(name_);
 }
+
+
+
+//-----------------------------------------------------------------------------
+void SimpleHomography::ProjectHomographySE2() {
+
+  // The intrinsic camera parameters for the normalized and undistorted points.
+  cv::Mat K = cv::Mat::eye(3,3,CV_32F);
+  std::vector<cv::Mat> rotations, translations, normals;
+  std::vector<cv::Mat> p_r, p_t, p_n;
+  std::vector<cv::Mat> Hps;
+  cv::Mat V;
+  cv::Mat R;
+  cv::Mat Hp;
+  cv::Mat Hp_best;
+  cv::Mat U = cv::Mat::zeros(3,1,CV_64F);
+  cv::Mat N = cv::Mat::zeros(3,1,CV_64F);
+  cv::Mat T;
+  transform_.convertTo(T, CV_64F); 
+  int solutions;
+  
+
+  solutions = cv::decomposeHomographyMat(transform_,K,rotations,translations,normals);
+  std::cout << "solutions: " << solutions << std::endl;
+  std::cerr << std::endl << "transform_" << std::endl << transform_ << std::endl;
+
+  // There is only a rotation
+  if (solutions ==1) {
+    cv::Rodrigues(rotations[0],V);
+    U.at<double>(2) = V.at<double>(2); // extract the z component;
+    cv::Rodrigues(U,R);
+    R.convertTo(transform_, CV_32F); 
+    
+
+  } else {
+
+    for (int ii = 0; ii < normals.size(); ++ii) {
+
+      // std::cout << std::endl << "normals" << std::endl << normals[ii].type() << std::endl;
+      // std::cout << std::endl << "normals" << std::endl << normals[ii].at<double>(2) << std::endl;
+      // std::cout << std::endl << "translations" << std::endl << translations[ii] << std::endl;
+      // std::cout << std::endl << "rotations" << std::endl << rotations[ii].type() << std::endl;
+
+
+      if (normals[ii].at<double>(2) > 0) {
+        // std::cout << "blah: " << std::endl;
+        p_r.push_back(rotations[ii]);
+        p_t.push_back(translations[ii]);
+      }
+    }
+
+    // std::cout << "here1 " << std::endl;
+
+
+    
+
+    double best_score = 1e9;
+    double n = 0;;
+    
+    N.at<double>(2) = 1;
+    // std::cerr << "size pr " << std::endl << p_r.size() << std::endl;
+    for (int ii =0; ii < p_t.size(); ++ii) {
+
+      cv::Rodrigues(p_r[ii],V);
+      // std::cout << "here3 " << std::endl;
+
+      U.at<double>(2) = V.at<double>(2); // extract the z component;
+      cv::Rodrigues(U,R);
+      // std::cout << "here4 " << std::endl;
+
+      // std::cout << std::endl << "rotations" << std::endl << R << std::endl;
+      // std::cout << std::endl << "normals" << std::endl << N << std::endl;
+      // std::cout << std::endl << "translations" << std::endl << p_t[ii] << std::endl;
+
+      Hp = R + p_t[ii]*N.t();
+      // std::cout << "Hp " << std::endl << Hp << std::endl;
+
+      n = cv::norm(T - Hp);
+      if (n < best_score) {
+        Hp_best = Hp.clone();
+        best_score = n;
+      }
+      
+    }
+    // std::cout << "here5 " << std::endl;
+
+    Hp_best.convertTo(transform_, CV_32F);   
+
+
+  }
+
+  std::cerr << std::endl << "transform_" << std::endl << transform_ << std::endl;
+
+
+
+
 }
+
+} //namespace visual_frontend
 
 // Macro needed to register the class. This macro helps with 
 // name mangling so that it can be imported dynamically.

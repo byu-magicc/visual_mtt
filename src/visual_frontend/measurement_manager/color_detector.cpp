@@ -8,11 +8,22 @@ ColorDetector::ColorDetector()
   enabled_ = false;
   name_ = "Color Detector";
   cv_window_name_ = name_ +" Threshold";
-  id_ = 3;
-  has_velocity_ = false;
   drawn_ = false;
-  sigmaR_pos_ = 0.01;
-  sigmaR_vel_=0.01;
+  has_velocity_ = false;
+  source_parameters_changed_ = false;
+  sigmaR_pos_ = 0.1;
+  sigmaR_vel_=0;
+
+#if TRACKING_SE2
+  source_parameters_.type_ = rransac::MeasurementTypes::SEN_POS;
+#else
+  source_parameters_.type_ = rransac::MeasurementTypes::RN_POS;  
+#endif
+  
+  source_parameters_.meas_cov_ = Eigen::Matrix<double,2,2>::Identity()*sigmaR_pos_;
+  source_parameters_.spacial_density_of_false_meas_ = 0.01;
+  source_parameters_.probability_of_detection_ = 0.95;
+  source_parameters_.gate_threshold_ = 0.1;
 
   // Init params for the simple blob detector
   // We only want it to detect blobs according to size
@@ -51,7 +62,9 @@ ColorDetector::~ColorDetector()
 
 // ----------------------------------------------------------------------------
 
-void ColorDetector::Initialize(const common::Params& params) {}
+void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
+  source_parameters_.source_index_ = source_index;
+}
 
 // ----------------------------------------------------------------------------
 
@@ -72,6 +85,11 @@ void ColorDetector::SetParameters(const visual_mtt::visual_frontendConfig& confi
     params_.minArea = config.color_detector_min_blob_size;
     params_.maxArea = config.color_detector_max_blob_size;
     detector_ = cv::SimpleBlobDetector::create(params_);
+  }
+
+  if (source_parameters_.gate_threshold_!=config.RRANSAC_gate_threshold ) {
+      source_parameters_.gate_threshold_ = config.RRANSAC_gate_threshold;
+      source_parameters_changed_ = true;
   }
 
   ShouldReset(config.color_detector_enabled);
@@ -144,7 +162,7 @@ bool ColorDetector::GenerateMeasurements(const common::System& sys)
 
   detector_->detect(inv_img_,keypoints_);
 
-  for (auto kp : keypoints_ )
+  for (auto& kp : keypoints_ )
   {
     d_meas_pos_.push_back(kp.pt);
   }

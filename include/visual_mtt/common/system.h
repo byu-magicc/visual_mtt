@@ -3,32 +3,18 @@
 #include <common/gpu.h>
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense>
-#include <rransac/tracker.h>
+
 #include <ros/console.h>
 
 #include <common/opencv_compat.h>
 
+#include "common/object_types.h"
+
 namespace common {
 
 
-/** \struct Measurements
-* \brief A structure that contains measurement data.
-* \detail When a measurement source plugin generates measurements, the data
-* is organized as an object type Measurements that stores all
-* the information that RRANSAC needs.
-*/
 
-struct Measurements {
-
-  std::vector<cv::Point2f> meas_pos; /**< The 2D position of the measurement in undistorted normalized image pixel coordinates.*/
-  std::vector<cv::Point2f> meas_vel; /**< The 2D velocity of the measurement in undistorted normalized image pixel coordinates.*/
-  int id;                            /**< The measurement source id. See visual_frontend::MeasurementBase for more information. */
-  bool has_velocity;                 /**< Indicates if the measurement source also measures velocity. */
-  int num_of_measurements;           /**< Number of measurements generated from a measurement source in one iteration. */
-
-};
-
-/** \struct Measurements
+/** \struct PictureParams
 * \brief Parameters needed to save an image
 * \detail When a user double clicks on an OpenCV window under tuning mode,
 *         an image will be saved according to the name given.
@@ -238,7 +224,7 @@ class System {
   * @see common::Measurements::meas_vel
   * @see visual_frontend::MeasurementManager::GenerateMeasurements(common::System& sys)
   */
-  void AddMeasurements(const int id,
+  void AddMeasurements(const rransac::SourceParameters& source_params,
                        const bool has_velocity, 
                        const std::vector<cv::Point2f>& meas_pos, 
                        const std::vector<cv::Point2f>& meas_vel);
@@ -411,13 +397,11 @@ class System {
   std::vector<bool> moving_parallax_;         /**< Flag indicating whether the point is moving perpendicular to epipolar lines (ie. whether it is an outlier to the Essential Matrix).*/
   
   // Measurement Manager
-  std::vector<Measurements> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
+  std::list<rransac::Meas<double>> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
   int num_of_measurements_;                  /**< Total number of measurements produced by all of the measurement sources in one iteration. @see visual_frontend::MeasurementManager.*/
   bool good_measurements_;                   /**< Flag used to indicate if there are any measurements. @see visual_frontend::MeasurementManager.*/
 
-  // R-RANSAC
-  std::vector<rransac::core::ModelPtr> tracks_; /**< Container for all the track (Good Models) computed by R-RANSAC.*/
-
+  
   ////////////////////////////////////////////////////////////////////////
   // Visual Frontend
   // Images, camera info, and mask
@@ -462,9 +446,30 @@ class System {
   static std::string picture_file_path_;     /**< File Path where the pictures will be saved. */
   static bool picture_file_path_set_;        /**< If True, the picture file path has been set but no garuntee that its a valid file path. */
 
+  double current_time_ = 0;                  /**< The current time in seconds provided by the video header files. */
+  double prev_time_ = 0;                     /**< The time stamp associated with the previous image from which d_prev_matched_ were extracted. When the first image is received,
+                                                  prev_time_ is set to current time since there is no previous image. */
+
+  // RRANSAC visualization info
+  rransac::DrawInfo rransac_draw_info_;      /**< The visualization info for RRANSAC */
+  std::string rransac_video_file_name_;      /**< The filename of the video. This must be an absolute path. Ex: /home/user/vmtt/video.mp4. */
+  double rransac_fps_;                       /**< The video's fps for the RRANSAC visualization. */
+  bool rransac_visualize_data_;              /**< If true, the visualization of RRANSAC wil be shown. */
+  int rransac_vis_image_width_;              /**< The width of the image that will display the rransac visualization. */
+  int rransac_vis_image_height_;             /**< The height of the image that will display the rransac visualization. */
+
+
+#if TRACKING_SE2
+  rransac::VisualizationHost<RR_Model, rransac::DrawMeasR2SE2PosPolicy, rransac::DrawTrackPolicySE2> rransac_viz_;
+#else // R2
+  rransac::VisualizationHost<RR_Model, rransac::DrawMeasR2SE2PosPolicy, rransac::DrawTrackPolicyR2> rransac_viz_;
+#endif
+
+
   private:
 
 };
 
 
 }
+

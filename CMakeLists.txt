@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 project(visual_mtt)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 if (NOT CMAKE_BUILD_TYPE)
     # Options: Debug, Release, MinSizeRel, RelWithDebInfo
     message(STATUS "No build type selected, default to Release")
@@ -30,7 +30,27 @@ find_package(yaml-cpp REQUIRED)
 find_package(gnsac REQUIRED)
 
 find_package(Eigen3)
-find_package(rransac 1.0.4 EXACT REQUIRED)
+find_package(rransac 1.0.0 EXACT REQUIRED)
+
+##########################################################################
+# RRANSAC build options
+
+# rransac can perform target tracking on SE2 and on R2. The default is R2,
+# but you can change it to SE2 using the parameter
+option(TRACKING_SE2 "Perform Target Tracking on SE2 instead of R2" OFF)
+if(TRACKING_SE2)
+  find_package(Ceres REQUIRED)
+  add_definitions(-DTRACKING_SE2)
+endif()
+option(RRANSAC_VIZ_HOOKS "Add hooks for visualization. This will cause it to run slower." OFF)
+if(RRANSAC_VIZ_HOOKS)
+  add_definitions(-DRRANSAC_VIZ_HOOKS)
+  message(INFO, "RRANSAC Visualization Hooks Enabled.")
+endif()
+
+
+
+
 message(STATUS "R-RANSAC Version: " ${RRANSAC_VERSION})
 find_package(OpenCV 4)
 find_package(OpenCV REQUIRED)
@@ -163,6 +183,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+
 ###########
 ## Build ##
 ###########
@@ -182,7 +203,8 @@ include_directories(include/visual_mtt
 add_library(measurement_source_plugin 
   src/visual_frontend/measurement_manager/feature_motion.cpp
   src/visual_frontend/measurement_manager/difference_image.cpp
-  src/visual_frontend/measurement_manager/color_detector.cpp)
+  src/visual_frontend/measurement_manager/color_detector.cpp
+  )
 
 add_library(transform_method_plugin 
   src/visual_frontend/transform_manager/simple_homography.cpp)
@@ -226,7 +248,8 @@ add_executable(${PROJECT_NAME}_visual_frontend
 
   # Common
   src/common/gpu.cpp
-  src/common/system.cpp)
+  src/common/system.cpp
+  )
 
 
 add_executable(${PROJECT_NAME}_camera_sim
@@ -252,6 +275,10 @@ target_link_libraries(${PROJECT_NAME}_visual_frontend
   ${RRANSAC_LIBS}
   ${GNSAC_LIBS}
   ${YAML_CPP_LIBRARIES})
+
+if(TRACKING_SE2)
+  target_link_libraries( ${PROJECT_NAME}_visual_frontend Ceres::ceres )
+endif()
 
 target_link_libraries(${PROJECT_NAME}_camera_sim ${catkin_LIBRARIES} ${OpenCV_LIBS})
 
