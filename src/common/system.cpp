@@ -222,10 +222,13 @@ void System::AddMeasurements(const rransac::SourceParameters& source_params, con
                              const std::vector<cv::Point2f>& meas_vel)
 {
 
-rransac::Meas<double> m;
+RR_Measurement m;
+m.transform_state = false;
+m.transform_meas = false;
 m.source_index = source_params.source_index_;
 m.type = source_params.type_;
 m.time_stamp = this->current_time_;
+// std::cout << "curr time: " << m.time_stamp << std::endl;
 Eigen::Matrix<double,2,1> tmp;
 
 for (unsigned int ii=0; ii < meas_pos.size(); ++ii ) {

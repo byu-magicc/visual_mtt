@@ -24,6 +24,8 @@ ColorDetector::ColorDetector()
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
   source_parameters_.gate_threshold_ = 0.1;
+  source_parameters_.source_index_ = 2;
+
 
   // Init params for the simple blob detector
   // We only want it to detect blobs according to size
@@ -62,9 +64,7 @@ ColorDetector::~ColorDetector()
 
 // ----------------------------------------------------------------------------
 
-void ColorDetector::Initialize(const common::Params& params, const unsigned int source_index) {
-  source_parameters_.source_index_ = source_index;
-}
+void ColorDetector::Initialize(const common::Params& params) {}
 
 // ----------------------------------------------------------------------------
 

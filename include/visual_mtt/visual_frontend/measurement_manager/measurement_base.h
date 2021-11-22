@@ -44,7 +44,7 @@ namespace visual_frontend {
     * @see common::Params
     * @see MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params)
     */
-    virtual void Initialize(const common::Params& params, const unsigned int source_index) = 0;
+    virtual void Initialize(const common::Params& params) = 0;
 
     /**
     * \brief Updates dynamic parameters.

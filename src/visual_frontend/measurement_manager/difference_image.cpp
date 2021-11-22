@@ -25,6 +25,8 @@ DifferenceImage::DifferenceImage()
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
   source_parameters_.gate_probability_ = 0.9;
+  source_parameters_.source_index_ = 1;
+
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -45,10 +47,7 @@ DifferenceImage::~DifferenceImage()
 
 // ----------------------------------------------------------------------------
 
-void DifferenceImage::Initialize(const common::Params& params, const unsigned int source_index) {
-  source_parameters_.source_index_ = source_index;
-}
-
+void DifferenceImage::Initialize(const common::Params& params) {}
 // ----------------------------------------------------------------------------
 
 void DifferenceImage::SetParameters(const visual_mtt::visual_frontendConfig& config)

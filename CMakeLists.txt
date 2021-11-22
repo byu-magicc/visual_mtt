@@ -9,6 +9,8 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG_BUILD")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -30,7 +32,7 @@ find_package(yaml-cpp REQUIRED)
 find_package(gnsac REQUIRED)
 
 find_package(Eigen3)
-find_package(rransac 1.0.0 EXACT REQUIRED)
+find_package(rransac 2.0.0 EXACT REQUIRED)
 
 ##########################################################################
 # RRANSAC build options

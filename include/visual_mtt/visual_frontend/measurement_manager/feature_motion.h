@@ -26,7 +26,7 @@ namespace visual_frontend {
     * @see MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params)
     * @see MeasurementBase::Initialize(const common::Params& params)
     */
-    void Initialize(const common::Params& params, const unsigned int source_index) override;
+    void Initialize(const common::Params& params) override;
 
 
     /**

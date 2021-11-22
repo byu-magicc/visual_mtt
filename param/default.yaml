@@ -87,7 +87,7 @@ rransac/cluster_min_size_requirement: 5
 rransac/RANSAC_max_iters: 10
 rransac/RANSAC_score_stopping_criteria: 15
 rransac/RANSAC_score_minimum_requirement: 8
-rransac/RANSAC_minimum_subset: 3
+rransac/RANSAC_minimum_subset: 5
 
 #Model Manager
 rransac/track_good_model_threshold: 0.8

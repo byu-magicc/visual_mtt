@@ -33,6 +33,8 @@ DarknetPlugin::DarknetPlugin()
   source_parameters_.spacial_density_of_false_meas_ = 0.01;
   source_parameters_.probability_of_detection_ = 0.95;
   source_parameters_.gate_threshold_ = 0.1;
+  source_parameters_.source_index_ = 3;
+
 
 // Required frames for plugin
 #if OPENCV_CUDA
@@ -55,9 +57,8 @@ DarknetPlugin::~DarknetPlugin()
 
 // ----------------------------------------------------------------------------
 
-void DarknetPlugin::Initialize(const common::Params& params, const unsigned int source_index)
+void DarknetPlugin::Initialize(const common::Params& params)
 {
-  source_parameters_.source_index_ = source_index;
 
 	std::string labels_file_path, config_file_path, weights_file_path, params_file_path;
 	std::string labels_file_name, config_file_name, weights_file_name, params_file_name;

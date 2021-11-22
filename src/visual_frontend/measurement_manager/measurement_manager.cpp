@@ -42,7 +42,6 @@ void MeasurementManager::SetParameters(visual_mtt::visual_frontendConfig& config
 void MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list, const common::Params& params)
 {
 
-  unsigned int source_index = 0;
   if (plugins_loaded_) {
     ROS_WARN_STREAM("The Measurement plugins are already loaded");
     return;
@@ -72,8 +71,7 @@ void MeasurementManager::LoadPlugins(const std::vector<std::string>& plugin_list
   // Initialize plugins
   for (auto&& src : measurement_sources_) 
   {
-    src->Initialize(params,source_index); 
-    source_index++;
+    src->Initialize(params); 
     // Incorporate required frames from each measurement plugin
     for(int i = 0; i < common::num_frame_types_; i++)
     {

@@ -91,9 +91,35 @@ VisualFrontend::VisualFrontend()
 
   ////////////////////////////////////////////////////////////////////////////////////
   // Setup sources for RRANSAC
+  std::vector<bool> sources_initialized(SC::num_sources_  ,false);
   for (auto&& sources : measurement_manager_.measurement_sources_) {
     rransac_.AddSource(sources->source_parameters_);
+    sources_initialized[sources->source_parameters_.source_index_] = true;
   }
+  // Setup default source parameters for the sources not used
+  rransac::SourceParameters source_params;
+  for (size_t source_index = 0; source_index < sources_initialized.size(); ++source_index) {
+    if(!sources_initialized[source_index]) {
+
+      source_params.source_index_ = source_index;
+
+      // feature motion and has velocity
+      if(source_index == 0) {
+
+        source_params.type_ = MeasPosVel;
+        source_params.meas_cov_ = Eigen::Matrix4d::Identity();
+
+      
+      } else {
+
+        source_params.type_ = MeasPos;
+        source_params.meas_cov_ = Eigen::Matrix2d::Identity();
+
+      }
+      rransac_.AddSource(source_params);
+    }
+  }
+
 
   rransac_sys_ = rransac_.GetSystemInformation();
 
@@ -248,9 +274,11 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   // R-RANSAC Tracker
   //
 
+  // std::cout << "start rransac " << std::endl;
   tic = ros::WallTime::now();
   UpdateRRANSAC();
   double t_rransac = (ros::WallTime::now() - tic).toSec();
+  // std::cout << "end rransac" << std::endl;
 
   //
   // Calculate utiliization
@@ -357,6 +385,7 @@ void VisualFrontend::CallbackReconfigureRransac(visual_mtt::rransacConfig& confi
   // general
   rransac_params_.meas_time_window_ = config.meas_time_window;
   rransac_params_.transform_consensus_set_ = config.transform_consensus_set;
+  rransac_params_.sequential_else_parallel_fusion_ = true;
 
   // Cluster Parameters
   rransac_params_.cluster_time_threshold_ = config.cluster_time_threshold;
@@ -563,7 +592,7 @@ cv::Mat VisualFrontend::DrawTracks()
       // Draw validation region
       ///////////////////////////////////////////////////////////////////
 
-      cv::circle(draw,center,rransac_sys_->sources_[0].params_.gate_threshold_*sys_.hd_camera_matrix_.at<double>(0,0),color,2,8,0);
+      cv::circle(draw,center,rransac_sys_->source_container_.GetParams(0).gate_threshold_*sys_.hd_camera_matrix_.at<double>(0,0),color,2,8,0);
      
 
 
@@ -651,8 +680,14 @@ void VisualFrontend::UpdateRRANSAC()
  
   // try { 
     // std::cerr << "start rransac" << std::endl;
-    rransac_.AddMeasurements(sys_.measurements_,sys_.current_time_,TT);
+    if(sys_.measurements_.size() > 0) {
+      rransac_.AddMeasurements(sys_.measurements_,sys_.current_time_,TT);
+    }
     // std::cerr << "run track init" << std::endl;
+    
+    // for (auto& c : rransac_sys_->clusters_) {
+    //   std::cerr << "cluster size: " << c->Size() << std::endl;
+    // }
     rransac_.RunTrackInitialization();
     // std::cerr << "run track management" << std::endl;
     rransac_.RunTrackManagement();

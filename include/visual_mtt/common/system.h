@@ -397,7 +397,7 @@ class System {
   std::vector<bool> moving_parallax_;         /**< Flag indicating whether the point is moving perpendicular to epipolar lines (ie. whether it is an outlier to the Essential Matrix).*/
   
   // Measurement Manager
-  std::list<rransac::Meas<double>> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
+  std::list<RR_Measurement> measurements_;   /**< Measurements produced by the Measurement sources. @see common::Measurements and visual_frontend::MeasurementManager. */
   int num_of_measurements_;                  /**< Total number of measurements produced by all of the measurement sources in one iteration. @see visual_frontend::MeasurementManager.*/
   bool good_measurements_;                   /**< Flag used to indicate if there are any measurements. @see visual_frontend::MeasurementManager.*/
 
