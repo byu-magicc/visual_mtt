@@ -126,9 +126,24 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   std::vector<unsigned char> valid;
   valid.clear();
 
+  // Use the rotation matrix to rotate the previous frame and feature points into 
+  // the same orientation as the current frame
+  cv::Mat rotationMatrix;
+  cv::eigen2cv(sys.rotation_, rotationMatrix);
+  cv::Mat homography = sys.sd_camera_matrix_ * rotationMatrix * sys.sd_camera_matrix_.inv();
+
+  cv::perspectiveTransform(d_prev_features_, d_prev_features_, homography);
+
+
   #if OPENCV_CUDA
+    cv::cuda::GpuMat transformedOldFrame;
+    cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
+    gLastMono = transformedOldFrame;
     CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
   #else
+    cv::Mat transformedOldFrame;
+    cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
+    last_mono_ = transformedOldFrame;
     CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
   #endif
 

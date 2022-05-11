@@ -5,6 +5,8 @@
 
 #include <ros/console.h>
 #include <opencv2/opencv.hpp>
+#include <Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
 #include "visual_frontend/feature_manager/feature_base.h"
 
 namespace visual_frontend {
@@ -105,7 +107,7 @@ namespace visual_frontend {
 #if OPENCV_CUDA
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image on the GPU.
-    * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
+    * \detail This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
     * @param gMono Grayscale image of common::System::sd_frame_cuda
     * @param features Extracted features from the current mono frame
     * @param mask The common::System::undistorted_region_mask_.
@@ -117,7 +119,7 @@ namespace visual_frontend {
 
     /**
     * \brief Uses OpenCV's good features to track to extract features from the image.
-    * \detial This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
+    * \detail This method is called by LKTTracker::FindCorrespondences(const common::System& sys)
     * @param mono Grayscale image of common::System::sd_frame_
     * @param features Extracted features from the current mono frame
     * @param mask The common::System::undistorted_region_mask_.

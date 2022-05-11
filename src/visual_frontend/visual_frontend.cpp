@@ -129,7 +129,12 @@ VisualFrontend::VisualFrontend()
   sub_video  = it.subscribeCamera("video", 10, &VisualFrontend::CallbackVideo,  this);
 
 
-
+  // check if we should subscribe to the gyro topic
+  std::string gyro_topic_name;
+  nh_private.param<std::string>("gyro_topic", gyro_topic_name, "");
+  if (gyro_topic_name != "") {
+    sub_imu = nh_.subscribe(gyro_topic_name, 100, &VisualFrontend::CallbackIMU, this);
+  }
 
 }
 
@@ -226,6 +231,7 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
   tic = ros::WallTime::now();
   feature_manager_.FindCorrespondences(sys_);
   double t_features = (ros::WallTime::now() - tic).toSec();
+  sys_.SetRotationMatrix(Eigen::Matrix3f::Identity());
 
   ////////////////////////////////////////////////////
   // Transform Manager
@@ -317,6 +323,37 @@ void VisualFrontend::CallbackVideo(const sensor_msgs::ImageConstPtr& data, const
 
   sys_.ResetFrames();
   sys_.prev_time_ = sys_.current_time_;
+}
+
+// ----------------------------------------------------------------------------
+
+void VisualFrontend::CallbackIMU(const sensor_msgs::Imu::ConstPtr& msg)
+{
+  int gyro_refresh_rate = 200; // TODO: move this gyro refresh rate to a parameter file somewhere
+
+  // if we haven't started processing frames yet, just ignore the incoming IMU data
+  if (frame_ == 0) {
+    sys_.SetRotationMatrix(Eigen::Matrix3f::Identity());
+    return;
+  }
+  // retreive the old rotation matrix so we can combine that data with the new measurement
+  Eigen::Matrix3f oldRotation = sys_.rotation_;
+  
+  // construct the omega_cross matrix
+  Eigen::Matrix3f omegaCross;
+  omegaCross << 0, -msg->angular_velocity.z, msg->angular_velocity.y,
+                 msg->angular_velocity.z, 0, -msg->angular_velocity.x,
+                 -msg->angular_velocity.y, msg->angular_velocity.x, 0;
+
+  // compute the rotation matrix from the previous datapoint to the current datapoint
+  omegaCross *= 1.0/gyro_refresh_rate;
+  Eigen::Matrix3f rotationFromOldToNew = omegaCross.exp().transpose();
+
+  // compute the new rotation matrix
+  Eigen::Matrix3f newRotationMatrix = rotationFromOldToNew * oldRotation;
+
+  // set the new rotation matrix in sys_
+  sys_.SetRotationMatrix(newRotationMatrix);
 }
 
 // ----------------------------------------------------------------------------

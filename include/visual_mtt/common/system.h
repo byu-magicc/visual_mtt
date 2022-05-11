@@ -64,6 +64,12 @@ class System {
   void SetHDFrame(const cv::Mat& hd_frame);
 
   /**
+   * \brief Sets System::rotation_.
+   * @param rotation the new rotation matrix
+   */
+  void SetRotationMatrix(const Eigen::Matrix3f& rotation);
+
+  /**
   * \breif Sets System::resize_scale_.
   * @param resize_scale scales the current hd_frame.
   * @see System::resize_scale_
@@ -421,6 +427,8 @@ class System {
   FrameRefVector frames_required_;           /**< Boolean array defining which frames are required during runtime. */
   FrameRefVector default_frames_required_;   /**< Boolean array defining which frames are required by default during runtime. */
   FrameRefVector frame_exists_;              /**< Boolean array defining which frames currently exist during a given iteration. */
+
+  Eigen::Matrix3f rotation_;                 /**< 3x3 Matrix defining the rotation from the previous video frame to the most recent IMU measurement. */
 
 #if OPENCV_CUDA
   cv::cuda::GpuMat hd_frame_cuda_;           /**< The unaltered image of the current frame uploaded to the GPU. */

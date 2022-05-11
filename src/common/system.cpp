@@ -14,6 +14,7 @@ System::System()
   // Init flags
   ClearFlags();
 
+  rotation_ = Eigen::Matrix3f::Identity();
   resize_scale_ = 1;
   num_of_measurements_ = 0;
   cam_info_received_ = false;
@@ -50,6 +51,13 @@ void System::SetHDFrame(const cv::Mat& hd_frame)
 {
 	hd_frame_ = hd_frame;
   frame_exists_[HD] = true;
+}
+
+// --------------------------------------------------------------------------------------
+
+void System::SetRotationMatrix(const Eigen::Matrix3f& rotation)
+{
+  rotation_ = rotation;
 }
 
 // --------------------------------------------------------------------------------------

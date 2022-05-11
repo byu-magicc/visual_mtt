@@ -32,6 +32,7 @@
 #include "visual_mtt/Track.h"
 #include "visual_mtt/Tracks.h"
 #include "sensor_msgs/Image.h"
+#include "sensor_msgs/Imu.h"
 #include "std_msgs/Float32MultiArray.h"
 
 // key algorithm members
@@ -79,6 +80,18 @@ namespace visual_frontend {
     * @param cinfo The camera matrix and distortion coefficients.
     */
     void CallbackVideo(const sensor_msgs::ImageConstPtr& data, const sensor_msgs::CameraInfoConstPtr& cinfo);
+
+
+    /**
+     * \brief The IMU callback function.
+     * \details When a reading from the onboard IMU is received, it is used to calculate
+     * the new rotation matrix from the previous IMU datapoint to the current IMU datapoint.
+     * This new rotation matrix is then aggregated with the previous rotation matrix in the
+     * common::System object so that it represents the rotation matrix from the previous camera
+     * datapoint to the current IMU datapoint.
+     * @param msg The new IMU message
+     */
+    void CallbackIMU(const sensor_msgs::Imu::ConstPtr& msg);
 
     /**
     * \detail Called when a visual_frontend dynamic parameter is changed.
@@ -136,6 +149,7 @@ namespace visual_frontend {
     ros::Publisher  pub_tracks;
     image_transport::CameraPublisher pub_tracks_video;
     ros::Publisher  pub_transform_;  
+    ros::Subscriber sub_imu;
 
     // dynamic reconfigure server and service client for R-RANSAC params
     dynamic_reconfigure::Server<visual_mtt::visual_frontendConfig> server_;
