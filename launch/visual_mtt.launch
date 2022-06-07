@@ -10,6 +10,7 @@
   <arg name="launch-prefix"     default=""/>
   <arg name="gnsac_solver_filename" default="$(find visual_mtt)/param/gnsac_default.yaml"/>
   <arg name="picture_file_path"     default="$(find visual_mtt)/pictures/"/>
+  <arg name="gyro_topic"        default=""/>
 
   <!-- params:            path to the yaml file with desired parameter values   -->
   <!-- tuning:            enables dynamic reconfigure and displays measurements -->
@@ -31,6 +32,7 @@
     <param name="static_param_filename" value="$(arg static_param_filename)"/>
     <param name="gnsac_solver_filename" value="$(arg gnsac_solver_filename)"/>
     <param name="picture_file_path" value="$(arg picture_file_path)"/>
+    <param name="gyro_topic" value="$(arg gyro_topic)"/>
     <remap from="video" to="$(arg imgtopic)" />
   </node>
 
