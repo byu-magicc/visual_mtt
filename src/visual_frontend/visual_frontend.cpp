@@ -133,6 +133,7 @@ VisualFrontend::VisualFrontend()
   std::string gyro_topic_name;
   nh_private.param<std::string>("gyro_topic", gyro_topic_name, "");
   if (gyro_topic_name != "") {
+    sys_.using_imu_ = true;
     sub_imu = nh_.subscribe(gyro_topic_name, 100, &VisualFrontend::CallbackIMU, this);
   }
 

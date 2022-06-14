@@ -15,6 +15,7 @@ System::System()
   ClearFlags();
 
   rotation_ = Eigen::Matrix3f::Identity();
+  using_imu_ = false;
   resize_scale_ = 1;
   num_of_measurements_ = 0;
   cam_info_received_ = false;

@@ -429,6 +429,7 @@ class System {
   FrameRefVector frame_exists_;              /**< Boolean array defining which frames currently exist during a given iteration. */
 
   Eigen::Matrix3f rotation_;                 /**< 3x3 Matrix defining the rotation from the previous video frame to the most recent IMU measurement. */
+  bool using_imu_;                           /**< Boolean deciding if the IMU data is available to compensate for rotation. */
 
 #if OPENCV_CUDA
   cv::cuda::GpuMat hd_frame_cuda_;           /**< The unaltered image of the current frame uploaded to the GPU. */

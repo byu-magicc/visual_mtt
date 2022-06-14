@@ -133,36 +133,40 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   rotationMatrix.convertTo(rotationMatrix, sys.sd_camera_matrix_.type());
   cv::Mat homography = sys.sd_camera_matrix_ * rotationMatrix * sys.sd_camera_matrix_.inv();
 
-  if (d_prev_features_.size() > 0) {
+  if (d_prev_features_.size() > 0 && sys.using_imu_) {
     cv::Mat prev_features(d_prev_features_);
     cv::perspectiveTransform(prev_features, prev_features, homography);
     d_prev_features_ = cv::Mat_<cv::Point2f>(prev_features);
   }
 
+  
   #if OPENCV_CUDA
-    if (gLastMono.total() > 0) {
-      cv::cuda::GpuMat transformedOldFrame;
-      cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
-      gLastMono = transformedOldFrame;
-      CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
-    }
+  if (gLastMono.total() > 0 && sys.using_imu_) {
+    cv::cuda::GpuMat transformedOldFrame;
+    cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
+    gLastMono = transformedOldFrame;
+    cv::buildOpticalFlowPyramid(gLastMono, last_pyramids_, pyramid_size_, 2);
+  }
+  CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
   #else
-    if (last_mono_.total() > 0) {
-      cv::Mat transformedOldFrame;
-      cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
-      last_mono_ = transformedOldFrame;
-      CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
-    }
+  if (last_mono_.total() > 0 && sys.using_imu_) {
+    cv::Mat transformedOldFrame;
+    cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
+    last_mono_ = transformedOldFrame;//.clone();
+    cv::buildOpticalFlowPyramid(last_mono_, last_pyramids_, pyramid_size_, 2);
+  }
+  CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
   #endif
-
+  
   // Only keep features that were matched in both frames
   for(int ii = 0; ii < valid.size(); ii++)
+  {
     if (valid[ii])
     {
       d_prev_matched_.push_back(d_prev_features_[ii]);
       d_curr_matched_.push_back(d_curr_features[ii]);
     }
-
+  }
   //
   // Find a new set of GFTT corners
   //
@@ -177,8 +181,10 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   if (d_prev_matched_.size() > 10)
     good_features = true;
   else
+  {
+    // std::cout << "Not Enough Features" << std::endl;
     ROS_WARN_STREAM_THROTTLE(sys.message_output_period_,"LKTTracker: Not enough features matched. Bad features.");
-
+  }
   return good_features;
 }
 
