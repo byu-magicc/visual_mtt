@@ -130,21 +130,29 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   // the same orientation as the current frame
   cv::Mat rotationMatrix;
   cv::eigen2cv(sys.rotation_, rotationMatrix);
+  rotationMatrix.convertTo(rotationMatrix, sys.sd_camera_matrix_.type());
   cv::Mat homography = sys.sd_camera_matrix_ * rotationMatrix * sys.sd_camera_matrix_.inv();
 
-  cv::perspectiveTransform(d_prev_features_, d_prev_features_, homography);
-
+  if (d_prev_features_.size() > 0) {
+    cv::Mat prev_features(d_prev_features_);
+    cv::perspectiveTransform(prev_features, prev_features, homography);
+    d_prev_features_ = cv::Mat_<cv::Point2f>(prev_features);
+  }
 
   #if OPENCV_CUDA
-    cv::cuda::GpuMat transformedOldFrame;
-    cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
-    gLastMono = transformedOldFrame;
-    CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
+    if (gLastMono.total() > 0) {
+      cv::cuda::GpuMat transformedOldFrame;
+      cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
+      gLastMono = transformedOldFrame;
+      CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
+    }
   #else
-    cv::Mat transformedOldFrame;
-    cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
-    last_mono_ = transformedOldFrame;
-    CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
+    if (last_mono_.total() > 0) {
+      cv::Mat transformedOldFrame;
+      cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
+      last_mono_ = transformedOldFrame;
+      CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
+    }
   #endif
 
   // Only keep features that were matched in both frames
