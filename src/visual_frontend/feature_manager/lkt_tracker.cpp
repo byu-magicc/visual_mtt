@@ -144,17 +144,17 @@ bool LKTTracker::FindCorrespondences(const common::System& sys)
   if (gLastMono.total() > 0 && sys.using_imu_) {
     cv::cuda::GpuMat transformedOldFrame;
     cv::cuda::warpPerspective(gLastMono, transformedOldFrame, homography, gLastMono.size());
-    gLastMono = transformedOldFrame;
-    cv::buildOpticalFlowPyramid(gLastMono, last_pyramids_, pyramid_size_, 2);
+    cv::buildOpticalFlowPyramid(transformedOldFrame, last_pyramids_, pyramid_size_, 2);
   }
+  gLastMono = sys.GetCUDAFrame(common::MONO_CUDA).clone();
   CalculateFlow(sys.GetCUDAFrame(common::MONO_CUDA), d_curr_features, valid, sys);
   #else
   if (last_mono_.total() > 0 && sys.using_imu_) {
     cv::Mat transformedOldFrame;
     cv::warpPerspective(last_mono_, transformedOldFrame, homography, last_mono_.size());
-    last_mono_ = transformedOldFrame;//.clone();
-    cv::buildOpticalFlowPyramid(last_mono_, last_pyramids_, pyramid_size_, 2);
+    cv::buildOpticalFlowPyramid(transformedOldFrame, last_pyramids_, pyramid_size_, 2);
   }
+  last_mono_ = sys.GetFrame(common::MONO).clone();
   CalculateFlow(sys.GetFrame(common::MONO), d_curr_features, valid, sys);
   #endif
   

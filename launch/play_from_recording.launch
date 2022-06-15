@@ -16,7 +16,7 @@
   <arg name="compressed"  default="false" />
   <arg name="has_info"    default="true" />
   <arg name="hide_bag"    default="false" />
-  <arg name="gyro_topic"  default="" /> <!--This should be "base_topic_name" and not "base_topic_name/sample" -->
+  <arg name="gyro_topic"  default="" />
 
   <!-- camera parameters (video or rosbag that didn't record camera_info) -->
   <arg name="camera_name"     default="camera_sim" />
